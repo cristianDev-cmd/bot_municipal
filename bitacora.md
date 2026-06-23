@@ -2,6 +2,16 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Conversión de Documentos de Conocimiento a Formato Markdown (.md)
+
+### Cambios Realizados:
+- **Base de Conocimiento (Conocimiento):**
+  - Implementado un script parser de conversión batch para procesar de forma automatizada y local los archivos de conocimiento.
+  - Convertidos **10 archivos `.docx`** binarios a formato de texto plano estructurado **`.md` (Markdown)** en sus respectivas subcarpetas bajo `apex/conocimiento/`.
+  - Esta conversión mejora significativamente la calidad de indexación en la base vectorial Qdrant, ya que evita ruidos o pérdida de formato binarios, y facilita la segmentación de texto (chunking) estructurada basada en los encabezados.
+
+---
+
 ## [2026-06-23] - Diferenciación de Herramientas Qdrant Obras y Sincronización de Memoria en JSON
 
 ### Cambios Realizados:
