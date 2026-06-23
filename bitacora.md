@@ -2,6 +2,16 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Alternancia de Botones de Entrada del Chat puramente por CSS
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Implementada lógica de alternancia reactiva puramente en CSS en el archivo [styles_widget.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget.css).
+  - Usando la pseudoclase `:placeholder-shown` y el combinador hermano general (`~`), se define que cuando el input está vacío (`placeholder-shown`) se oculte `.enviar-btn` y se muestre `.chat-mic-btn`. Cuando el usuario escribe (`not(:placeholder-shown)`), se muestra `.enviar-btn` y se oculta `.chat-mic-btn`.
+  - Esta solución es 100% robusta, funciona a nivel de navegador y soluciona cualquier problema si la página del usuario tiene en caché versiones anteriores del script de JavaScript.
+
+---
+
 ## [2026-06-23] - Corrección de Desbordamiento Flexbox en Imágenes y Limpieza de CSS
 
 ### Cambios Realizados:

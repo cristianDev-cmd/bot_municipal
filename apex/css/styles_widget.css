@@ -618,3 +618,20 @@
     background: #dc2626;
     transform: scale(1.05);
 }
+
+/* --- ALTERNANCIA DE BOTONES MIC/ENVIAR EN CSS SEGÚN ENTRADA DE TEXTO --- */
+/* Cuando el input está vacío (el placeholder se muestra) */
+#userInput:placeholder-shown ~ .enviar-btn {
+    display: none !important;
+}
+#userInput:placeholder-shown ~ .chat-mic-btn {
+    display: flex !important;
+}
+
+/* Cuando el input tiene texto (el placeholder no se muestra) */
+#userInput:not(:placeholder-shown) ~ .enviar-btn {
+    display: flex !important;
+}
+#userInput:not(:placeholder-shown) ~ .chat-mic-btn {
+    display: none !important;
+}
