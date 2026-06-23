@@ -33,11 +33,11 @@ Palabras clave: consulta deuda, pagar tasas, rentas, boleta de la municipalidad,
 - "Veterinaria": Consultas sobre castraciones, vacunación antirrábica, turnos para mascotas y atención veterinaria básica.
 Palabras clave: castrar perro, castrar gato, vacunar mascota, turno veterinario, antirrabica, desparasitar.
 
-- "obras_general": Consultas de vecinos sobre trámites sencillos, infraestructura del departamento, bacheo, alumbrado, arbolado, limpieza, reclamos vecinales en la vía pública y los PASOS iniciales o turnos para empezar un expediente de obra.
-Palabras clave: turno previa, sacar turno, bacheo, pozo en la calle, foco quemado, arbol caido, poda, reclamo municipal, limpieza barrio, luminaria, cómo inicio el trámite, requisitos previa, dónde queda obras privadas.
+- "obras_general": Consultas de vecinos sobre cómo se hace o inicia cualquier trámite de obras (incluyendo previa, obra nueva, relevamiento, ampliaciones), requisitos iniciales, turnos para expedientes, infraestructura del departamento (bacheo, alumbrado, arbolado, limpieza) y reclamos vecinales en la vía pública. Usa SIEMPRE esta herramienta para saber cómo realizar o iniciar un trámite o expediente.
+Palabras clave: obra nueva, previa, relevamiento, de previa, ampliacion, turno previa, sacar turno, como inicio el tramite, requisitos previa, donde queda obras privadas, bacheo, luminaria, arbolado, reclamo.
 
-- "obras_tecnico": Consultas de profesionales (arquitectos, ingenieros, maestros mayores de obra) sobre normativas técnicas complejas, códigos de edificación, aprobación final de planos, zonificación y reglamentos constructivos de Las Heras.
-Palabras clave: codigo de edificacion, plano de mensura, expediente de obra, sistema de planos digitales, factor de ocupacion, fos, fot, estructura, cálculo de hormigón, reglamento de zonificación, requerimiento de planos, catastro.
+- "obras_tecnico": Consultas de profesionales sobre normativas técnicas muy complejas, códigos de edificación, zonificación, cálculos estructurales y especificaciones técnicas. Usa esta herramienta ÚNICAMENTE cuando la pregunta sea extremadamente técnica o específica de regulaciones de construcción. Para saber cómo se hace o inicia cualquier trámite de obra, debes usar siempre la herramienta "obras_general".
+Palabras clave: codigo de edificacion, factor de ocupacion, fos, fot, calculo de hormigon, reglamento de zonificacion, planos de mensura, catastro tecnico.
 
 - "juzgado_vial": Consultas sobre multas de tránsito, fotomultas, descargos, apelaciones y restitución de vehículos.
 Palabras clave: multas de transito, fotomulta, consultar patentes, descargo de multa, secuestro de auto, choque.

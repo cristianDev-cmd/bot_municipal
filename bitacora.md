@@ -2,6 +2,18 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Optimización de Selección de Herramientas de Obras en n8n y System Prompt
+
+### Cambios Realizados:
+- **System Prompt (`n8n/systempromt.md`):**
+  - Ajustadas las descripciones y palabras clave de `obras_general` y `obras_tecnico`.
+  - Se indicó explícitamente al LLM que `obras_tecnico` debe consultarse **únicamente** para preguntas muy específicas y técnicas de profesionales (normativas de edificación, FOS/FOT, cálculo estructural).
+  - Se instruyó al LLM a consultar **siempre** `obras_general` para saber cómo realizar o comenzar cualquier trámite o expediente (como previa, obra nueva o relevamiento), evitando llamadas innecesarias a múltiples nodos de Qdrant.
+- **Workflow Asesor (`Subworkflow - Asesor (23-6-2026).json`):**
+  - Modificadas las propiedades `toolDescription` de los nodos `obras_general` y `obras_tecnico` con las mismas directrices del System Prompt para asegurar coherencia y forzar el enrutamiento correcto del agente de LangChain.
+
+---
+
 ## [2026-06-23] - Enlace y Ejemplo de Previa de Obras en Obras.md
 
 ### Cambios Realizados:

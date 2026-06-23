@@ -1717,7 +1717,7 @@
     {
       "parameters": {
         "mode": "retrieve-as-tool",
-        "toolDescription": "Busca información sobre trámites de obras privadas para vecinos, incluyendo pasos iniciales y turnos para expedientes de obra (ej. previa, obra nueva, ampliaciones, relevamientos), requisitos de edificación, catastro y reclamos vecinales en la vía pública (bacheo, luminaria, arbolado, poda, limpieza). Usa esta herramienta para consultas de vecinos sobre cómo iniciar un trámite de obra, requisitos de previa, sacar turno de previa o reclamos urbanos.",
+        "toolDescription": "Busca información sobre cómo se hace o inicia cualquier trámite de obras privadas para vecinos (ej. previa, obra nueva, ampliaciones, relevamientos), requisitos iniciales, turnos y reclamos de servicios públicos (bacheo, luminaria, poda, limpieza). Usa SIEMPRE esta herramienta para consultas sobre cómo realizar o comenzar un trámite de obra o expediente de vecinos.",
         "qdrantCollection": {
           "__rl": true,
           "value": "chat_municipalidad_las_heras_nube_2",
@@ -1749,7 +1749,7 @@
     {
       "parameters": {
         "mode": "retrieve-as-tool",
-        "toolDescription": "Busca información técnica para profesionales (arquitectos, ingenieros, maestros mayores de obra) sobre normativas complejas de edificación de Las Heras, códigos constructivos y de edificación, zonificación, aprobación de planos y reglamentos técnicos. Usa esta herramienta cuando un profesional consulte por el código de edificación municipal, FOS, FOT, factibilidad de construcción técnica o aprobación final de planos.",
+        "toolDescription": "Busca información técnica y normativa para profesionales (arquitectos, ingenieros) sobre códigos de edificación complejos de Las Heras, zonificación, FOS, FOT, cálculos estructurales y aprobación de planos. Usa esta herramienta ÚNICAMENTE cuando la pregunta sea muy técnica y específica. Para saber cómo se hace o inicia cualquier trámite, usa siempre obras_general.",
         "qdrantCollection": {
           "__rl": true,
           "value": "memoriaNube2",
