@@ -4,6 +4,18 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Carga del Widget para Oracle APEX
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Agregado el archivo de estilos personalizados [styles_widget.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget.css) con animaciones, diseño móvil y áreas de interacción.
+  - Agregado el archivo de estructura [widget.html](file:///c:/Users/PC/Desktop/Agente_municipal/apex/html/widget.html) que compone la interfaz visual del chat, controles superiores, botones y área de mensajes.
+  - Agregado el script de lógica [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) que maneja las sesiones, eventos del chat, grabación de audio, calificaciones por estrellas e integración con el Webhook de n8n.
+- **Control de Versiones:**
+  - Se realizó el commit en español y push correspondiente de los archivos del frontend de APEX.
+
+---
+
 ## [2026-06-23] - Vinculación del Repositorio de GitHub
 
 ### Cambios Realizados:
