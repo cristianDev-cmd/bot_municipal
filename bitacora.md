@@ -4,6 +4,17 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Vinculación del Repositorio de GitHub
+
+### Cambios Realizados:
+- **Control de Versiones (Git):**
+  - Inicializado el repositorio Git local en la raíz del proyecto.
+  - Vinculado el repositorio remoto `origin` apuntando a [bot_municipal](https://github.com/cristianDev-cmd/bot_municipal).
+  - Configurada la rama por defecto a `main`.
+  - Realizado el primer commit inicial con toda la estructura de archivos y configuraciones.
+
+---
+
 ## [2026-06-23] - Estructuración Inicial y Reglas de Documentación
 
 ### Cambios Realizados:
