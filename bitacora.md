@@ -2,6 +2,14 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Creación de Rama de Preproducción
+
+### Cambios Realizados:
+- **Gestión de Repositorio:**
+  - Creada la rama `preproduccion` localmente y subida al repositorio remoto (`origin/preproduccion`) para aislar los nuevos desarrollos antes de impactar en el entorno de producción vinculado a n8n.
+
+---
+
 ## [2026-06-23] - Optimización de Selección de Herramientas de Obras en n8n y System Prompt
 
 ### Cambios Realizados:
