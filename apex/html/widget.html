@@ -1,0 +1,77 @@
+<h1>PRUEBA BOT DE LA MUNICIPALIDAD DE LAS HERAS</h1>
+
+<audio id="soundSend" src="https://web6.lasheras.gob.ar/apex/gumuser/escudo/img/8" preload="auto"></audio>
+<audio id="soundReceive" src="https://web6.lasheras.gob.ar/apex/gumuser/escudo/img/7" preload="auto"></audio>
+<audio id="soundTyping" src="https://web6.lasheras.gob.ar/apex/gumuser/escudo/img/9" preload="auto" loop></audio>
+
+<button id="chatLauncher" title="Abrir Asistente" type="button">
+    <div class="pulse-ring"></div>
+    <div class="image-container swing-animation">
+        <img class="bot_flotante" src="https://lasheras.gob.ar/wp-content/uploads/2026/03/gregorio.jpeg" alt="Chat">
+    </div>
+    <div id="notificationBadge" class="notification-badge hidden">0</div>
+</button>
+
+<div id="chatWidget" class="chat-container hidden">
+    <div class="chat-header">
+        <div class="header-info">
+            <img src="https://lasheras.gob.ar/wp-content/uploads/2026/03/gregorio.jpeg" class="header-avatar">
+            <div class="header-text">
+                <span class="bot-name">Asistente Virtual</span>
+                <span class="muni-name">Muni. Las Heras</span>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button id="btnHome" title="Menú Principal" class="header-btn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M9 14L4 9l5-5"></path>
+                    <path d="M4 9h10c4 0 7 3 7 7v1"></path>
+                </svg>
+            </button>
+            <button id="btnClear" title="Limpiar Chat" class="header-btn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+            <button id="btnClose" title="Cerrar" class="header-btn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="chatMessages" class="chat-messages">
+    </div>
+
+    <div class="chat-input-area">
+        <div id="textInputContainer" class="input-mode active">
+            <input id="userInput" type="text" placeholder="Escribe un mensaje..." autocomplete="off" />
+            <button id="btnSend" class="enviar-btn" type="button" title="Enviar">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                </svg>
+            </button>
+            <button id="btnMic" type="button" class="chat-mic-btn">🎤</button>
+            <button id="btnCancelAudio" type="button" class="chat-cancel-btn" title="Cancelar grabación"
+                style="display: none;"></button>
+        </div>
+
+        <div id="ratingContainer" class="input-mode rating-mode">
+            <span class="rating-text">¿Te fue útil la ayuda?</span>
+            <div class="stars">
+                <span class="star" data-value="1">★</span>
+                <span class="star" data-value="2">★</span>
+                <span class="star" data-value="3">★</span>
+                <span class="star" data-value="4">★</span>
+                <span class="star" data-value="5">★</span>
+            </div>
+            <button id="closeRating" class="close-rating-btn" title="Omitir">✕</button>
+        </div>
+    </div>
+</div>
