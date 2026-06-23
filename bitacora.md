@@ -4,6 +4,17 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Ajuste de Estilos del Micrófono en styles_widget.css
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Ajustados los estilos del botón de micrófono (`.chat-mic-btn`) en [styles_widget.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget.css) para optimizar la transición (`transition: transform 0.1s !important`), configurar el relleno y añadir el estado `:hover`.
+  - Eliminados los estilos redundantes del botón de cancelar audio (`.chat-cancel-btn`) en este archivo para evitar duplicidades de estilo.
+- **Control de Versiones:**
+  - Realizado commit y push de las modificaciones en los estilos.
+
+---
+
 ## [2026-06-23] - Instalación Global de la Skill responsive-design
 
 ### Cambios Realizados:
