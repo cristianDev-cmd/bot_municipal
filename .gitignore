@@ -26,5 +26,6 @@ desktop.ini
 *.sw?
 
 # Agente Local (Gemini / Antigravity)
-.agents/
-skills-lock.json
+.agents/*
+!.agents/AGENTS.md
+!skills-lock.json
