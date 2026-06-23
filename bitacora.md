@@ -8,6 +8,7 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 - **Base de Conocimiento (Conocimiento):**
   - Se agregó la URL del trámite de Previa, Obra Nueva o Relevamiento (`https://web6.lasheras.gob.ar/apex/f?p=125:25`) en el archivo [Obras.md](file:///c:/Users/PC/Desktop/Agente_municipal/apex/conocimiento/Obras_general/Obras.md).
   - Se agregó un ejemplo simple de consulta/respuesta sobre "previa" en la sección de Preguntas Frecuentes del mismo archivo para optimizar la búsqueda semántica.
+  - Se mejoró el formato y espaciado de las Reglas y Preguntas Frecuentes en [Obras.md](file:///c:/Users/PC/Desktop/Agente_municipal/apex/conocimiento/Obras_general/Obras.md), introduciendo saltos de línea y líneas de división (`---`) para evitar que el contenido se compacte y optimizar su lectura tanto para humanos como para motores RAG/Qdrant.
 
 ---
 
