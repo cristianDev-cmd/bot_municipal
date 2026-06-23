@@ -4,6 +4,16 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Estilos de Respaldo en HTML (Avatar Gigante)
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Añadido un bloque `<style>` de respaldo y a prueba de fallos directamente en [widget.html](file:///c:/Users/PC/Desktop/Agente_municipal/apex/html/widget.html) para controlar el tamaño y la posición `fixed` del botón flotante y el avatar. Esto previene que si el archivo de estilos externo (`styles_widget.css`) falla al cargarse por problemas de red o caché, la imagen del avatar aparezca gigante rompiendo el diseño de la página.
+- **Control de Versiones:**
+  - Realizado commit y push del fix con el mensaje: `fix: agregar estilos CSS de seguridad en linea para evitar avatar gigante`.
+
+---
+
 ## [2026-06-23] - Corrección de Inicialización de JS para Oracle APEX
 
 ### Cambios Realizados:
