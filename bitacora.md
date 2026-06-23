@@ -9,6 +9,7 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
   - Creada la rama `preproduccion` localmente y subida al repositorio remoto (`origin/preproduccion`) para aislar los nuevos desarrollos antes de impactar en el entorno de producción vinculado a n8n.
   - Modificado `.gitignore` para exceptuar y permitir el seguimiento del archivo de reglas locales `.agents/AGENTS.md` y del archivo de dependencias `skills-lock.json`.
   - Añadido y subido `skills-lock.json` al repositorio en la rama `preproduccion` para permitir la reinstalación automática de todas las skills en otras máquinas de desarrollo.
+  - Instalada la skill `n8n-workflow-architect` desde el repositorio `promptadvisers/n8n-powerhouse` y registrada en `skills-lock.json` para dar soporte al diseño de flujos en n8n.
 
 ---
 

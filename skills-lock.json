@@ -463,6 +463,12 @@
       "skillPath": "plugins/agent-teams/skills/multi-reviewer-patterns/SKILL.md",
       "computedHash": "aa427e8fc8bd561e35c1528b7149cd4b17b4c24bbaeffbf8f5ff3cdf65b354b5"
     },
+    "n8n-workflow-architect": {
+      "source": "promptadvisers/n8n-powerhouse",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/n8n-workflow-architect/SKILL.md",
+      "computedHash": "de17966f059e4f3170c4029d587188899cb4a5b90cb7ebf990e09e9a35f1e6c1"
+    },
     "nextjs-app-router-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
