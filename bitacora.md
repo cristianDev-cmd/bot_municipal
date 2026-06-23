@@ -7,6 +7,8 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 ### Cambios Realizados:
 - **Gestión de Repositorio:**
   - Creada la rama `preproduccion` localmente y subida al repositorio remoto (`origin/preproduccion`) para aislar los nuevos desarrollos antes de impactar en el entorno de producción vinculado a n8n.
+  - Modificado `.gitignore` para exceptuar y permitir el seguimiento del archivo de reglas locales `.agents/AGENTS.md` y del archivo de dependencias `skills-lock.json`.
+  - Añadido y subido `skills-lock.json` al repositorio en la rama `preproduccion` para permitir la reinstalación automática de todas las skills en otras máquinas de desarrollo.
 
 ---
 
