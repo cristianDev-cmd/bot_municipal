@@ -4,6 +4,17 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Estilos del Botón de Micrófono en styles_widget.css
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Modificado [styles_widget.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget.css) para incorporar estilos específicos a la clase `.chat-mic-btn` (botón de micrófono). Esto soluciona la visualización por defecto en APEX (gris rectangular) y hace que se muestre redondo y de color naranja, consistente con la estética del botón de enviar.
+  - Añadidos estilos para la clase `.recording-active` con su respectiva animación de pulso (`pulseMic`) para indicar visualmente el estado de grabación de voz en rojo brillante.
+- **Control de Versiones:**
+  - Realizado commit y push del fix con el mensaje: `fix: agregar estilos de microfono naranja redondo a styles_widget.css`.
+
+---
+
 ## [2026-06-23] - Fusión de Hojas de Estilos CSS
 
 ### Cambios Realizados:
