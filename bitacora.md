@@ -2,6 +2,14 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Creación de Nodo de Prueba en Asesor
+
+### Cambios Realizados:
+- **Subworkflow Asesor:**
+  - Creado un nuevo archivo de script vacío [Code de prueba.js](file:///c:/Users/PC/Desktop/Agente_municipal/n8n/workflows/Subworkflow%20-%20Asesor/nodo-codes/Code%20de%20prueba.js).
+  - Añadida la definición del nodo `"Code de prueba"` de tipo `n8n-nodes-base.code` en el archivo [Subworkflow - Asesor (23-6-2026).json](file:///c:/Users/PC/Desktop/Agente_municipal/n8n/workflows/Subworkflow%20-%20Asesor/Subworkflow%20-%20Asesor%20(23-6-2026).json) posicionado después de `"Append row in sheet"`.
+  - Configurada la conexión de salida de `"Append row in sheet"` para que apunte a `"Code de prueba"`.
+
 ---
 
 ## [2026-06-23] - Auditoría Completa del Sistema n8n y Correcciones
