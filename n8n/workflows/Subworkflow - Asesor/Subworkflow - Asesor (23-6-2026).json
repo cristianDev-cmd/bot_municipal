@@ -1484,19 +1484,6 @@
     },
     {
       "parameters": {
-        "jsCode": "return $input.all();"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        4250,
-        -144
-      ],
-      "id": "c3e9a5d1-9f20-4e3a-bf41-7c9b20b2f6ef",
-      "name": "Code de prueba"
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
@@ -2397,17 +2384,6 @@
       ]
     },
     "Append row in sheet": {
-      "main": [
-        [
-          {
-            "node": "Code de prueba",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code de prueba": {
       "main": [
         []
       ]

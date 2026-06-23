@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Eliminación de Nodo de Prueba en Asesor
+
+### Cambios Realizados:
+- **Subworkflow Asesor:**
+  - Eliminado el archivo temporal [Code de prueba.js](file:///c:/Users/PC/Desktop/Agente_municipal/n8n/workflows/Subworkflow%20-%20Asesor/nodo-codes/Code%20de%20prueba.js).
+  - Removido el nodo `"Code de prueba"` del archivo [Subworkflow - Asesor (23-6-2026).json](file:///c:/Users/PC/Desktop/Agente_municipal/n8n/workflows/Subworkflow%20-%20Asesor/Subworkflow%20-%20Asesor%20(23-6-2026).json) y restauradas las conexiones de `"Append row in sheet"` a su estado original sin salidas.
+
+---
+
 ## [2026-06-23] - Creación de Nodo de Prueba en Asesor
 
 ### Cambios Realizados:
