@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Corrección de Desbordamiento Flexbox en Imágenes y Limpieza de CSS
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Añadido `min-width: 0 !important` y `box-sizing: border-box !important` al selector `.message` en [styles_widget.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget.css). Esto soluciona el comportamiento por defecto de Flexbox (`min-width: auto`) que impedía a los globos de mensajes contraerse por debajo del ancho natural de las imágenes grandes, eliminando la aparición de barras de desplazamiento horizontal.
+  - Eliminado el archivo redundante `styles_widget_apex.css` a petición implícita del usuario, manteniendo únicamente [styles_widget.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget.css).
+
+---
+
 ## [2026-06-23] - Corrección de Estilos en Imagen de Chat y Alternancia de Micrófono
 
 ### Cambios Realizados:

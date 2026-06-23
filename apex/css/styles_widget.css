@@ -355,7 +355,9 @@
 }
 
 .message {
-    max-width: 85%;
+    max-width: 85% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
     padding: 10px 14px;
     border-radius: 12px;
     margin-bottom: 10px;
