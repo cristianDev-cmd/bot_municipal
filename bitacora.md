@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Enlace y Ejemplo de Previa de Obras en Obras.md
+
+### Cambios Realizados:
+- **Base de Conocimiento (Conocimiento):**
+  - Se agregó la URL del trámite de Previa, Obra Nueva o Relevamiento (`https://web6.lasheras.gob.ar/apex/f?p=125:25`) en el archivo [Obras.md](file:///c:/Users/PC/Desktop/Agente_municipal/apex/conocimiento/Obras_general/Obras.md).
+  - Se agregó un ejemplo simple de consulta/respuesta sobre "previa" en la sección de Preguntas Frecuentes del mismo archivo para optimizar la búsqueda semántica.
+
+---
+
 ## [2026-06-23] - Conversión de Documentos de Conocimiento a Formato Markdown (.md)
 
 ### Cambios Realizados:
