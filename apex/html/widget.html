@@ -1,3 +1,37 @@
+<!-- Estilos de seguridad preventivos en caso de fallo del CSS externo -->
+<style>
+    #chatLauncher {
+        position: fixed !important;
+        bottom: 30px !important;
+        right: 30px !important;
+        width: 70px !important;
+        height: 70px !important;
+        z-index: 99990 !important;
+        border: none !important;
+        background: none !important;
+        padding: 0 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        cursor: pointer !important;
+    }
+    #chatLauncher .image-container {
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 50% !important;
+        overflow: hidden !important;
+        border: 3px solid #e94e20 !important;
+        background: #fff !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+    }
+    #chatLauncher .bot_flotante {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        display: block !important;
+    }
+</style>
+
 <h1>PRUEBA BOT DE LA MUNICIPALIDAD DE LAS HERAS</h1>
 
 <audio id="soundSend" src="https://web6.lasheras.gob.ar/apex/gumuser/escudo/img/8" preload="auto"></audio>
