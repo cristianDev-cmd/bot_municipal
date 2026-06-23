@@ -4,6 +4,17 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Fusión de Hojas de Estilos CSS
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Realizada la fusión completa de `styles_widget.css` y `styles_widget_apex.css` en un único archivo integrado: [styles_widget_apex.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget_apex.css).
+  - El diseño consolidado implementa la estética oscura (`#020617`), mejora el contraste del texto del bot (`#f8fafc`), recupera la animación de balanceo del avatar flotante, integra todas las clases interactivas del chat (estrellas de valoración, micrófono, indicador de escritura) y corrige el centrado del avatar en el botón flotante.
+- **Control de Versiones:**
+  - Realizado commit y push del archivo fusionado con el mensaje: `fix: fusionar estilos CSS de widget y APEX en un unico archivo integrado`.
+
+---
+
 ## [2026-06-23] - Carga de Nuevos Estilos CSS para APEX
 
 ### Cambios Realizados:
