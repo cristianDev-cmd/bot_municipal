@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Diferenciación de Herramientas Qdrant Obras y Sincronización de Memoria en JSON
+
+### Cambios Realizados:
+- **Subworkflow Asesor (JSON):**
+  - **Diferenciadas las descripciones** de las herramientas `obras_general` y `obras_tecnico` en el archivo [Subworkflow - Asesor (23-6-2026).json](file:///c:/Users/PC/Desktop/Agente_municipal/n8n/workflows/Subworkflow%20-%20Asesor/Subworkflow%20-%20Asesor%20(23-6-2026).json). Anteriormente tenían la misma descripción genérica, lo que provocaba que el modelo de IA pudiera invocar `obras_tecnico` (que consulta la colección `memoriaNube2`) en lugar de `obras_general` (que consulta la colección correcta `chat_municipalidad_las_heras_nube_2` para trámites sencillos de vecinos como la "previa").
+  - **Sincronizado el script de "Preparar Memoria"** dentro del JSON del subworkflow para reflejar el aumento a 10 líneas de historial (5 interacciones) que ya se había modificado en el archivo `.js` independiente, garantizando que al importar el JSON en n8n el cambio tome efecto real.
+
+---
+
 ## [2026-06-23] - Alternancia de Botones de Entrada del Chat puramente por CSS
 
 ### Cambios Realizados:
