@@ -4,6 +4,16 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Corrección de Inicialización de JS para Oracle APEX
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Modificado [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) para diferir la selección de elementos del DOM y el enlace de eventos mediante el evento `DOMContentLoaded`. Esto previene fallos al cargar el script en Oracle APEX si se inyecta antes de que el cuerpo HTML del widget esté renderizado.
+- **Control de Versiones:**
+  - Realizado commit y push del fix con el mensaje: `fix: inicializacion diferida del JS con DOMContentLoaded para Oracle APEX`.
+
+---
+
 ## [2026-06-23] - Carga del Widget para Oracle APEX
 
 ### Cambios Realizados:
