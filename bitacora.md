@@ -4,6 +4,34 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Auditoría Completa del Sistema n8n y Correcciones
+
+### Análisis Realizado:
+- **Auditoría exhaustiva** de los workflows JSON del Orquestador Principal y Subworkflow Asesor, todos los nodos Code (26 archivos .js), y el System Prompt completo.
+- Identificados 8 problemas categorizados por severidad (1 crítico, 7 importantes).
+
+### Cambios Implementados:
+
+#### System Prompt (`n8n/systempromt.md`):
+- Eliminada línea interna de instrucción al modelo ("Siempre entra al nodo de chat model").
+- Corregidos typos: `inmpuesto muinipal` → `impuesto municipal`, `Gregorado` → `Gregorio`, coma suelta al final de palabras clave de rentas.
+- Clarificada regla de emojis: prohibidos en texto de respuestas, permitidos en labels de botones JSON.
+- Agregado guardrail de seguridad: regla para rechazar amablemente consultas que no sean municipales.
+
+#### Herramientas Qdrant (JSON del workflow Asesor):
+- Diferenciadas las descripciones de las 9 herramientas que tenían descripción genérica idéntica. Cada herramienta ahora tiene una descripción específica para su área temática.
+- Agregado `topK: 3` a `licencia_conducir` que no tenía definido.
+
+#### Memoria Conversacional (`Preparar Memoria.js`):
+- Aumentado el historial de 6 líneas (3 interacciones) a 10 líneas (5 interacciones) para mejorar el contexto del modelo.
+
+### Pendiente (requiere acción en n8n UI):
+- **API Key de Gemini TTS** expuesta en el nodo HTTP Request del workflow. Debe moverse a credenciales de n8n.
+- Archivos duplicados (`*1.js`) pendientes de revisión y limpieza.
+- Nodo "retorno a workflow principal" deshabilitado en el Asesor.
+
+---
+
 ## [2026-06-23] - Ajuste de Estilos del Micrófono en styles_widget.css
 
 ### Cambios Realizados:

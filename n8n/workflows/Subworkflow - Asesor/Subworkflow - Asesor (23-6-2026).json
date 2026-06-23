@@ -1,0 +1,2518 @@
+{
+  "name": "Subworkflow - Asesor",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        -272
+      ],
+      "id": "656c4802-1623-4dd4-b875-0ba0042fec53",
+      "name": "Execute Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('mensaje  entrante').item.json.mensaje }}\n\n",
+        "options": {
+          "systemMessage": "={{ $json.Leer_Prompt }}\n\n# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\n",
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2704,
+        96
+      ],
+      "id": "76f6f198-3f70-451f-8217-f64339f0e49c",
+      "name": "AI Agent",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-001"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3264,
+        736
+      ],
+      "id": "f6981608-3272-4263-ab3d-446153ad7ae2",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TJT5hBm62dkAuSYR",
+          "name": "Google Gemini(PaLM) Claudio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 🤖 LÓGICA SUB-WORKFLOW: GREGORIO (ASESOR)\n// ==========================================\n\nconst items = $input.all();\nconst mergedData = Object.assign({}, ...items.map(i => i.json));\n\nconst datosParaSub = mergedData.datosParaSub || {};\nconst fase = datosParaSub.fase || 'INICIO'; \nlet sessionId = mergedData.sessionId || datosParaSub.sessionId || '';\nlet chatInput = mergedData.chatInput || '';\n\nlet reply = '';\nlet options = [];\nlet ir_a_ia = false;\nlet accion_local = 'ASESOR_GREGORIO';\n\n// 🚨 VALIDACIÓN DE ENTRADA: MENU o INICIO disparan el saludo\nif (fase === 'MENU' || fase === 'INICIO') {\n    \n    // 🕰️ Obtener la hora actual asegurando la zona horaria correcta\n    let opcionesHora = { timeZone: 'America/Argentina/Mendoza', hour: 'numeric', hour12: false };\n    let horaActual = parseInt(new Intl.DateTimeFormat('es-AR', opcionesHora).format(new Date()));\n    \n    // 🌤️ Lógica del saludo\n    let saludo = 'Buenos días';\n    if (horaActual >= 12 && horaActual < 20) {\n        saludo = 'Buenas tardes';\n    } else if (horaActual >= 20 || horaActual < 6) {\n        saludo = 'Buenas noches';\n    }\n\n    reply = `¡${saludo}! ¿En qué puedo ayudarlo? Al finalizar le voy a enviar una encuesta de satisfacción para permitirnos conocer su opinión y mejorar el servicio.`;\n    \n    options = [\n        { label: \"🔙 Volver al inicio\", nodoId: \"MAIN\", trackingId: 100 }\n    ];\n    \n    ir_a_ia = false;\n    accion_local = 'SALUDO_INICIAL';\n}\nelse {\n    // Si la fase es distinta (ej: ESPERANDO_ASESOR), activamos la IA\n    ir_a_ia = true;\n    accion_local = 'CONSULTA_IA';\n}\n\nreturn [{\n    json: {\n        reply: reply,\n        options: options,\n        ir_a_ia: ir_a_ia,\n        accion: accion_local,\n        sessionId: sessionId,\n        chatInput: chatInput, // Pasamos el mensaje del vecino al siguiente nodo\n        fase: 'CHAT'\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -816,
+        -272
+      ],
+      "id": "1855dec3-9f06-4604-9528-71dd8e56aacd",
+      "name": "logica asesor"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 🔄 RESTAURAR MENSAJE Y BOTONES\n// ==========================================\n\n// 1. Buscamos los datos que generó el nodo de lógica (antes de Oracle)\n// CAMBIA 'Desarrollo Social' POR EL NOMBRE EXACTO DE TU NODO ANTERIOR\nconst datosOriginales = $('logica asesor').first().json; \n\n// 2. Devolvemos la respuesta visual (Texto + Botón Volver)\nreturn [{\n  json: {\n    reply: datosOriginales.reply,\n    options: datosOriginales.options\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -368
+      ],
+      "id": "68513ef7-a01f-4745-b912-7888fdde6c8c",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca información sobre CUD (Certificado Único de Discapacidad), asistencia social, programas de familia, hábitat y pensiones. Usa esta herramienta cuando el vecino pregunte por ayuda social, discapacidad, desarrollo social o programas familiares.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 2,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"desarrollo_social\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        2448,
+        576
+      ],
+      "id": "42fe60f5-e86e-4d74-89d2-eb5ab040d058",
+      "name": "desarrollo_social",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca información sobre pago de tasas municipales, deudas de inmueble, deudas de comercio, boletas, unidad tributaria e impuesto municipal. Usa esta herramienta cuando el vecino pregunte por deudas, tasas, boletas o pagos municipales.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 2,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"rentas\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        2560,
+        448
+      ],
+      "id": "499eef8e-804a-4a3d-affc-36213758100b",
+      "name": "rentas",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca información sobre el Intendente Francisco Lo Presti, autoridades municipales, boletín oficial, decretos, organigrama, sueldos y transparencia institucional. Usa esta herramienta cuando el vecino pregunte por autoridades, funcionarios o documentos oficiales.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 2,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"transparencia_institucional\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        2752,
+        560
+      ],
+      "id": "e080f9ba-4094-4115-9940-db1b0d5701d4",
+      "name": "transparencia_institucional",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca información sobre carnet de conducir, renovación de licencia, turnos para licencia, duplicados, CENAT, cursos de educación vial y boleto de pago de tasas correspondiente al trámite de licencia. Usa esta herramienta cuando el vecino pregunte por carnet, licencia o manejo.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 3,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"licencia_conducir\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        2896,
+        448
+      ],
+      "id": "76cc30df-a914-431f-8dae-46d88af590b1",
+      "name": "licencia_conducir",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca información sobre castración de mascotas, vacunación antirrábica, turnos veterinarios y atención veterinaria municipal gratuita. Usa esta herramienta cuando el vecino pregunte por perros, gatos, mascotas o servicios veterinarios.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 2,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"veterinaria\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        3056,
+        544
+      ],
+      "id": "3d55f4ba-4a81-4666-aae8-23df3606e630",
+      "name": "Veterinaria",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca información sobre multas de tránsito, fotomultas, consulta de infracciones por patente, descargos de multas, secuestro y restitución de vehículos. Usa esta herramienta cuando el vecino pregunte por multas, choques, infracciones de tránsito o juzgado vial.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 2,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"juzgado_vial\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        3360,
+        544
+      ],
+      "id": "3cd408f3-2015-497a-8df9-19c5156f8fc4",
+      "name": "juzgado_vial",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca información sobre polideportivos, escuela de verano, inscripción a colonias, natación, fútbol, credencial deportiva, turnos de psicólogo y bienestar integral. Usa esta herramienta cuando el vecino pregunte por deporte, actividades recreativas o bienestar.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 2,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"deporte_bien_estar\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        3552,
+        448
+      ],
+      "id": "d9e03fde-1ba1-49ee-8bee-87466ce2c581",
+      "name": "deporte_bien_estar",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca información sobre habilitaciones comerciales, factibilidad, alta de usuario web, OALES, expediente electrónico y mesa de entrada virtual. Usa esta herramienta cuando el vecino pregunte por trámites a distancia, expedientes electrónicos o habilitación de comercio.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 2,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"tramite_a_distancia\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        3184,
+        448
+      ],
+      "id": "9bf87feb-e9c4-45ae-9455-85f35636f739",
+      "name": "tramite_distancia",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        336
+      ],
+      "id": "58a5ae3a-a8a7-47e7-a92c-77a7b4d03078",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TJT5hBm62dkAuSYR",
+          "name": "Google Gemini(PaLM) Claudio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Recuperamos el historial antiguo del nodo Redis ('Leer_Historial')\nlet historialCrudo = $('Leer_Historial').first().json.propertyName;\nlet historial = [];\n\n// Validamos si historialCrudo existe y qué formato tiene\nif (historialCrudo) {\n    if (typeof historialCrudo === 'string') {\n        try {\n            historial = JSON.parse(historialCrudo);\n        } catch(e) {\n            historial = []; // Si falla, arrancamos desde cero\n        }\n    } else if (Array.isArray(historialCrudo)) {\n        historial = historialCrudo;\n    }\n}\n\n// 2. Recuperamos los datos del flujo actual\nconst inputData = $input.first().json;\n\n// ==========================================\n// NUEVO: RECUPERAR MENSAJE DEL VECINO\n// ==========================================\nlet inputReal = \"\";\n\ntry {\n    // 1ro: Intentamos atrapar el mensaje limpio del nodo 'transcripción'\n    inputReal = $('transcripción').first().json.mensaje;\n} catch (e) {}\n\n// 2do: Si no lo encontró ahí (o si tiene la etiqueta de audio falsa), buscamos en 'Edit Fields'\nif (!inputReal || inputReal.includes(\"[Mensaje de voz enviado]\")) {\n    try {\n        let textoEdit = $('set variables').first().json.mensaje;\n        if (textoEdit && !textoEdit.includes(\"[Mensaje de voz enviado]\")) {\n            inputReal = textoEdit;\n        }\n    } catch (e) {}\n}\n\n// Limpiamos y preparamos el mensaje final\nlet mensajeUsuario = (inputReal && inputReal.trim() !== \"\") ? inputReal.trim() : \"hola\";\n\n// ==========================================\n\n// Recuperamos la respuesta de texto del bot\nlet respuestaBot = inputData.output || inputData.reply || inputData.mensaje || \"\";\n\n// Recuperamos el audio generado (si el flujo pasó por el camino de arriba)\nlet audioBot = null;\ntry {\n    audioBot = $('prepara audio').first().json.audio_respuesta || null;\n} catch (e) {\n    audioBot = null;\n}\n\n// 3. Añadimos la nueva interacción al array de memoria (A Redis solo va texto, nunca audio)\nif (mensajeUsuario) {\n    historial.push(`Vecino: ${mensajeUsuario}`);\n}\nif (respuestaBot) {\n    historial.push(`Gregorio: ${respuestaBot}`);\n}\n\n// 4. CONTROL DE TOKENS: Limitamos a las últimas 6 líneas (3 interacciones)\nif (historial.length > 6) {\n    historial = historial.slice(-6);\n}\n\n// 5. Retornamos la memoria y empaquetamos TODO para el final\nreturn [{\n    json: {\n        // Los tres puntos (...) \"desparraman\" todas las variables originales (sessionId, trackingId, etc.) \n        // para que no se pierdan en el camino hacia tu webhook final.\n        ...inputData, \n        \n        guardar_en_redis: historial, \n        value_texto: historial.join('\\n'), \n        reply: respuestaBot,\n        audio_respuesta: audioBot // Dejamos la variable lista para tu front-end\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5824,
+        128
+      ],
+      "id": "6db99439-4de8-48a9-8a45-3b97cbc16d53",
+      "name": "Preparar Memoria"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "={{ $json.sessionId }}_historial",
+        "keyType": "string",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -176
+      ],
+      "id": "958df641-f999-4318-a60b-c18e73976346",
+      "name": "Leer_Historial",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "Transcribe exactamente lo que dice este archivo de audio. No agregues introducciones, comentarios ni comillas, solo devuelve el texto puro de lo que dice el usuario en el idioma original.",
+        "inputType": "binary",
+        "binaryPropertyName": "audioData",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        704,
+        -352
+      ],
+      "id": "df51fb96-8399-48ca-9be4-5500f2acd10d",
+      "name": "Analyze audio",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TJT5hBm62dkAuSYR",
+          "name": "Google Gemini(PaLM) Claudio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5ff35512-d40e-4b32-aed1-b5f573715e37",
+              "leftValue": "={{ $('set variables').item.json.audio }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4944,
+        112
+      ],
+      "id": "99cf9307-6197-422d-9712-334d5ede2e31",
+      "name": "verifica audio"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Obtenemos la respuesta de Gregorio\nlet textoOriginal = $input.first().json.output || \"\";\nlet textoParaChat = textoOriginal;\nlet botonesExtraidos = [];\n\n// 2. Limpieza de bloques de código Markdown (por si la IA los agrega)\ntextoParaChat = textoParaChat.replace(/```json/gi, '').replace(/```/g, '');\n\n// 3. ASPIRADORA SELECTIVA: Buscamos objetos que parezcan botones\n// Esta regex busca patrones de { \"label\": ... }\nconst regexBotones = /\\{\\s*[\"']label[\"']\\s*:[\\s\\S]*?\\}/g;\nlet coincidencias = textoOriginal.match(regexBotones);\n\nif (coincidencias) {\n    coincidencias.forEach(jsonString => {\n        // Borramos el JSON del texto del chat\n        textoParaChat = textoParaChat.replace(jsonString, '');\n        \n        try {\n            // Arreglamos comillas simples y parseamos\n            let jsonArreglado = jsonString.replace(/'/g, '\"');\n            let objBoton = JSON.parse(jsonArreglado);\n            botonesExtraidos.push(objBoton);\n        } catch (e) {\n            console.error(\"Error parseando botón individual:\", e);\n        }\n    });\n}\n\n// 4. LIMPIEZA FINAL DEL TEXTO\n// Quitamos corchetes sobrantes, comas huérfanas y espacios extra\ntextoParaChat = textoParaChat\n    .replace(/\\[\\s*\\]/g, '') // Quita [] vacíos\n    .replace(/,\\s*$/, '')    // Quita coma al final\n    .replace(/\\s+/g, ' ')    // Normaliza espacios\n    .trim();\n\n// 5. Si después de limpiar el texto quedó vacío, le ponemos un fallback \n// para que no aparezca la burbuja vacía\nif (textoParaChat === \"\" && botonesExtraidos.length > 0) {\n    textoParaChat = \"Aquí tenés las opciones disponibles:\";\n}\n\n// 6. Texto para el Audio (sin URLs ni etiquetas)\nlet textoParaAudio = textoParaChat\n    .replace(/(?:https?|ftp):\\/\\/[\\n\\S]+/g, '')\n    .replace(/<[^>]*>?/gm, '');\n\nreturn [{\n    json: {\n        ...$input.first().json,\n        respuesta_chat: textoParaChat,\n        texto_limpio: textoParaAudio,\n        opciones_botones: botonesExtraidos\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5232,
+        -336
+      ],
+      "id": "8ff25cfd-66da-4a7d-8f76-fb0363f9ca0c",
+      "name": "limpia audio dtiquetas html"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1alpha/models/gemini-3.1-flash-tts-preview:generateContent?key={{TU_API_KEY_DE_GEMINI}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"contents\": [\n      {\n        \"role\": \"user\",\n        \"parts\": [\n          {\n            \"text\": \"Lee el siguiente texto con una voz natural, amigable y clara, eres Gregorio, el asistente virtual de la Municipalidad de Las Heras:\\n\\n\" + ($json.texto_limpio || $json.reply || \"\")\n          }\n        ]\n      }\n    ],\n    \"safetySettings\": [\n      {\n        \"category\": \"HARM_CATEGORY_HARASSMENT\",\n        \"threshold\": \"BLOCK_NONE\"\n      },\n      {\n        \"category\": \"HARM_CATEGORY_HATE_SPEECH\",\n        \"threshold\": \"BLOCK_NONE\"\n      },\n      {\n        \"category\": \"HARM_CATEGORY_SEXUALLY_EXPLICIT\",\n        \"threshold\": \"BLOCK_NONE\"\n      },\n      {\n        \"category\": \"HARM_CATEGORY_DANGEROUS_CONTENT\",\n        \"threshold\": \"BLOCK_NONE\"\n      }\n    ],\n    \"generationConfig\": {\n      \"responseModalities\": [\"AUDIO\"],\n      \"speechConfig\": {\n        \"voiceConfig\": {\n          \"prebuiltVoiceConfig\": {\n            \"voiceName\": \"Kore\" \n          }\n        }\n      }\n    }\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5408,
+        -496
+      ],
+      "id": "316b8041-bd91-4c34-b16f-6fc3c323f08a",
+      "name": "Pedir audio"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 🔄 RESTAURAR MENSAJE (COMPATIBLE CON ORQUESTADOR)\n// ==========================================\n\n// 1. Recuperamos los datos originales con los que entró el vecino\nconst originalData = $('logica asesor').first().json;\nlet finalReply = \"Lo siento, tuve un problema procesando la información.\";\nlet finalAudio = null; // <-- Preparamos la variable para el audio\n\ntry {\n    const inputData = $input.first().json;\n\n    // 2. Intentamos sacar el texto limpio\n    // Primero nos fijamos si viene en el input directo, sino lo buscamos en el Agente\n    if (inputData && inputData.output) {\n        finalReply = inputData.output;\n    } else {\n        const agentNode = $('AI Agent').first();\n        if (agentNode && agentNode.json && agentNode.json.output) {\n            finalReply = agentNode.json.output;\n        }\n    }\n\n    // ✅ DESPUÉS - busca el audio en el nodo que realmente lo generó\ntry {\n    const audioData = $('prepara audio').first().json;\n    if (audioData && audioData.audio_respuesta) {\n        finalAudio = audioData.audio_respuesta;\n    }\n} catch (e) {\n    // El nodo prepara audio no corrió en este camino (ej: flujo sin audio)\n}\n\n} catch (error) {}\n\n// 3. Devolvemos el paquete EXACTO que espera tu sistema principal\n// 3. Devolvemos el paquete EXACTO que espera tu sistema principal\n// En el último nodo Code del SUBWORKFLOW\nreturn [{\n    json: {\n        reply: finalReply,\n        audio_respuesta: null,           // Ya no lo pasamos por acá\n        tiene_audio: true,               // Solo avisamos que existe\n        sessionId: originalData.sessionId,\n        accion: \"RESPUESTA_IA\",\n        tracking_actual: 205,\n        fase: \"CHAT\",\n        options: [\n            { label: \"🔙 Volver al inicio\", nodoId: \"MAIN\", trackingId: 100 }\n        ]\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6288,
+        -1024
+      ],
+      "id": "38d71e9f-d4e5-4a66-92ed-feaec1afb8c0",
+      "name": "retorno a workflow principal",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Recuperamos tus variables originales de forma segura\nlet originalData = {};\ntry {\n    // Intentamos recuperar los datos del AI Agent\n    originalData = $('AI Agent').first().json;\n} catch (e) {\n    // Si el AI Agent no se ejecutó, recuperamos los datos del trigger original\n    try {\n        originalData = $('Execute Workflow Trigger').first().json;\n    } catch(err) {\n        originalData = {}; // Fallback final\n    }\n}\n\n// 2. Extraemos el audio que acaba de generar Gemini (con validación de errores)\nlet pcmBase64 = null;\nconst inputJson = $input.first().json;\n\n// Verificamos si hubo un error de PROHIBITED_CONTENT o si no hay contenido\nif (inputJson.promptFeedback && inputJson.promptFeedback.blockReason) {\n    console.warn(\"Gemini bloqueó la generación de audio. Razón:\", inputJson.promptFeedback.blockReason);\n    // Podemos devolver un audio nulo o manejarlo de otra manera\n} else if (inputJson.candidates && inputJson.candidates.length > 0 && inputJson.candidates[0].content) {\n    const parts = inputJson.candidates[0].content.parts;\n    for (const part of parts) {\n        if (part.inlineData && part.inlineData.mimeType.includes(\"audio\")) {\n            pcmBase64 = part.inlineData.data;\n            break;\n        }\n    }\n}\n\n// 3. --- MAGIA PURA: Convertir el PCM crudo a un WAV reproducible ---\nlet audioUrl = null;\n\nif (pcmBase64) {\n    const pcmBuffer = Buffer.from(pcmBase64, 'base64');\n    const dataLength = pcmBuffer.length;\n    const wavBuffer = Buffer.alloc(44 + dataLength);\n\n    // Cabecera estándar WAV\n    wavBuffer.write('RIFF', 0);\n    wavBuffer.writeUInt32LE(36 + dataLength, 4);\n    wavBuffer.write('WAVE', 8);\n    wavBuffer.write('fmt ', 12);\n    wavBuffer.writeUInt32LE(16, 16);\n    wavBuffer.writeUInt16LE(1, 20); // Formato PCM\n    wavBuffer.writeUInt16LE(1, 22); // Mono canal\n    wavBuffer.writeUInt32LE(24000, 24); // Frecuencia de Gemini (24kHz)\n    wavBuffer.writeUInt32LE(24000 * 2, 28);\n    wavBuffer.writeUInt16LE(2, 32);\n    wavBuffer.writeUInt16LE(16, 34); // 16 bits\n    wavBuffer.write('data', 36);\n    wavBuffer.writeUInt32LE(dataLength, 40);\n\n    // Pegamos el audio real a la cabecera\n    pcmBuffer.copy(wavBuffer, 44);\n\n    // Lo pasamos a Base64 con la etiqueta para la web\n    const wavBase64 = wavBuffer.toString('base64');\n    audioUrl = `data:audio/wav;base64,${wavBase64}`;\n}\n\n// 4. Inyectamos el audio al JSON final y limpiamos lo demás\n// Usamos el mensaje del AI Agent, o un mensaje predeterminado si no hay\nconst mensajeOriginal = originalData.output || originalData.reply || \"Hubo un problema generando la respuesta.\";\n\nconst respuestaFinal = {\n    ...originalData,\n    audio_respuesta: audioUrl, // Será null si hubo un error de contenido\n    mensaje: mensajeOriginal \n};\n\nreturn [{ json: respuestaFinal }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5584,
+        -496
+      ],
+      "id": "c5b326bd-f1f6-44a0-b9d2-f93bac385bd1",
+      "name": "prepara audio"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "93afb6d9-f675-49c7-8c19-0d8606bd6669",
+              "name": "mensaje",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        928,
+        -352
+      ],
+      "id": "31fd55d6-763b-44a3-a670-9d5859d7b764",
+      "name": "transcripción"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "93afb6d9-f675-49c7-8c19-0d8606bd6669",
+              "name": "mensaje",
+              "value": "Hola",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        -48
+      ],
+      "id": "f5acbd63-7d4e-4855-8b64-22888587dc4d",
+      "name": "mensaje de bienvenida"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Separamos la cabecera \"data:audio/webm;base64,\" del contenido real\nconst base64Data = $input.first().json.audio.split(',')[1];\n\nreturn [{\n    json: $input.first().json,\n    binary: {\n        audioData: {\n            data: base64Data,\n            mimeType: 'audio/webm',\n            fileName: 'nota_de_voz.webm'\n        }\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -352
+      ],
+      "id": "4ee6f4e5-18bb-47e8-9644-96cbf469c9b3",
+      "name": "prepara audio para su analisis"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Recuperamos los datos originales con los que entró el mensaje\nconst inputData = $input.first().json;\n\n// 2. Preparamos la respuesta rápida de Gregorio\nconst respuestaCorta = \"Perdón vecino, había mucho ruido o no alcancé a escucharte bien. ¿Podrías repetirme la consulta, por favor?\";\n\n// 3. Devolvemos el formato exacto que espera tu sistema para mandarlo a la web\nreturn [{\n    json: {\n        ...inputData, // Mantenemos el sessionId y otros datos de rastreo\n        reply: respuestaCorta,\n        audio_respuesta: null, // No gastamos plata generando un audio para esto\n        accion: \"RESPUESTA_IA\",\n        fase: \"CHAT\",\n        options: [\n            { label: \"🔙 Volver al inicio\", nodoId: \"MAIN\", trackingId: 100 }\n        ]\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4976,
+        -336
+      ],
+      "id": "2e21aa24-e174-432c-ad80-7323f49c2ede",
+      "name": "Sin audio legible"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0fe4d544-8657-459e-861d-d3e75d70a267",
+              "name": "mensaje",
+              "value": "={{ $json.mensaje }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1392,
+        112
+      ],
+      "id": "2cfdd757-4766-484f-82d9-e9d75833e165",
+      "name": "mensaje  entrante"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f8560c42-6d6a-4bb5-a6a2-56c81d15c119",
+              "name": "mensaje",
+              "value": "={{ $('Execute Workflow Trigger').item.json.datosParaSub.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "b0157539-e0f7-4e7a-bb89-64b46941c898",
+              "name": "key",
+              "value": "={{ $('Execute Workflow Trigger').item.json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "d69f0c6d-e49a-4684-bb58-460f66d43de4",
+              "name": "horario",
+              "value": "={{ $now.toFormat(\"dd/MM/yy HH:mm:ss\") }}",
+              "type": "string"
+            },
+            {
+              "id": "a51b63f3-2f61-40b7-acf1-71554f043440",
+              "name": "audio",
+              "value": "={{ $('Execute Workflow Trigger').item.json.datosParaSub.audio }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        -176
+      ],
+      "id": "3d6f1dc2-9043-4cc4-a7d1-e2d600518c8e",
+      "name": "set variables"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.audio }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "df704911-83a5-4c3c-a442-fcd2de31b78d"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "(Regla 1 - Audio)"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1acf8c30-e455-48c1-987c-68a21507609e",
+                    "leftValue": "={{ $json.mensaje }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "(Regla 2 - Camino del Texto)"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        -192
+      ],
+      "id": "03ff3e12-8fc1-472e-afd4-5ece250809bd",
+      "name": "Verifica tipo de mensaje"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "87fecc7f-5d09-4a88-8e53-d97573161a4f",
+              "leftValue": "={{ $json.mensaje }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        912,
+        96
+      ],
+      "id": "4493cde5-12d6-4d45-8aaf-c3668ee3a54f",
+      "name": "verifica texto"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "Leer_Prompt",
+        "key": "gregorio_system_prompt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        112
+      ],
+      "id": "1b7ddd7f-a1f6-4596-8f43-30f1ed0e7968",
+      "name": "Leer_Sysstem_Prompt",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $('logica asesor').first().json.sessionId }}_historial",
+        "value": "={{ JSON.stringify($json.guardar_en_redis) }}",
+        "keyType": "string"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        6032,
+        128
+      ],
+      "id": "1b9ea9e3-cca1-462c-8973-41f8213dad4d",
+      "name": "guarda memoria",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fc0a9469-02ca-41b4-abed-b9b46ca204ee",
+              "leftValue": "={{ $json.reply }}",
+              "rightValue": "Disculpá, no tengo esa información a mano en este momento.",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "f8271bd6-31aa-4a60-ae35-ad1e7ea58a5c",
+              "leftValue": "={{ $json.reply }}",
+              "rightValue": "Disculpá, no tengo esa información a mano en este momento. ¿Te puedo ayudar con alguna otra consulta?",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5920,
+        -496
+      ],
+      "id": "1d51e5f4-4cdd-4086-9140-033cee3122ef",
+      "name": "verifica respuesta valida"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1taO12YfRn1RRLVgYnN0Kq6-_Z-vTzLB1tYfLyI9EKQs",
+          "mode": "list",
+          "cachedResultName": "Preguntas sin respuestas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1taO12YfRn1RRLVgYnN0Kq6-_Z-vTzLB1tYfLyI9EKQs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1taO12YfRn1RRLVgYnN0Kq6-_Z-vTzLB1tYfLyI9EKQs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $now.format('dd/MM/yyyy hh:mm:ss') }}",
+            "Pregunta": "={{ $('Execute Workflow Trigger').item.json.datosParaSub.mensaje }}",
+            "Contexto / Preguntas anteriores": "={{ $('Leer_Historial').item.json.propertyName }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pregunta",
+              "displayName": "Pregunta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Contexto / Preguntas anteriores",
+              "displayName": "Contexto / Preguntas anteriores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        6064,
+        -672
+      ],
+      "id": "c56598fa-a9a9-4f1c-841f-8d3c492b4882",
+      "name": "guarda pregunta sin respuesta",
+      "credentials": {
+        "googleApi": {
+          "id": "jphW5UZDv8ZBwMLC",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 🔄 RESTAURAR MENSAJE (COMPATIBLE CON ORQUESTADOR)\n// ==========================================\n\n// 1. Recuperamos los datos originales con los que entró el vecino\nconst originalData = $('logica asesor').first().json;\nlet finalReply = \"Lo siento, tuve un problema procesando la información.\";\n\ntry {\n    // 2. Intentamos sacar el texto limpio del Agente\n    const agentNode = $('AI Agent').first();\n    if (agentNode && agentNode.json && agentNode.json.output) {\n        finalReply = agentNode.json.output;\n    }\n} catch (error) {}\n\n// 3. Devolvemos el paquete EXACTO que espera tu sistema principal\nreturn [{\n    json: {\n        reply: finalReply,\n        options: [\n            { label: \"🔙 Volver al inicio\", nodoId: \"MAIN\", trackingId: 100 }\n        ],\n        sessionId: originalData.sessionId,\n        accion: \"RESPUESTA_IA\", // <-- Si tu orquestador usa otro nombre, cambialo acá\n        tracking_actual: 205,   // <-- Agregamos el tracking_actual que usabas en Tasas\n        fase: \"CHAT\"            // <-- Le avisamos que seguimos charlando\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6016,
+        -1040
+      ],
+      "id": "342571a6-9078-4b7f-b666-0419bf306d15",
+      "name": "retorna al workflow principal",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d931e2ba-d34b-4058-861a-c5149cbb91bb",
+                    "leftValue": "={{ $json.ir_a_ia }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Saludo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ir_a_ia }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    },
+                    "id": "0abd2c42-7d03-4442-afa5-b111c79c844c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Dirige a IA"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -272
+      ],
+      "id": "037c2e85-2c6d-4e0f-a128-f5bc137a3235",
+      "name": "verifica entrada al workflow"
+    },
+    {
+      "parameters": {
+        "content": "# Base de datos vectorial",
+        "height": 688,
+        "width": 2000,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2288,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "f85b689c-50da-4653-b75d-9738889563d9",
+      "name": "Base de datos vectorial"
+    },
+    {
+      "parameters": {
+        "content": "# Prepara memoria\n",
+        "height": 224,
+        "width": 384
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5792,
+        64
+      ],
+      "typeVersion": 1,
+      "id": "897b8610-64af-4a38-b797-c54925986276",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# Prepara audio\n",
+        "height": 432,
+        "width": 5312,
+        "color": "#1C3121"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        448,
+        -576
+      ],
+      "typeVersion": 1,
+      "id": "f278a8ef-d26c-43b4-9cc7-59570c39af99",
+      "name": "Prepara audio"
+    },
+    {
+      "parameters": {
+        "content": "# Mensaje entrante",
+        "height": 656,
+        "width": 1316
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1136,
+        -528
+      ],
+      "typeVersion": 1,
+      "id": "bbdcb277-6476-4186-a47b-a0dfb2ea34f0",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Retorno al workflow principal\n",
+        "height": 608,
+        "width": 672,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5856,
+        -768
+      ],
+      "typeVersion": 1,
+      "id": "d8b76340-a39a-464d-b273-f0f12371f874",
+      "name": "Retorna al workflow principal"
+    },
+    {
+      "parameters": {
+        "content": "# Prepara texto\n",
+        "height": 416,
+        "width": 1200,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        768,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "d623f232-3111-4e22-9dcb-09614dc61ccc",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca información general cuando la consulta del vecino es genérica, incompleta o ambigua y no queda claro qué trámite necesita. Útil para consultas como: quiero pagar, cómo pago, necesito un turno, tengo una deuda, quiero hacer un reclamo, o cualquier pregunta que no encaje claramente en otra área específica.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 2,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"desambiguacion\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        3984,
+        560
+      ],
+      "id": "f5117b8b-439f-4b0a-9b78-9eb188e3af61",
+      "name": "desambiguacion",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "INICIO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "17516112-dd3f-43cd-a586-267868eb0048"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e6ea734f-eab2-444c-a32a-6d88def1fb38",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "ESPERANDO_ASESOR_NUBE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d7586cab-ce1e-4aa8-9f36-7be294f8009a",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "CONSULTA_IA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "342779fe-5152-4d0d-aaa1-3542c2636bb0",
+                    "leftValue": "{{ $json.accion }}",
+                    "rightValue": "ESPERANDO_INMUEBLE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "bbd82619-75e0-4194-a1fc-b3a843b5f131",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "ESPERANDO_COMERCIO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -624,
+        -272
+      ],
+      "id": "eb820cdb-5043-40d5-af3c-9c0e65be52c3",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.fase }}",
+                    "rightValue": "PEDIR_INMUEBLE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "fd68ae82-a359-4e65-b3bc-50bb1ec4fce0"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INMUEBLE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "cac66b02-8a41-432d-a449-bf2d59753067",
+                    "leftValue": "={{ $json.fase }}",
+                    "rightValue": "PEDIR_COMERCIO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "COMERCIO"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        4256,
+        64
+      ],
+      "id": "c4a5cdda-a9bd-46d4-8172-639914a2889a",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "5VHyAaTX-ZxExJJG62ZQt",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/5VHyAaTX-ZxExJJG62ZQt",
+          "cachedResultName": "Subworkflow - Tasas - Todos los periodos"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        4672,
+        -96
+      ],
+      "id": "1d7a981c-7b6a-46d0-b2bd-5a80995e611e",
+      "name": "Call 'Subworkflow - Tasas - Todos los periodos'"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n// Buscamos la fase en la raíz o dentro de datosParaSub por seguridad\nconst faseActual = input.fase || (input.datosParaSub ? input.datosParaSub.fase : 'PEDIR_INMUEBLE'); \n\n// 🔍 Rescatamos el sessionId de forma ultra-segura para evitar caídas\nlet currentSessionId = '';\ntry {\n    currentSessionId = $('Execute Workflow Trigger').first().json.sessionId || $('Execute Workflow Trigger').first().json.body.sessionId;\n} catch (e) {\n    currentSessionId = input.sessionId || (input.body ? input.body.sessionId : '');\n}\n\nlet datosSub = {\n    accion: \"EXEC_SUB_TASAS\",\n    sessionId: currentSessionId, // <-- Inyectamos la sesión en la raíz\n    body: {\n        sessionId: currentSessionId // <-- Y adentro de body por las dudas\n    }\n};\n\n// 🤖 Evaluamos la fase e inyectamos la nueva variable \"origen_ia\"\nif (faseActual === 'PEDIR_INMUEBLE') {\n    datosSub.proximoEstado = \"ESPERANDO_INMUEBLE\";\n    datosSub.trackingId = 201;\n    datosSub.datosParaSub = { \n        \"fase\": \"PEDIR_INMUEBLE\",\n        \"origen_ia\": true // 🌟 Variable nueva para validar en el Logic Router\n    };\n} else {\n    datosSub.proximoEstado = \"ESPERANDO_COMERCIO\";\n    datosSub.trackingId = 202;\n    datosSub.datosParaSub = { \n        \"fase\": \"PEDIR_COMERCIO\",\n        \"origen_ia\": true // 🌟 Variable nueva para validar en el Logic Router\n    };\n}\n\nreturn [{ json: datosSub }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4432,
+        -32
+      ],
+      "id": "5455bcd2-6e3c-49ac-8143-23625c7227a5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nlet textoIA = input.output || '';\n\n// 1. Limpiamos los bloques de código markdown si la IA los puso (```json ... ```)\nif (textoIA.includes('```')) {\n    textoIA = textoIA.replace(/```json/g, '').replace(/```/g, '').trim();\n}\n\ntry {\n    // 2. Intentamos parsear el texto limpio a un objeto real\n    const objetoParseado = JSON.parse(textoIA.trim());\n    \n    return [{\n        json: {\n            reply: objetoParseado.reply !== undefined ? objetoParseado.reply : '',\n            fase: objetoParseado.fase !== undefined ? objetoParseado.fase : 'CHAT',\n            sessionId: input.sessionId || '' // Mantenemos la sesión activa\n        }\n    }];\n} catch (e) {\n    // Fallback: Si la IA devolvió texto plano común por error, lo mandamos al CHAT\n    return [{\n        json: {\n            reply: textoIA,\n            fase: 'CHAT',\n            sessionId: input.sessionId || ''\n        }\n    }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4032,
+        96
+      ],
+      "id": "c84fa0e0-fd15-47cb-9b3d-a26a06a5b427",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6a4f9772-9893-4a08-a757-11785893402d",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "Disculpá, no tengo esa información a mano en este momento. ¿Te puedo ayudar con alguna otra consulta?",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3808,
+        96
+      ],
+      "id": "ca0c6412-1f23-49e7-9233-fe55c54e75aa",
+      "name": "Preguntas sin respuesta"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1taO12YfRn1RRLVgYnN0Kq6-_Z-vTzLB1tYfLyI9EKQs",
+          "mode": "list",
+          "cachedResultName": "Preguntas sin respuestas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1taO12YfRn1RRLVgYnN0Kq6-_Z-vTzLB1tYfLyI9EKQs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1taO12YfRn1RRLVgYnN0Kq6-_Z-vTzLB1tYfLyI9EKQs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $now.toFormat('dd/MM/yyyy') }} {{ $now.toFormat('HH:mm:ss') }}",
+            "Pregunta": "={{ $('Execute Workflow Trigger').item.json.datosParaSub.mensaje }}",
+            "Contexto": "={{ $('Leer_Historial').item.json.propertyName \n\"Sin historial previo.\" }}"
+          },
+          "matchingColumns": [
+            "Id"
+          ],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Pregunta",
+              "displayName": "Pregunta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contexto",
+              "displayName": "Contexto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        4016,
+        -144
+      ],
+      "id": "4430ed4f-fef8-4a66-86bb-fb6d6ca2a093",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleApi": {
+          "id": "jphW5UZDv8ZBwMLC",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9f527cd6-0c4d-4613-ab04-c0f5a6151dff",
+              "leftValue": "={{ ($json.mensaje || '').trim().length > 3 && !['carrac', 'ah', 'eh', 'umm', 'silencio', 'ruido', 'shh', '[sonido]', '...'].includes(($json.mensaje || '').trim().toLowerCase()) }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1152,
+        -352
+      ],
+      "id": "b3628e5e-eb42-475e-be68-cd66b182178c",
+      "name": "valida audio legible",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.first().json;\n\n// 1. Buscamos el audio (por si viene en audio_respuesta o en audio)\nconst audioCompleto = inputData.audio_respuesta || inputData.audio;\n\n// 2. Si por algún motivo no hay audio, dejamos pasar el JSON tal cual para que el bot responda por texto\nif (!audioCompleto) {\n    return [{ json: inputData }];\n}\n\n// 3. Re-empaquetamos TODO junto. \n// Usamos ...inputData para conservar el 'reply', 'options', 'sessionId', etc.\nreturn [{\n    json: {\n        ...inputData, \n        audio: audioCompleto,         // El script.js de tu web busca 'audio'\n        audio_respuesta: audioCompleto // Lo dejamos también por si otro nodo lo busca\n    }\n}];\n\n// NOTA: Eliminamos todo el bloque \"binary: {}\" a propósito. \n// Esto obliga al Webhook a responder con el texto JSON y no forzar una descarga de archivo."
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6752,
+        -800
+      ],
+      "id": "a0ef324d-a66a-4f29-bf06-108071e67eda",
+      "name": "envia audio"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dividimos el texto por los dobles saltos de línea que configuramos en el prompt\nconst fullText = $('Call \\'Subworkflow - Asesor IA Nube').first().json.reply;\nconst paragraphs = fullText.split('\\n\\n').filter(p => p.trim() !== '');\n// Devolvemos cada párrafo como un ítem individual para que n8n dispare el webhook varias veces\nreturn paragraphs.map(p => {\n  return {\n    json: {\n      reply: p.trim(),\n      sessionId: $('Webhook Entrada').first().json.body.sessionId\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6992,
+        -752
+      ],
+      "id": "2b9981fa-6ba6-4a45-b5c4-4ecb90638426",
+      "name": "envia texto"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.audio_respuesta }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "d872051b-2b88-41bc-8d07-cf841a37e663"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "299b35a6-2a1c-47dd-b628-ebf6621f6a1e",
+                    "leftValue": "={{ $json.value_texto }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Bot"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "70120e3a-39ff-4b49-9ff1-e21b1f3f20bb",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_TASAS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "rentas"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        6560,
+        -560
+      ],
+      "id": "e8ef2f8a-6586-47a2-b88b-253617472e20",
+      "name": "Switch2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst respuestaOriginal = (input.output || input.reply || '').toString();\n\n// 🎯 REGLA DE LIMPIEZA EXTREMA (Regex):\n// Removemos los corchetes [ ] y todo lo que tengan adentro para no contar los botones.\n// También aplicamos .trim() para quitar espacios fantasmas al principio y al final.\nconst textoLimpio = respuestaOriginal.replace(/\\[[\\s\\S]*?\\]/g, '').trim();\n\n// 📊 Contamos los caracteres reales (aquí los espacios entre palabras SÍ cuentan)\nconst cantidadCaracteres = textoLimpio.length;\n\nreturn [{\n    json: {\n        ...input,\n        reply: respuestaOriginal, // Conservamos el texto largo intacto para entregárselo a la IA resumidora\n        texto_medido_limpio: textoLimpio, // Por si querés auditar qué se midió\n        cantidad_caracteres: cantidadCaracteres // 🌟 Tu nueva variable de control\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2992,
+        96
+      ],
+      "id": "ccc4f2e7-0a69-42b1-ae20-a454bbb3280f",
+      "name": "Resumen"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f712d81e-6c3f-4fde-b32c-d85f91a50e92",
+              "leftValue": "={{ $json.cantidad_caracteres }}",
+              "rightValue": 600,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3168,
+        96
+      ],
+      "id": "446579e6-55ae-4163-8329-c77363b9477a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# 🌐 REGLAS DE ENLACES Y BOTONES (PARA TRÁMITES GENERALES)\nPara todos los temas (excepto Rentas), la navegación se hace mediante botones de texto plano pegados al final:\n- Si el contexto tiene un enlace para turnos o trámites, NO lo pongas en el texto. Copia el código JSON de botones exactamente como viene al final de tu mensaje en texto plano (sin usar bloques markdown ```).\n- Si das una dirección física con un enlace de Google Maps, pégalo en formato de texto plano y limpio en un párrafo aparte antes de los botones.\n\n# REGLA DE MAPAS Y UBICACIONES:\nCuando un usuario pregunte por una dirección física y la base de datos te proporcione un código <iframe ...>, DEBES copiar ese código exacto agregar un \\n al final y pegarlo en un renglón aparte.\nIMPORTANTE: Pega el <iframe> completo en una sola línea, sin cortarlo y sin envolverlo en bloques de código markdown (no uses ```). Debe ir en texto plano para que el chat lo renderice visualmente.\n\nDebes resumir la respuesta del bot pero si tiene etiqueta <iframe> o botones entre corchetes ej: [{\"label\": \"Turnos online\", \"url\": \"https://web6.lasheras.gob.ar/apex/f?p=143:16\", \"trackingId\": 801}, {\"label\": \"Educación Vial\", \"url\": \"https://curso.seguridadvial.gob.ar/ansv/\", \"trackingId\": 801}, {\"label\": \"Boleta CENAT\", \"url\": \"https://boletadepago.seguridadvial.gob.ar/\", \"trackingId\": 805}, {\"label\": \"Boleto Municipal\", \"url\": \"http://168.194.207.215:8512/ords/f?p=204:5060\", \"trackingId\": 804}]   adjuntalos al final de la respuesta resumida tal cual la respuesta original.\n\nPregunta : {{ $('Execute Workflow Trigger').item.json.datosParaSub.mensaje }}\n\nRespuesta: {{ $('AI Agent').item.json.output }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3456,
+        -224
+      ],
+      "id": "53607ca4-0876-447c-801e-e0926011b7e7",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3456,
+        -16
+      ],
+      "id": "d5765cf6-fa23-439e-b2e6-7d70f8265441",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TJT5hBm62dkAuSYR",
+          "name": "Google Gemini(PaLM) Claudio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Consultas sobre expedientes de construcción, aprobación de planos, obras nuevas,previas, ampliaciones, relevamientos, catastro código de edificación y urbano. \nPalabras clave: planos de mensura, construir casa, obra nueva, ampliacion, catastro, expediente de obra, sistema de planos digitales.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "chat_municipalidad_las_heras_nube_2",
+          "mode": "list",
+          "cachedResultName": "chat_municipalidad_las_heras_nube_2"
+        },
+        "topK": 8,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"obras_general\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        3696,
+        560
+      ],
+      "id": "65f1c612-1002-4598-8cab-14352fe24715",
+      "name": "obras_general",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Consultas sobre expedientes de construcción, aprobación de planos, obras nuevas,previas, ampliaciones, relevamientos, catastro código de edificación y urbano. \nPalabras clave: planos de mensura, construir casa, obra nueva, ampliacion, catastro, expediente de obra, sistema de planos digitales.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "memoriaNube2",
+          "mode": "list",
+          "cachedResultName": "memoriaNube2"
+        },
+        "topK": 8,
+        "includeDocumentMetadata": false,
+        "options": {
+          "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"obras_tecnico\"\n      }\n    }\n  ]\n}",
+          "contentPayloadKey": "content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        3888,
+        432
+      ],
+      "id": "8d71702a-aa04-42b1-b6b9-e8d682a833ce",
+      "name": "obras_tecnico",
+      "credentials": {
+        "qdrantApi": {
+          "id": "QkKV3da6gZuIGkyA",
+          "name": "QdrantApi account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Execute Workflow Trigger": [
+      {
+        "json": {
+          "shouldProcess": true,
+          "sessionId": "dfa7a610-2bf8-47f4-9797-099e3bd3f4be",
+          "accion": "EXEC_SUB_ASESOR_NUBE",
+          "proximoEstado": "ESPERANDO_ASESOR_NUBE",
+          "trackingId": 1201,
+          "datosParaSub": {
+            "fase": "MANTENER_ESPERA",
+            "mensaje": "como saco la licencia de conducir?",
+            "audio": null
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "logica asesor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "transparencia_institucional",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "desarrollo_social",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "rentas",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Veterinaria",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "obras_general",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "tramite_distancia",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "juzgado_vial",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "deporte_bien_estar",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "licencia_conducir",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "desambiguacion",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "obras_tecnico",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "logica asesor": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "desarrollo_social": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "rentas": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transparencia_institucional": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "licencia_conducir": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veterinaria": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tramite_distancia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "juzgado_vial": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "deporte_bien_estar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Memoria": {
+      "main": [
+        [
+          {
+            "node": "guarda memoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer_Historial": {
+      "main": [
+        [
+          {
+            "node": "set variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze audio": {
+      "main": [
+        [
+          {
+            "node": "transcripción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica audio": {
+      "main": [
+        [
+          {
+            "node": "limpia audio dtiquetas html",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Memoria",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "verifica respuesta valida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "limpia audio dtiquetas html": {
+      "main": [
+        [
+          {
+            "node": "Pedir audio",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparar Memoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedir audio": {
+      "main": [
+        [
+          {
+            "node": "prepara audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "retorno a workflow principal": {
+      "main": [
+        []
+      ]
+    },
+    "prepara audio": {
+      "main": [
+        [
+          {
+            "node": "verifica respuesta valida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transcripción": {
+      "main": [
+        [
+          {
+            "node": "valida audio legible",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "mensaje  entrante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mensaje de bienvenida": {
+      "main": [
+        [
+          {
+            "node": "mensaje  entrante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepara audio para su analisis": {
+      "main": [
+        [
+          {
+            "node": "Analyze audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sin audio legible": {
+      "main": [
+        [
+          {
+            "node": "limpia audio dtiquetas html",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mensaje  entrante": {
+      "main": [
+        [
+          {
+            "node": "Leer_Sysstem_Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set variables": {
+      "main": [
+        [
+          {
+            "node": "Verifica tipo de mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifica tipo de mensaje": {
+      "main": [
+        [
+          {
+            "node": "prepara audio para su analisis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "verifica texto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "verifica texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verifica texto": {
+      "main": [
+        [
+          {
+            "node": "mensaje de bienvenida",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "mensaje  entrante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer_Sysstem_Prompt": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "guarda memoria": {
+      "main": [
+        []
+      ]
+    },
+    "verifica respuesta valida": {
+      "main": [
+        [
+          {
+            "node": "guarda pregunta sin respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "guarda pregunta sin respuesta": {
+      "main": [
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "retorna al workflow principal": {
+      "main": [
+        []
+      ]
+    },
+    "verifica entrada al workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Leer_Historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "desambiguacion": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "verifica entrada al workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "verifica entrada al workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "verifica entrada al workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        []
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "verifica audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Call 'Subworkflow - Tasas - Todos los periodos'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preguntas sin respuesta": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        []
+      ]
+    },
+    "valida audio legible": {
+      "main": [
+        [
+          {
+            "node": "mensaje  entrante",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sin audio legible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [
+          {
+            "node": "envia audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "envia texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preguntas sin respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Preguntas sin respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "obras_general": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "obras_tecnico": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timezone": "America/Argentina/Buenos_Aires"
+  },
+  "versionId": "24062c59-321a-48f1-b25d-c9e6c1632bb8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "46593b1e7eb065395f40f358db9a0ae03edbb5beb280dc22d9dffa4cc9c1f3c3"
+  },
+  "id": "vwHJesH6l5267yTC",
+  "tags": []
+}

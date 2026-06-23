@@ -1,0 +1,2812 @@
+{
+  "name": "Chatbot Las Heras - Orquestador Principal Memoria",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat_apex2",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1696,
+        448
+      ],
+      "id": "6e713d1c-7a46-4a73-b712-9f7dcbcc1279",
+      "name": "Webhook Entrada",
+      "webhookId": "2184ea3d-12b2-4829-a1ad-09d26a2b9559"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 馃 CEREBRO PRINCIPAL (DIRECTO Y CON SESSIONID)\n// ==========================================\n\n// 1. OBTENER INPUTS, SESSION ID Y MENUID\nlet msg = '';\nlet sessionId = ''; \nlet menuId = ''; \n\ntry {\n    if ($('Webhook Entrada').first().json.body) {\n        msg = $('Webhook Entrada').first().json.body.message || '';\n        sessionId = $('Webhook Entrada').first().json.body.sessionId || ''; \n        menuId = $('Webhook Entrada').first().json.body.menuId || ''; \n    }\n} catch (e) {\n    try { \n        msg = $input.item.json.body.message || ''; \n        sessionId = $input.item.json.body.sessionId || ''; \n        menuId = $input.item.json.body.menuId || ''; \n    } catch (e2) { }\n}\n\nconst msgClean = msg.toString().trim();\nconst msgLower = msgClean.toLowerCase();\n\n// 2. RECUPERAR ESTADO DE REDIS\nlet estadoActual = 'INICIO';\ntry {\n    const itemsRedis = $('Redis').all();\n    if (itemsRedis.length > 0) {\n        const dataRedis = itemsRedis[0].json;\n        if (dataRedis.propertyName) estadoActual = dataRedis.propertyName;\n        else if (dataRedis.value) estadoActual = dataRedis.value;\n        else if (dataRedis.estado) estadoActual = dataRedis.estado;\n        else if (typeof dataRedis === 'string') estadoActual = dataRedis;\n    }\n} catch (error) {\n    estadoActual = 'INICIO';\n}\nif (!estadoActual || estadoActual === 'undefined') estadoActual = 'INICIO';\n\n\n// ============================================================\n// 馃殌 3. NAVEGACI脫N GLOBAL\n// ============================================================\n\n// -> 馃専 INTERCEPTOR DE VALORACI脫N (PRIORIDAD M脕XIMA)\nif (msgClean.includes('CALIFICACION_INTERNA')) {\n    const rating = msgClean.split(':')[1] ? msgClean.split(':')[1].trim() : '0';\n    return [{ json: { \n        accion: 'GUARDAR_VALORACION',  \n        proximoEstado: 'INICIO',       \n        trackingId: 1300,              \n        datosParaSub: { fase: 'GUARDAR_RATING', rating: rating }, \n        sessionId: sessionId \n    } }];\n}\n\n// -> Volver / Start / Hola (ID 100)\nif (msgLower === 'start' || msgClean.includes('Volver') || msgClean === '') {\n    return [{ json: { accion: 'ENVIAR_MENU_PRINCIPAL', proximoEstado: 'INICIO', trackingId: 100, datosParaSub: {}, sessionId: sessionId } }];\n}\n\n// -> 馃専 INTERCEPTOR DIRECTO A IA CORREGIDO\n// Si el frontend envi贸 ASESOR_NUBE, SOLO vamos a la IA si NO estamos en medio de un tr谩mite.\nif (menuId === 'ASESOR_NUBE') {\n    if (estadoActual !== 'ESPERANDO_INMUEBLE' && \n        estadoActual !== 'ESPERANDO_COMERCIO' && \n        estadoActual !== 'ESPERANDO_SUGERENCIA') {\n        \n        return [{ json: { \n            accion: 'EXEC_SUB_ASESOR_NUBE', \n            proximoEstado: 'ESPERANDO_ASESOR_NUBE', \n            trackingId: 1201, \n            datosParaSub: { fase: 'MANTENER_ESPERA', mensaje: msgClean }, \n            sessionId: sessionId \n        } }];\n    }\n}\n\n// -> INTERCEPTOR: LEER TEXTO COMPLETO RESPALDADO EN REDIS\n    if (menuId === 'LEER_MAS') {\n        let textoLargoGuardado = '';\n        try {\n            const itemsRedis = $('Redis').all();\n            if (itemsRedis.length > 0) {\n                const dataRedis = itemsRedis[0].json;\n                // Buscamos la variable donde respaldamos el texto completo\n                textoLargoGuardado = dataRedis.texto_completo || dataRedis.value?.texto_completo || '';\n            }\n        } catch(e) {}\n\n        // Si por algún motivo se borró de Redis, le damos un mensaje de auxilio\n        if (!textoLargoGuardado) {\n            textoLargoGuardado = \"Disculpá, no alcancé a recuperar el texto completo. ¿Me podrías repetir qué trámite necesitabas hacer?\";\n        }\n\n        return [{ json: { \n            accion: 'ENVIAR_TEXTO_DIRECTO', // Tu nodo final de WhatsApp/Chat\n            proximoEstado: 'INICIO', // Liberamos el estado\n            trackingId: 1500, \n            datosParaSub: { fase: 'CHAT' }, \n            respuesta_chat: textoLargoGuardado, // Le mandamos el choclo de texto completo\n            sessionId: sessionId \n        } }];\n    }\n\n// -> RECLAMOS (DIRECTO - ID 700)\nif (msgClean.includes('Reclamos')) {\n   return [{ json: { accion: 'EXEC_SUB_RECLAMOS', proximoEstado: 'MENU_RECLAMOS', trackingId: 700, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n// -> Salud (ID 300)\nif (msgClean.includes('Salud') || msgClean.includes('Centros de Salud') || msgClean.includes('Turnos M茅dicos')) {\n    return [{ json: { accion: 'EXEC_SUB_SALUD', proximoEstado: 'MENU_SALUD', trackingId: 300, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n// -> Pago de Tasas Men煤 Principal (ID 200) - ATRAPA TEXTO O BOT脫N\nif (msgClean.includes('Pago de Tasas') || menuId === 'TASAS') {\n    return [{ json: { accion: 'EXEC_SUB_TASAS', proximoEstado: 'MENU_TASAS', trackingId: 200, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: TASAS INMUEBLE (ID 201) - ATRAPA TEXTO O BOT脫N\nif (msgClean.includes('Inmueble') || menuId === 'TASAS_INMUEBLE') {\n    return [{ json: { accion: 'EXEC_SUB_TASAS', proximoEstado: 'ESPERANDO_INMUEBLE', trackingId: 201, datosParaSub: { fase: 'PEDIR_INMUEBLE' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: TASAS COMERCIO (ID 202) - ATRAPA TEXTO O BOT脫N\nif (msgClean.includes('Comercio') || menuId === 'TASAS_COMERCIO') {\n    return [{ json: { accion: 'EXEC_SUB_TASAS', proximoEstado: 'ESPERANDO_COMERCIO', trackingId: 202, datosParaSub: { fase: 'PEDIR_COMERCIO' }, sessionId: sessionId } }];\n}\n\n// -> Desarrollo Social (ID 500)\nif (msgClean.includes('Desarrollo Social') || msgClean.includes('Social')) {\n   return [{ json: { accion: 'EXEC_SUB_SOCIAL', proximoEstado: 'MENU_SOCIAL', trackingId: 500, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Acceso a Expedientes (ID 601)\nif (menuId === 'TRAMITES_ACCESO') {\n    return [{ json: { accion: 'EXEC_SUB_TRAMITES', proximoEstado: 'INICIO', trackingId: 601, datosParaSub: { fase: 'ACCESO' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Alta de Usuarios (ID 602)\nif (menuId === 'TRAMITES_ALTA') {\n    return [{ json: { accion: 'EXEC_SUB_TRAMITES', proximoEstado: 'INICIO', trackingId: 602, datosParaSub: { fase: 'ALTA' }, sessionId: sessionId } }];\n}\n\n// -> Tr谩mites a Distancia Men煤 General (Atrapa \"Tr谩mite\", \"Expediente\", \"Mesa de entrada\", o el bot贸n general)\nif (msgClean.includes('Tramite') || msgClean.includes('Expediente') || msgClean.includes('Mesa de entrada') || menuId === 'TRAMITES') {\n    return [{ json: { accion: 'EXEC_SUB_TRAMITES', proximoEstado: 'MENU_TRAMITES', trackingId: 600, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Gu铆as e Instructivos (ID 401)\nif (menuId === 'OBRAS_GUIAS') {\n    return [{ json: { accion: 'EXEC_SUB_OBRAS', proximoEstado: 'INICIO', trackingId: 401, datosParaSub: { fase: 'GUIAS' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Previa Obras y Ampliaciones (ID 402)\nif (menuId === 'OBRAS_PREVIA') {\n    return [{ json: { accion: 'EXEC_SUB_OBRAS', proximoEstado: 'INICIO', trackingId: 402, datosParaSub: { fase: 'PREVIA' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Planos Digitales (ID 403)\nif (menuId === 'OBRAS_PLANOS') {\n    return [{ json: { accion: 'EXEC_SUB_OBRAS', proximoEstado: 'INICIO', trackingId: 403, datosParaSub: { fase: 'PLANOS' }, sessionId: sessionId } }];\n}\n\n// -> Obras y Catastro Men煤 General (Atrapa la palabra o el bot贸n general)\nif (msgClean.includes('Obras') || msgClean.includes('Catastro') || menuId === 'OBRAS') {\n    return [{ json: { accion: 'EXEC_SUB_OBRAS', proximoEstado: 'MENU_OBRAS', trackingId: 400, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Infracciones de Tr谩nsito (ID 803)\nif (menuId === 'LICENCIA_INFRACCIONES') {\n    return [{ json: { accion: 'EXEC_SUB_LICENCIA', proximoEstado: 'INICIO', trackingId: 803, datosParaSub: { fase: 'INFRACCIONES' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Turnos Online (ID 801)\nif (menuId === 'LICENCIA_TURNOS') {\n    return [{ json: { accion: 'EXEC_SUB_LICENCIA', proximoEstado: 'INICIO', trackingId: 801, datosParaSub: { fase: 'TURNOS' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Consultar Turnos (ID 802)\nif (menuId === 'LICENCIA_CONSULTAR') {\n    return [{ json: { accion: 'EXEC_SUB_LICENCIA', proximoEstado: 'INICIO', trackingId: 802, datosParaSub: { fase: 'CONSULTAR' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Boleto Municipal (ID 804)\nif (menuId === 'LICENCIA_MUNICIPAL') {\n    return [{ json: { accion: 'EXEC_SUB_LICENCIA', proximoEstado: 'INICIO', trackingId: 804, datosParaSub: { fase: 'MUNICIPAL' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Boleta CENAT (ID 805)\nif (menuId === 'LICENCIA_CENAT') {\n    return [{ json: { accion: 'EXEC_SUB_LICENCIA', proximoEstado: 'INICIO', trackingId: 805, datosParaSub: { fase: 'CENAT' }, sessionId: sessionId } }];\n}\n\n// -> Licencias Men煤 General (Atrapa la palabra \"licencia\", \"carnet\", o el bot贸n general)\nif (msgClean.includes('Licencia') || msgClean.includes('Carnet') || menuId === 'LICENCIA') {\n    return [{ json: { accion: 'EXEC_SUB_LICENCIA', proximoEstado: 'MENU_LICENCIA', trackingId: 800, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n// -> JUZGADO: DETECTAR CLICS INTERNOS (TRACKING)\nif (msgClean.includes('Consulta Infracciones')) {\n   return [{ json: { accion: 'EXEC_SUB_JUZGADO', proximoEstado: 'MENU_JUZGADO', trackingId: 1002, datosParaSub: { fase: 'POPUP_INFRACCIONES' }, sessionId: sessionId } }];\n}\nif (msgClean.includes('Restituci贸n Vehicular')) {\n   return [{ json: { accion: 'EXEC_SUB_JUZGADO', proximoEstado: 'MENU_JUZGADO', trackingId: 1003, datosParaSub: { fase: 'POPUP_RESTITUCION' }, sessionId: sessionId } }];\n}\nif (msgClean.includes('Descargo de Multas')) {\n   return [{ json: { accion: 'EXEC_SUB_JUZGADO', proximoEstado: 'MENU_JUZGADO', trackingId: 1004, datosParaSub: { fase: 'POPUP_DESCARGO' }, sessionId: sessionId } }];\n}\n\n// -> Veterinaria Men煤 General (Atrapa la palabra o el bot贸n general)\nif (msgClean.includes('Veterinaria') || menuId === 'VETERINARIA') {\n    return [{ json: { accion: 'EXEC_SUB_VETERINARIA', proximoEstado: 'MENU_VETERINARIA', trackingId: 900, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Solicitar Turno Veterinaria (ID 901)\nif (menuId === 'VETERINARIA_SOLICITAR') {\n    return [{ json: { accion: 'EXEC_SUB_VETERINARIA', proximoEstado: 'INICIO', trackingId: 901, datosParaSub: { fase: 'SOLICITAR_TURNO' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Consultar Turno Veterinaria (ID 902)\nif (menuId === 'VETERINARIA_CONSULTAR') {\n    return [{ json: { accion: 'EXEC_SUB_VETERINARIA', proximoEstado: 'INICIO', trackingId: 902, datosParaSub: { fase: 'CONSULTAR_TURNO' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Consulta Infracciones (ID 1002)\nif (menuId === 'JUZGADO_INF') {\n    return [{ json: { accion: 'EXEC_SUB_JUZGADO', proximoEstado: 'INICIO', trackingId: 1002, datosParaSub: { fase: 'INFRACCIONES' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Restituci贸n Vehicular (ID 1003)\nif (menuId === 'JUZGADO_RES') {\n    return [{ json: { accion: 'EXEC_SUB_JUZGADO', proximoEstado: 'INICIO', trackingId: 1003, datosParaSub: { fase: 'RESTITUCION' }, sessionId: sessionId } }];\n}\n\n// -> Atajo: Descargo de Multas (ID 1004)\nif (menuId === 'JUZGADO_DES') {\n    return [{ json: { accion: 'EXEC_SUB_JUZGADO', proximoEstado: 'INICIO', trackingId: 1004, datosParaSub: { fase: 'DESCARGO' }, sessionId: sessionId } }];\n}\n\n// -> Juzgado Men煤 General (Atrapa \"Juzgado\", \"Vial\", \"Choque\", \"Siniestro\" o el bot贸n general)\nif (msgClean.includes('Juzgado') || msgClean.includes('Vial') || msgClean.includes('Siniestro') || msgClean.includes('Choque') || menuId === 'JUZGADO') {\n    return [{ json: { accion: 'EXEC_SUB_JUZGADO', proximoEstado: 'MENU_JUZGADO', trackingId: 1000, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n\n// -> Sugerencias (ID 1100)\nif (msgClean.includes('Sugerencias') || msgClean.includes('Dejar Sugerencia')) {\n    return [{ json: { accion: 'PEDIR_SUGERENCIA', proximoEstado: 'ESPERANDO_SUGERENCIA', trackingId: 1100, datosParaSub: {}, sessionId: sessionId } }];\n}\n\n// -> Asesor Nube Backup (ID 1200)\nif (msgClean.includes('Asesor Nube') || msgClean.includes('nube') || msgLower.includes('humano') || msgLower.includes('operador')) {\n    return [{ json: { accion: 'EXEC_SUB_ASESOR_NUBE', proximoEstado: 'ESPERANDO_ASESOR_NUBE', trackingId: 1200, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];\n}\n\n// -> Asesor Local (ID 1300)\nif (msgClean.includes('Asesor Local') || msgClean.includes('local')) {\n    return [{ json: { accion: 'EXEC_SUB_ASESOR_LOCAL', proximoEstado: 'ESPERANDO_ASESOR_LOCAL', trackingId: 1200, datosParaSub: { fase: 'MENU' }, sessionId: sessionId } }];  \n}\n\n\n// ============================================================\n// 馃 4. M脕QUINA DE ESTADOS\n// ============================================================\nlet accion = 'ENVIAR_MENU_PRINCIPAL';\nlet proximoEstado = 'INICIO';\nlet datosParaSub = {};\nlet trackingId = 100; \n\nswitch (estadoActual) {\n\n    case 'INICIO':\n        accion = 'ENVIAR_MENU_PRINCIPAL';\n        proximoEstado = 'INICIO';\n        trackingId = 100;\n        break;\n\n// --- TASAS ---\n    case 'MENU_TASAS':\n        accion = 'EXEC_SUB_TASAS';\n        proximoEstado = 'MENU_TASAS';\n        trackingId = 200;\n        datosParaSub = { fase: 'MENU' };\n        break;\n\n    case 'ESPERANDO_INMUEBLE':\n        if (/^\\d+$/.test(msgClean)) {\n            let padronArreglado = msgClean.padStart(6, '0');\n            accion = 'EXEC_SUB_TASAS';\n            proximoEstado = 'INICIO';\n            trackingId = 201;\n            datosParaSub = { fase: 'CONSULTA_INMUEBLE', id: padronArreglado };\n        } else {\n            accion = 'EXEC_SUB_TASAS';\n            proximoEstado = 'ESPERANDO_INMUEBLE';\n            trackingId = 201;\n            datosParaSub = { fase: 'ERROR_NUMERO', tipo: 'Inmueble' };\n        }\n        break;\n\n    case 'ESPERANDO_COMERCIO':\n        if (/^[\\d-]+$/.test(msgClean)) {\n            let padronArreglado = msgClean;\n            if (padronArreglado.includes('-')) {\n                let partes = padronArreglado.split('-');\n                let numBase = partes[0].padStart(6, '0');\n                let sucursal = partes[1].padStart(2, '0'); \n                padronArreglado = `${numBase}-${sucursal}`;\n            } \n            else {\n                let sucursal = padronArreglado.slice(-2).padStart(2, '0');\n                let numBase = padronArreglado.slice(0, -2).padStart(6, '0');\n                padronArreglado = `${numBase}-${sucursal}`;\n            }\n            accion = 'EXEC_SUB_TASAS';\n            proximoEstado = 'INICIO';\n            trackingId = 202;\n            datosParaSub = { fase: 'CONSULTA_COMERCIO', id: padronArreglado };\n        } else {\n            accion = 'EXEC_SUB_TASAS';\n            proximoEstado = 'ESPERANDO_COMERCIO';\n            trackingId = 202;\n            datosParaSub = { fase: 'ERROR_NUMERO', tipo: 'Comercio' };\n        }\n        break;\n\n    // --- OBRAS PRIVADAS ---\n    case 'MENU_OBRAS':\n        accion = 'EXEC_SUB_OBRAS';\n        proximoEstado = 'INICIO'; \n        trackingId = 400;\n        datosParaSub = { fase: 'SELECCION', opcion: msgClean };\n        break;   \n\n    // --- SALUD ---\n    case 'MENU_SALUD':\n        accion = 'EXEC_SUB_SALUD';\n        proximoEstado = 'INICIO';\n        trackingId = 300;\n        datosParaSub = { fase: 'SELECCION', opcion: msgClean };\n        break;\n\n    // --- DESARROLLO SOCIAL ---        \n    case 'MENU_SOCIAL':\n        accion = 'EXEC_SUB_SOCIAL';\n        proximoEstado = 'INICIO'; \n        trackingId = 500;\n        datosParaSub = { fase: 'SELECCION', opcion: msgClean };\n        break;\n\n    // --- SUGERENCIAS ---\n    case 'ESPERANDO_SUGERENCIA':\n        if (msgClean.length > 2) {\n            accion = 'PEDIR_SUGERENCIA'; \n            datosParaSub = { fase: 'RECIBIR', suggestion: msgClean };\n            proximoEstado = 'INICIO'; \n            trackingId = 1101;\n        } \n        else {\n            accion = 'ENVIAR_MENU_PRINCIPAL';\n            proximoEstado = 'INICIO';\n            trackingId = 100;\n        }\n        break;\n\n    // --- ASESOR NUBE (GEMINI/GROQ) ---\n    case 'ESPERANDO_ASESOR_NUBE':\n        accion = 'EXEC_SUB_ASESOR_NUBE';\n        proximoEstado = 'ESPERANDO_ASESOR_NUBE';\n        trackingId = 1201;\n        datosParaSub = { fase: 'MANTENER_ESPERA', mensaje: msgClean };\n        break;\n\n    // --- ASESOR LOCAL (OLLAMA) ---\n    case 'ESPERANDO_ASESOR_LOCAL':\n        accion = 'EXEC_SUB_ASESOR_LOCAL';\n        proximoEstado = 'ESPERANDO_ASESOR_LOCAL';\n        trackingId = 1301;\n        datosParaSub = { fase: 'MANTENER_ESPERA', mensaje: msgClean };\n        break;\n\n    // Fallbacks\n    case 'MENU_RECLAMOS': \n    case 'MENU_TRAMITES':\n    case 'MENU_LICENCIA':\n    case 'MENU_VETERINARIA':\n    case 'MENU_JUZGADO':\n        accion = 'ENVIAR_MENU_PRINCIPAL';\n        proximoEstado = 'INICIO';\n        trackingId = 100;\n        break;\n\n    default:\n        accion = 'ENVIAR_MENU_PRINCIPAL';\n        proximoEstado = 'INICIO';\n        trackingId = 100;\n        break;\n}\n\nreturn [{ json: { accion, proximoEstado, datosParaSub, trackingId, sessionId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1168,
+        848
+      ],
+      "id": "196ebca9-b27d-42f4-a041-646ee361b594",
+      "name": "🧠 Logic Router"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "1",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "ENVIAR_MENU_PRINCIPAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Menu Principal"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "2",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_TASAS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Sub Tasas"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "3",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_RECLAMOS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Sub Reclamos"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "ab41ea3a-7a88-4da3-92b4-ef0697632051",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_LICENCIA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Sub licencia"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "9d0b02fc-775b-402b-b925-0499c6b4086f",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_VETERINARIA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sub veterinaria"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "1be50782-e080-4004-90a3-b2fd5fda5656",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_TRAMITES",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sub Mesa de entrada virtual"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "4",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "ENVIAR_LINK_DIRECTO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Link Directo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "5",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "PEDIR_SUGERENCIA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Pedir Sugerencia"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "6",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "GUARDAR_SUGERENCIA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Guardar Sugerencia"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "b70534c4-58e5-4bec-8d98-f912cd2cde85",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "GUARDAR_VALORACION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Guarda Valoracion"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "5e000dcd-7dcb-46c5-a12d-23f40c2adaf5",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_JUZGADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "JUZGADO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "5d18ab61-51b1-4bb8-aef5-b90b95276ac4",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_SALUD",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sub Centro de salud"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "93543a64-32ed-45be-8b59-d1840f9202b1",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_OBRAS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sub Obras Privadas"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "a69f5c6b-28e8-48cf-9673-69276f10d14a",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_SOCIAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Desarrollo Social"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "144cd3e1-d077-493c-9101-71b0776e60b5",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_ASESOR_LOCAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Asesor IA LOCAL"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "2a320502-81a8-4bf4-8c2c-33f6035361ea",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_TASAS_COPY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "632607ed-67e9-45cf-8821-1ffaca9d7fa8",
+                    "leftValue": "={{ $('Webhook Entrada').item.json.body.history.at(-2).content }}",
+                    "rightValue": "Por favor, escribí el número de padrón del Inmueble (Solo números, Ej: 050531). <br> <br> <img src=\"https://web6.lasheras.gob.ar/apex/chatuser/rec/1\">",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Rentas padron"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "f82ff052-ccc8-453b-9121-73de2be6ad93",
+                    "leftValue": "={{ $('Webhook Entrada').item.json.body.history.at(-2).content }}",
+                    "rightValue": "Por favor, escribí el número de padrón del Comercio (Ej: 1234-01). <br> <br> <img src=\"https://web6.lasheras.gob.ar/apex/chatuser/rec/1\">",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Rentas comercio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "7b24f0a7-0e03-4597-94aa-4b7111b065a9",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_ASESOR_NUBE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Asesor IA NUBE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -672,
+        576
+      ],
+      "id": "e06f9b4e-74a6-4107-b71d-aabe1ffd97e4",
+      "name": "🚦 Action Switch"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=session:{{ $('Webhook Entrada').item.json.body.sessionId }}",
+        "value": "={{ $('🧠 Logic Router').first().json.proximoEstado }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        848
+      ],
+      "id": "54157750-a132-4c09-b218-4d8f46957048",
+      "name": "Update Redis",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        3408,
+        576
+      ],
+      "id": "a8c35e4d-0758-457b-be14-47118fbe2d36",
+      "name": "Respuesta Bot"
+    },
+    {
+      "parameters": {
+        "jsCode": "const reply = \"👋 ¡Hola! soy el asistente virtual de la Municipalidad de Las Heras en que puedo ayudarte?. <br> ;\n\nconst options = [\n      { label: \"💲 Pago de Tasas\", nodoId: \"TASAS\", trackingId: 200 },\n     // { label: \"📢 Reclamos\", nodoId: \"RECLAMOS\", trackingId: 700 },\n      { label: \"🏗️ Obras Privadas\", nodoId: \"OBRAS\", trackingId: 400 },\n      { label: \"🤝 Desarrollo Social\", nodoId: \"SOCIAL\", trackingId: 500 },\n      { label: \"🚗 Licencia de Conducir\", nodoId: \"LICENCIA\", trackingId: 800 },\n      { label: \"🏥 Centros de Salud\", nodoId: \"SALUD\", trackingId: 300 },\n      { label: \"🐶 Veterinaria\", nodoId: \"VETERINARIA\", trackingId: 900 },\n      { label: \"⚖️ Juzgado vial\", nodoId: \"JUZGADO\", trackingId: 1000 },\n      { label: \"📄 Mesa de Entrada Virtual\", nodoId: \"TRAMITES\", trackingId: 600 }\n];\n\n// Intentamos recuperar el sessionId por seguridad para el nodo Oracle\nconst sessionId = $input.first().json.sessionId || '';\n\nreturn [{\n  json: {\n    reply: reply,\n    options: options,\n    \n    // --- DATOS EXTRAS PARA EL NODO ORACLE (INSERT) ---\n    tracking_actual: 100,       // ID del Menú Principal\n    accion: 'MENU_PRINCIPAL',   // Para la columna RC_ESTADO\n    sessionId: sessionId        // Aseguramos que pase al siguiente nodo\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        -320
+      ],
+      "id": "24e6f9ad-093b-443c-baa8-7845f2d0e66b",
+      "name": "JSON Menu Principal"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    reply: \"Para acceder a \" + $json.datosParaSub.texto + \", haz clic en el siguiente enlace:\",\n    options: [\n        { label: \"🔗 Abrir Enlace\", action: \"open_url\", url: $json.datosParaSub.url },\n        { label: \"🔙 Volver al inicio\", nodoId: \"MAIN\" }\n    ]\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        -16
+      ],
+      "id": "670a561a-3208-4d1e-b881-94e52193575a",
+      "name": "JSON Link Directo"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "5VHyAaTX-ZxExJJG62ZQt",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/5VHyAaTX-ZxExJJG62ZQt",
+          "cachedResultName": "Subworkflow - Tasas - Todos los periodos"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        816
+      ],
+      "id": "58cf1597-5137-481c-abbb-cdd9747fa091",
+      "name": "Call 'Subworkflow - Tasas'"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=session:{{ $json.body.sessionId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -1424,
+        448
+      ],
+      "id": "626d1da7-199b-44ef-b8f4-5fc33a9c4db9",
+      "name": "Redis",
+      "alwaysOutputData": true,
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "am3Lx2dVoQD8eS6D",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/am3Lx2dVoQD8eS6D",
+          "cachedResultName": "Subworkflow - Reclamos"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        896
+      ],
+      "id": "2a94c3ed-468d-4aec-b0fd-5f35a04d4c8b",
+      "name": "Call 'Subworkflow - Reclamos'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "bxDzeXs85n0ale96",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/bxDzeXs85n0ale96",
+          "cachedResultName": "Subworkflow - licencia"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        992
+      ],
+      "id": "50ddd3d1-c18b-4db7-9675-bbaf6a46a6c2",
+      "name": "Call 'Subworkflow - licencia'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "QpzsT2Nu4Cb9tRz7",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/QpzsT2Nu4Cb9tRz7",
+          "cachedResultName": "Subworkflow - veterinaria"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        1088
+      ],
+      "id": "7850a825-8c5c-4ba6-8625-3e5c2cb99990",
+      "name": "Call 'Subworkflow - veterinaria'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "uPc3OJECAUsUhW2Y",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/uPc3OJECAUsUhW2Y",
+          "cachedResultName": "Subworkflow - Tramites"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        1184
+      ],
+      "id": "7a9bb8d5-19ee-4a7c-9f10-6b6f614fef68",
+      "name": "Call 'Subworkflow - Tramites'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "sem81SwnDLGUa1Y0",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/sem81SwnDLGUa1Y0",
+          "cachedResultName": "Subworkflow - JUZGADO"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        32,
+        1312
+      ],
+      "id": "5308cabe-be0e-4593-af50-794460b2f477",
+      "name": "Call 'Subworkflow -JUZGADO"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4TeMzEu10XgsmQ89",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4TeMzEu10XgsmQ89",
+          "cachedResultName": "Subworkflow - Centro de Salud"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        1440
+      ],
+      "id": "6cd559eb-7768-47aa-b2eb-02ababe538c4",
+      "name": "Call 'Subworkflow - Centro de Salud"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "kjdc19J7FdP7oRbz",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/kjdc19J7FdP7oRbz",
+          "cachedResultName": "Subworkflow - Desarrollo Social"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        1760
+      ],
+      "id": "97ae66d6-abb3-4fab-83de-a0f250dd2adf",
+      "name": "Call 'Subworkflow - Desarrollo Social"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Y4IWKTQExT7XZwv7",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Y4IWKTQExT7XZwv7",
+          "cachedResultName": "Subworkflow - Obras Privadas"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        1520
+      ],
+      "id": "d7cf0f95-3a81-4302-883a-f8ccc89ca7ef",
+      "name": "Call 'Subworkflow - Obras Privadas"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ade653b8-83cc-4829-82d8-63c53715655c",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "SUGERENCIA_RECIBIDA",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "12b4d17d-2d68-426d-9400-09eb7bff61cb",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "VALORACION_5_ESTRELLAS",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "b5ed3cea-74de-4e08-a3f8-c1e92d01b7e1",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "VALORACION_4_ESTRELLAS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "9ace486a-070f-45c0-b1c8-2a5353691279",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "VALORACION_3_ESTRELLAS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "7c62688d-42b8-42c9-b199-c40233ba619c",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "VALORACION_2_ESTRELLAS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "b8184a0e-3ec9-4e67-8507-002264e1a332",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "VALORACION_1_ESTRELLAS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        624
+      ],
+      "id": "c3209f11-782b-482a-9fcd-2552c9b2e4e9",
+      "name": "If-SUGERENCIA_GUARDADA"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 🔄 RESTAURAR MENSAJE Y BOTONES\n// ==========================================\n\n// 1. Buscamos los datos que generó el nodo de lógica (antes de Oracle)\n// CAMBIA 'Desarrollo Social' POR EL NOMBRE EXACTO DE TU NODO ANTERIOR\nconst datosOriginales = $('Pedir Sugerencia').first().json; \n\n// 2. Devolvemos la respuesta visual (Texto + Botón Volver)\nreturn [{\n  json: {\n    reply: datosOriginales.reply,\n    options: datosOriginales.options\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        608
+      ],
+      "id": "a08b85d2-543e-4b5e-93b2-e32f0e27ec43",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 📝 SUB-WORKFLOW: SUGERENCIAS Y VALORACIONES\n// ==========================================\n\n// 1. OBTENER DATOS DE ENTRADA\nconst datosInput = $input.first().json;\nconst datos = datosInput.datosParaSub || {};\nconst fase = datos.fase || 'PEDIR'; \nconst sessionId = datosInput.sessionId || '';\n\nlet reply = '';\nlet options = [];\nlet tracking_actual = 1100;\nlet accion_bd = 'PEDIR_SUGERENCIA';\nlet actionFlag = null;\n\n// ==========================================\n// CASO 1: GUARDAR VALORACIÓN DE ESTRELLAS\n// ==========================================\nif (fase === 'GUARDAR_RATING') {\n  const estrellas = datos.rating || '0';\n  \n  // ✅ SOLUCIÓN: En lugar de dejarlo vacío, mostramos el Menú Principal\n  reply = \"¡Valoración guardada! ✅\\n\\n¿En qué más puedo ayudarte hoy?\";\n  \n  // Copiamos las opciones del Menú Principal aquí para reactivar el flujo\n  options = [\n      { label: \"💲 Pago de Tasas\", nodoId: \"TASAS\", trackingId: 200 },\n      { label: \"🏗️ Obras Privadas\", nodoId: \"OBRAS\", trackingId: 400 },\n      { label: \"🤝 Desarrollo Social\", nodoId: \"SOCIAL\", trackingId: 500 },\n      { label: \"🚗 Licencia de Conducir\", nodoId: \"LICENCIA\", trackingId: 800 },\n      { label: \"🏥 Centros de Salud\", nodoId: \"SALUD\", trackingId: 300 },\n      { label: \"🐶 Veterinaria\", nodoId: \"VETERINARIA\", trackingId: 900 },\n      { label: \"⚖️ Juzgado vial\", nodoId: \"JUZGADO\", trackingId: 1000 },\n      { label: \"📄 Mesa de Entrada Virtual\", nodoId: \"TRAMITES\", trackingId: 600 },\n      { label: \"📩 Dejar Sugerencia\", nodoId: \"SUGERENCIA\", trackingId: 1100 },\n     // { label: \"🗣️ Hablar con un Asesor\", nodoId: \"ASESOR\", trackingId: 1200 }\n  ];\n  \n  tracking_actual = 1300; \n  accion_bd = `VALORACION_${estrellas}_ESTRELLAS`;\n}\n\n// ==========================================\n// CASO 2: EL USUARIO ENVIÓ LA SUGERENCIA (TEXTO)\n// ==========================================\nelse if (fase === 'RECIBIR') {\n  reply = \"✅ **¡Muchas gracias!**\\n\\nHemos recibido tu mensaje correctamente. Tu opinión nos ayuda a mejorar nuestros servicios.\";\n  \n  // Al volver, ofrecemos ir al inicio, aunque el disparador de estrellas tomará el control visualmente\n  options = [\n    { label: \"🔙 Volver al inicio\", nodoId: \"MAIN\", trackingId: 100 }\n  ];\n\n  tracking_actual = 1101; \n  accion_bd = 'SUGERENCIA_RECIBIDA';\n  \n  // Activamos las estrellas\n  actionFlag = 'request_rating';\n}\n\n// ==========================================\n// CASO 3: PEDIR LA SUGERENCIA (MENÚ)\n// ==========================================\nelse {\n  reply = \"📝 Por favor, escribí tu sugerencia, reclamo o recomendación en un solo mensaje a continuación:\";\n  \n  options = [\n    { label: \"🔙 Volver al inicio\", nodoId: \"MAIN\", trackingId: 100 }\n  ];\n  \n  tracking_actual = 1100; \n  accion_bd = 'PEDIR_SUGERENCIA';\n}\n\n// ==========================================\n// 3. SALIDA\n// ==========================================\nreturn [{\n  json: {\n    reply: reply,\n    options: options,\n    action: actionFlag, \n    tracking_actual: tracking_actual,\n    accion: accion_bd,\n    sessionId: sessionId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        624
+      ],
+      "id": "66865c26-8b3d-4dda-a300-6d08048c62d1",
+      "name": "Pedir Sugerencia"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "83ad8244-1924-4f97-9728-4eb3ad9b8a7d",
+              "leftValue": "={{ $now.setZone('America/Argentina/Mendoza').hour }}",
+              "rightValue": 11,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -368,
+        -256
+      ],
+      "id": "a13ef27f-afe8-434d-a697-d86edec26a01",
+      "name": "valida horario para desarrollo social"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst reply = \"👋 ¡Hola! soy el asistente virtual de la Municipalidad de Las Heras en que puedo ayudarte?. <br> ;\n  \nconst options = [\n      { label: \"💲 Pago de Tasas\", nodoId: \"TASAS\", trackingId: 200 },\n  \n    { label: \"💲 Pago de Tasas Copy\", nodoId: \"TASASCOPY\", trackingId: 200 },\n     // { label: \"📢 Reclamos\", nodoId: \"RECLAMOS\", trackingId: 700 },\n      { label: \"🏗️ Obras Privadas\", nodoId: \"OBRAS\", trackingId: 400 },\n      { label: \"🤝 Desarrollo Social\", nodoId: \"SOCIAL\", trackingId: 500 },\n      { label: \"🚗 Licencia de Conducir\", nodoId: \"LICENCIA\", trackingId: 800 },\n      { label: \"🏥 Centros de Salud\", nodoId: \"SALUD\", trackingId: 300 },\n      { label: \"🐶 Veterinaria\", nodoId: \"VETERINARIA\", trackingId: 900 },\n      { label: \"⚖️ Juzgado vial\", nodoId: \"JUZGADO\", trackingId: 1000 },\n      { label: \"📄 Mesa de Entrada Virtual\", nodoId: \"TRAMITES\", trackingId: 600 }\n];\n\n// Intentamos recuperar el sessionId por seguridad para el nodo Oracle\nconst sessionId = $input.first().json.sessionId || '';\n\nreturn [{\n  json: {\n    reply: reply,\n    options: options,\n    \n    // --- DATOS EXTRAS PARA EL NODO ORACLE (INSERT) ---\n    tracking_actual: 100,       // ID del Menú Principal\n    accion: 'MENU_PRINCIPAL',   // Para la columna RC_ESTADO\n    sessionId: sessionId        // Aseguramos que pase al siguiente nodo\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        -176
+      ],
+      "id": "532c98a1-a2c0-49d3-816d-77f8444bbc2e",
+      "name": "JSON Menu Principal1"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "value": "CHATUSER",
+          "mode": "list",
+          "cachedResultName": "CHATUSER"
+        },
+        "table": {
+          "__rl": true,
+          "value": "REGISTROS_CHAT",
+          "mode": "list",
+          "cachedResultName": "REGISTROS_CHAT"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "RC_VALORACION": "={{ $('Webhook Entrada').item.json.body.message.split(':')[1] }}",
+            "RC_ROL_COD": 0,
+            "RC_ID_REGISTRO": 0,
+            "RC_ACCION": "={{ $json.accion }}",
+            "RC_SES_ID": "={{ $json.sessionId }}",
+            "RC_MENU_COD": "={{ $json.tracking_actual }}",
+            "RC_MENSAJE": "={{ $('Webhook Entrada').item.json.body.message }}"
+          },
+          "matchingColumns": [
+            "RC_ACCION",
+            "RC_ESTADO",
+            "RC_FECHA_CREACION",
+            "RC_ID_REGISTRO",
+            "RC_MENSAJE",
+            "RC_MENU_COD",
+            "RC_ROL_COD",
+            "RC_SES_ID",
+            "RC_SUB_MENU_1_COD",
+            "RC_SUB_MENU_2_COD",
+            "RC_SUB_MENU_3_COD",
+            "RC_VALORACION"
+          ],
+          "schema": [
+            {
+              "id": "RC_ACCION",
+              "displayName": "RC_ACCION",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RC_ESTADO",
+              "displayName": "RC_ESTADO",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": true
+            },
+            {
+              "id": "RC_FECHA_CREACION",
+              "displayName": "RC_FECHA_CREACION",
+              "required": false,
+              "display": true,
+              "type": "dateTime",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RC_ID_REGISTRO",
+              "displayName": "RC_ID_REGISTRO",
+              "required": true,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RC_MENSAJE",
+              "displayName": "RC_MENSAJE",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RC_MENU_COD",
+              "displayName": "RC_MENU_COD",
+              "required": false,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RC_ROL_COD",
+              "displayName": "RC_ROL_COD",
+              "required": false,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RC_SES_ID",
+              "displayName": "RC_SES_ID",
+              "required": true,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RC_SUB_MENU_1_COD",
+              "displayName": "RC_SUB_MENU_1_COD",
+              "required": false,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": true
+            },
+            {
+              "id": "RC_SUB_MENU_2_COD",
+              "displayName": "RC_SUB_MENU_2_COD",
+              "required": false,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": true
+            },
+            {
+              "id": "RC_SUB_MENU_3_COD",
+              "displayName": "RC_SUB_MENU_3_COD",
+              "required": false,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": true
+            },
+            {
+              "id": "RC_VALORACION",
+              "displayName": "RC_VALORACION",
+              "required": false,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.oracleDatabase",
+      "typeVersion": 1,
+      "position": [
+        464,
+        608
+      ],
+      "id": "214a26d5-6ae4-41b8-8817-deac9e9be8ab",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "oracleDBApi": {
+          "id": "KJc1A83jOmPSNHsa",
+          "name": "Oracle Database Credentials account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "olr0sTyB0tq3AoZU",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/olr0sTyB0tq3AoZU",
+          "cachedResultName": "Subworkflow - Asesor nube en Local"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2128,
+        1376
+      ],
+      "id": "b02048d0-5095-455b-84dd-2e1bb079b92c",
+      "name": "Call 'Subworkflow - Asesor1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dividimos el texto por saltos de línea o asteriscos\nconst fullText = $input.first().json.reply;\nconst paragraphs = fullText.split(/\\n\\n|\\*/).filter(p => p.trim() !== '');\n\n// Armamos la lista de mensajes\nconst listaMensajes = paragraphs.map(p => {\n  return {\n    reply: p.trim(),\n    sessionId: $('Webhook Entrada').first().json.body.sessionId\n  };\n});\n\n// Envolvemos toda la lista en UN SOLO ítem para que el servidor no bloquee la conexión\nreturn [{\n  json: {\n    paqueteMensajes: listaMensajes\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        1184
+      ],
+      "id": "c4d33051-524e-4864-9848-9e05660f5130",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2384,
+        1024
+      ],
+      "id": "97b61e92-6dd7-4237-ab95-ab562cd8ed2f",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "kXKhiUtYAb5S8vGR",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/kXKhiUtYAb5S8vGR",
+          "cachedResultName": "tokens"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "excecution_id": "={{ $json.excecution_id }}",
+            "model_names": "={{ [\"gemini\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "excecution_id",
+              "displayName": "excecution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "model_names",
+              "displayName": "model_names",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        4160,
+        544
+      ],
+      "id": "23487954-af0c-4443-bbb7-38dbe648415e",
+      "name": "Call 'tokens'1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4663ece6-029e-486a-b18c-e0b339384d2d",
+              "leftValue": "={{ $('🧠 Logic Router').item.json.accion }}",
+              "rightValue": "EXEC_SUB_ASESOR_NUBE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3664,
+        560
+      ],
+      "id": "2782f0d4-1959-4d5c-9464-f41a69f068f4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b237725a-80c9-4564-9ee0-be1337c19d7a",
+              "name": "excecution_id",
+              "value": "={{ $json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "371cce15-3fde-4bdf-827f-56289de04d03",
+              "name": "model_names",
+              "value": "={{ [\"gemini\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "34b9d61d-5ece-4eba-84ef-07f75d769e30",
+              "name": "text",
+              "value": "={{ $('Respuesta Bot').item.json.reply }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3920,
+        544
+      ],
+      "id": "fb09d22a-c806-4219-a6c7-b06b03d65c5d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vwHJesH6l5267yTC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vwHJesH6l5267yTC",
+          "cachedResultName": "Subworkflow - Asesor nube"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2224,
+        1872
+      ],
+      "id": "4bed76f3-9a78-469b-b961-2a14d7da0a8b",
+      "name": "Call 'Subworkflow - Asesor IA Nube"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=chat:{{ $('🧠 Logic Router').first().json.sessionId }}:buffer",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        1888
+      ],
+      "id": "21871fff-885c-40b1-81aa-636d289dde2e",
+      "name": "Redis Leer Buffer",
+      "alwaysOutputData": true,
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 📦 BUFFER - PREPARAR MENSAJE\n// ==========================================\nconst routerData = $('🧠 Logic Router').first().json;\nconst sessionId = routerData.sessionId;\nconst mensaje = routerData.datosParaSub?.mensaje || '';\nconst audioBase64 = $('Webhook Entrada').first().json.body.audio || null;\nconst timerId = $execution.id;\n\n// Leer buffer existente\nlet bufferActual = [];\ntry {\n  const raw = $('Redis Leer Buffer').first().json;\n  const val = raw.value || raw.propertyName || null;\n  if (val && typeof val === 'string' && val.startsWith('[')) {\n    bufferActual = JSON.parse(val);\n  }\n} catch(e) { bufferActual = []; }\n\n// Agregar nuevo mensaje\nbufferActual.push({\n  text: mensaje,\n  ts: Date.now()\n});\n\nreturn [{\n  json: {\n    sessionId,\n    timerId,\n    bufferString: JSON.stringify(bufferActual),\n    accion: routerData.accion,\n    trackingId: routerData.trackingId,\n    proximoEstado: routerData.proximoEstado,\n    datosParaSub: routerData.datosParaSub,\n    audio: audioBase64 // 👈 ¡Solo esto! El nombre de la variable limpio\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        1888
+      ],
+      "id": "c308759b-c8c8-41d7-8b15-64628783453c",
+      "name": "Buffer Preparar"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=chat:{{ $json.sessionId }}:buffer",
+        "value": "={{ $json.bufferString }}",
+        "expire": true,
+        "ttl": 120
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        128,
+        1888
+      ],
+      "id": "123bf356-e169-4fe6-84f4-d4a6b38737d6",
+      "name": "Redis Guardar Buffer",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=chat:{{ $('Buffer Preparar').first().json.sessionId }}:timer",
+        "value": "={{ $('Buffer Preparar').first().json.timerId }}",
+        "expire": true,
+        "ttl": 120
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        368,
+        1888
+      ],
+      "id": "09fa40f4-fc88-443c-9132-078ba2b13a80",
+      "name": "Redis Guardar Timer",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 0.5
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        1888
+      ],
+      "id": "9859a4e9-8c2e-46ea-8986-1c5cb4912ea7",
+      "name": "Esperar 10s",
+      "webhookId": "buffer-wait-10s"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=chat:{{ $('Buffer Preparar').first().json.sessionId }}:timer",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        848,
+        1888
+      ],
+      "id": "d50160e2-389f-43af-943e-a9e6fb8f9318",
+      "name": "Redis Verificar Timer",
+      "alwaysOutputData": true,
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=chat:{{ $('Buffer Preparar').first().json.sessionId }}:buffer",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        1888
+      ],
+      "id": "54c9a32b-8ee3-4a36-95b7-bc7022675bc8",
+      "name": "Redis Leer Buffer Final",
+      "alwaysOutputData": true,
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 🔄 BUFFER - EVALUAR TIMER Y CONSOLIDAR\n// ==========================================\nconst routerData = $('Buffer Preparar').first().json;\nconst miTimerId = routerData.timerId;\nconst sessionId = routerData.sessionId;\n\n// Buscamos el audio: ya sea que venga suelto en la raíz o adentro de datosParaSub\nconst audio = routerData.audio || routerData.datosParaSub?.audio || null;\n\n// Leer timer actual de Redis\nlet timerActual = '';\ntry {\n  const t = $('Redis Verificar Timer').first().json;\n  timerActual = t.value || t.propertyName || '';\n} catch(e) { timerActual = ''; }\n\n// Si NO soy el último, salir (Usamos String() por si Redis devuelve texto y el timer es número)\nif (timerActual !== String(miTimerId)) {\n  return [{\n    json: {\n      shouldProcess: false,\n      reply: '',\n      options: [],\n      buffering: true,\n      sessionId\n    }\n  }];\n}\n\n// SOY el último → consolidar mensajes\nlet messages = [];\ntry {\n  const raw = $('Redis Leer Buffer Final').first().json;\n  const val = raw.value || raw.propertyName || '[]';\n  messages = JSON.parse(val);\n} catch(e) { messages = []; }\n\n// Ordenar por timestamp\nmessages.sort((a, b) => a.ts - b.ts);\n\n// Consolidar\nlet consolidated = '';\nif (messages.length === 0) {\n  consolidated = routerData.datosParaSub?.mensaje || '';\n} else if (messages.length === 1) {\n  consolidated = messages[0].text;\n} else {\n  consolidated = messages.map(m => m.text.trim()).filter(t => t.length > 0).join('. ');\n}\n\nreturn [{\n  json: {\n    shouldProcess: true,\n    sessionId,\n    accion: routerData.accion || 'EXEC_SUB_ASESOR_NUBE',\n    proximoEstado: routerData.proximoEstado || 'ESPERANDO_ASESOR_NUBE',\n    trackingId: routerData.trackingId || 1201,\n    datosParaSub: {\n      fase: 'MANTENER_ESPERA',\n      mensaje: consolidated,\n      audio: audio // 👈 AHORA SÍ: El audio viaja empaquetado para que el subflujo lo encuentre\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        1888
+      ],
+      "id": "4cd7e590-bbac-4cbc-a18c-5b98937d3494",
+      "name": "Buffer Consolidar"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "buf-if-01",
+              "leftValue": "={{ $json.shouldProcess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1568,
+        1888
+      ],
+      "id": "1965d431-48f0-4eb1-9873-8c9267a5eb9c",
+      "name": "IF Procesar Buffer"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=chat:{{ $json.sessionId }}:buffer"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        1872
+      ],
+      "id": "27dc3757-128d-492b-aec3-a23c6db43379",
+      "name": "Redis Limpiar Buffer",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reconstruir datos para el sub-workflow\nconst data = $('Buffer Consolidar').first().json;\nreturn [{ json: data }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        1872
+      ],
+      "id": "82e71aba-e7a5-4e92-b51c-da71d1d53e16",
+      "name": "Formatear para Sub"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=chat:{{ $('🧠 Logic Router').first().json.sessionId }}:buffer",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        1632
+      ],
+      "id": "0f5771dd-443b-44be-89d1-889599e0b771",
+      "name": "Redis Leer Buffer1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 📦 BUFFER - PREPARAR MENSAJE\n// ==========================================\nconst routerData = $('🧠 Logic Router').first().json;\nconst sessionId = routerData.sessionId;\nconst mensaje = routerData.datosParaSub?.mensaje || '';\nconst timerId = $execution.id;\n\n// Leer buffer existente\nlet bufferActual = [];\ntry {\n  const raw = $('Redis Leer Buffer1').first().json;\n  const val = raw.value || raw.propertyName || null;\n  if (val && typeof val === 'string' && val.startsWith('[')) {\n    bufferActual = JSON.parse(val);\n  }\n} catch(e) { bufferActual = []; }\n\n// Agregar nuevo mensaje\nbufferActual.push({\n  text: mensaje,\n  ts: Date.now()\n});\n\nreturn [{\n  json: {\n    sessionId,\n    timerId,\n    bufferString: JSON.stringify(bufferActual),\n    accion: routerData.accion,\n    trackingId: routerData.trackingId,\n    proximoEstado: routerData.proximoEstado,\n    datosParaSub: routerData.datosParaSub\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        1632
+      ],
+      "id": "94ed987b-9a8f-4733-9c7b-675f98251bb9",
+      "name": "Buffer Preparar1"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=chat:{{ $json.sessionId }}:buffer",
+        "value": "={{ $json.bufferString }}",
+        "expire": true,
+        "ttl": 120
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        192,
+        1632
+      ],
+      "id": "db98de43-a10e-4c77-bc7c-922dedab2bbc",
+      "name": "Redis Guardar Buffer1",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=chat:{{ $('Buffer Preparar1').first().json.sessionId }}:timer",
+        "value": "={{ $('Buffer Preparar1').first().json.timerId }}",
+        "expire": true,
+        "ttl": 120
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        432,
+        1632
+      ],
+      "id": "8d79d7ed-b597-40f2-a8ae-bd6fa6bca532",
+      "name": "Redis Guardar Timer1",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        1632
+      ],
+      "id": "a9fe5a60-38a7-48d5-a90d-79acb520652f",
+      "name": "Esperar 10s1",
+      "webhookId": "buffer-wait-10s"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=chat:{{ $('Buffer Preparar1').first().json.sessionId }}:timer",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        912,
+        1632
+      ],
+      "id": "b1ce3507-4462-4d5e-932e-7d15d2c8589f",
+      "name": "Redis Verificar Timer1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=chat:{{ $('Buffer Preparar1').first().json.sessionId }}:buffer",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        1632
+      ],
+      "id": "edb91933-9c15-4ed9-af7c-78411a3e879e",
+      "name": "Redis Leer Buffer Final1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 🔄 BUFFER - EVALUAR TIMER Y CONSOLIDAR\n// ==========================================\nconst miTimerId = $('Buffer Preparar1').first().json.timerId;\nconst sessionId = $('Buffer Preparar1').first().json.sessionId;\nconst routerData = $('Buffer Preparar1').first().json;\n\n// Leer timer actual de Redis\nlet timerActual = '';\ntry {\n  const t = $('Redis Verificar Timer1').first().json;\n  timerActual = t.value || t.propertyName || '';\n} catch(e) { timerActual = ''; }\n\n// Si NO soy el último, salir\nif (timerActual !== miTimerId) {\n  return [{\n    json: {\n      shouldProcess: false,\n      reply: '',\n      options: [],\n      buffering: true,\n      sessionId\n    }\n  }];\n}\n\n// SOY el último → consolidar mensajes\nlet messages = [];\ntry {\n  const raw = $('Redis Leer Buffer Final1').first().json;\n  const val = raw.value || raw.propertyName || '[]';\n  messages = JSON.parse(val);\n} catch(e) { messages = []; }\n\n// Ordenar por timestamp\nmessages.sort((a, b) => a.ts - b.ts);\n\n// Consolidar\nlet consolidated = '';\nif (messages.length === 0) {\n  consolidated = routerData.datosParaSub?.mensaje || '';\n} else if (messages.length === 1) {\n  consolidated = messages[0].text;\n} else {\n  consolidated = messages.map(m => m.text.trim()).filter(t => t.length > 0).join('. ');\n}\n\nreturn [{\n  json: {\n    shouldProcess: true,\n    sessionId,\n    accion: routerData.accion || 'EXEC_SUB_ASESOR_NUBE',\n    proximoEstado: routerData.proximoEstado || 'ESPERANDO_ASESOR_NUBE',\n    trackingId: routerData.trackingId || 1201,\n    datosParaSub: {\n      fase: 'MANTENER_ESPERA',\n      mensaje: consolidated\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        1632
+      ],
+      "id": "cf192694-1f66-48fd-a33f-cf9f5ddc6c33",
+      "name": "Buffer Consolidar1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "buf-if-01",
+              "leftValue": "={{ $json.shouldProcess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1632,
+        1632
+      ],
+      "id": "1a5e64d0-164f-4f86-a4c7-bd1b97bcf9ac",
+      "name": "IF Procesar Buffer1"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=chat:{{ $json.sessionId }}:buffer"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        1536
+      ],
+      "id": "c4f632bf-6829-4ff1-ba6d-5adf2bf2b107",
+      "name": "Redis Limpiar Buffer1",
+      "credentials": {
+        "redis": {
+          "id": "irqNoY2lmcvo0r2v",
+          "name": "Redis account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.first().json;\n\n// 1. Buscamos el audio (por si viene en audio_respuesta o en audio)\nconst audioCompleto = inputData.audio_respuesta || inputData.audio;\n\n// 2. Si por algún motivo no hay audio, dejamos pasar el JSON tal cual para que el bot responda por texto\nif (!audioCompleto) {\n    return [{ json: inputData }];\n}\n\n// 3. Re-empaquetamos TODO junto. \n// Usamos ...inputData para conservar el 'reply', 'options', 'sessionId', etc.\nreturn [{\n    json: {\n        ...inputData, \n        audio: audioCompleto,         // El script.js de tu web busca 'audio'\n        audio_respuesta: audioCompleto // Lo dejamos también por si otro nodo lo busca\n    }\n}];\n\n// NOTA: Eliminamos todo el bloque \"binary: {}\" a propósito. \n// Esto obliga al Webhook a responder con el texto JSON y no forzar una descarga de archivo."
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2624,
+        1616
+      ],
+      "id": "7ccdde94-a242-4f04-a538-bba2b3eff244",
+      "name": "envia audio"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dividimos el texto por los dobles saltos de línea que configuramos en el prompt\nconst fullText = $('Call \\'Subworkflow - Asesor IA Nube').first().json.reply;\nconst paragraphs = fullText.split('\\n\\n').filter(p => p.trim() !== '');\n// Devolvemos cada párrafo como un ítem individual para que n8n dispare el webhook varias veces\nreturn paragraphs.map(p => {\n  return {\n    json: {\n      reply: p.trim(),\n      sessionId: $('Webhook Entrada').first().json.body.sessionId\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2864,
+        1664
+      ],
+      "id": "19daa186-debe-4dba-8660-37e3a4f0fd92",
+      "name": "envia texto"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.audio_respuesta }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "d872051b-2b88-41bc-8d07-cf841a37e663"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "299b35a6-2a1c-47dd-b628-ebf6621f6a1e",
+                    "leftValue": "={{ $json.value_texto }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Bot"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "70120e3a-39ff-4b49-9ff1-e21b1f3f20bb",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "EXEC_SUB_TASAS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "rentas"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2432,
+        1856
+      ],
+      "id": "a8ff2b8a-d14f-4b08-b7ed-fe44da48d308",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// 1. Capturar mensaje y extraer números puros\nconst msg = (input.message || input.body?.message || input.datosParaSub?.mensaje || '').toString().trim();\nconst nros = msg.replace(/\\D/g, '');\n\n// 2. Rescatar Session ID dinámicamente sin riesgo de caídas\nlet sesId = input.sessionId || input.body?.sessionId;\ntry { sesId = sesId || $('Execute Workflow Trigger').first().json.sessionId || $('Execute Workflow Trigger').first().json.body.sessionId; } catch(e) {}\nsesId = sesId || 'sesion_subworkflow';\n\n// 3. Extraer el audio base64 de forma segura (NUEVO)\nconst audio = $('Webhook Entrada').first().json.body.audio || input.audio || undefined;\n\n// 4. Determinar el tracking ID según el contexto del mensaje\nconst trackingId = (input.fase?.includes('INMUEBLE') || /inmueble|casa/i.test(msg)) ? 201 : 202;\n\n// 5. Evaluar si ya es una consulta directa (tiene 4 o más números) o si hay que pedirlo\nconst esConsulta = nros.length >= 4 || !!audio;\n\nreturn [{\n    json: {\n        accion: \"EXEC_SUB_TASAS\",\n        proximoEstado: esConsulta ? \"INICIO\" : \"ESPERANDO_INMUEBLE\",\n        trackingId,\n        sessionId: sesId,\n        body: { \n            sessionId: sesId,\n            audio: audio // <-- Opción A: Se envía en la raíz del body mapeado\n        },\n        datosParaSub: {\n            fase: esConsulta ? \"CONSULTA_INMUEBLE\" : \"PEDIR_INMUEBLE\",\n            id: esConsulta ? nros.padStart(6, '0') : undefined,\n            origen_ia: true,\n            audio: audio // <-- Opción B: Se envía encapsulado en los parámetros del sub-trámite\n        }\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        816
+      ],
+      "id": "8835b9d8-96a3-4ede-9c2e-eb5e3a95ef73",
+      "name": "CONSULTA INMUEBLE"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// 1. Capturar mensaje y extraer números puros\nconst msg = (input.message || input.body?.message || input.datosParaSub?.mensaje || '').toString().trim();\nconst nros = msg.replace(/\\D/g, '');\n\n// 2. Rescatar Session ID dinámicamente sin riesgo de caídas\nlet sesId = input.sessionId || input.body?.sessionId;\ntry { sesId = sesId || $('Execute Workflow Trigger').first().json.sessionId || $('Execute Workflow Trigger').first().json.body.sessionId; } catch(e) {}\nsesId = sesId || 'sesion_subworkflow';\n\n// 3. Extraer el audio base64 de forma segura (NUEVO)\nconst audio = $('Webhook Entrada').first().json.body.audio || input.audio || undefined;\n\n// 4. Determinar el tracking ID según el contexto del mensaje\nconst trackingId = (input.fase?.includes('COMERCIO') || /COMERCIO|casa/i.test(msg)) ? 201 : 202;\n\n// 5. Evaluar si ya es una consulta directa (tiene 4 o más números) o si hay que pedirlo\nconst esConsulta = nros.length >= 4 || !!audio;\n\nreturn [{\n    json: {\n        accion: \"EXEC_SUB_TASAS\",\n        proximoEstado: esConsulta ? \"INICIO\" : \"ESPERANDO_COMERCIO\",\n        trackingId,\n        sessionId: sesId,\n        body: { \n            sessionId: sesId,\n            audio: audio // <-- Opción A: Se envía en la raíz del body mapeado\n        },\n        datosParaSub: {\n            fase: esConsulta ? \"CONSULTA_COMERCIO\" : \"PEDIR_COMERCIO\",\n            id: esConsulta ? nros.padStart(6, '0') : undefined,\n            origen_ia: true,\n            audio: audio // <-- Opción B: Se envía encapsulado en los parámetros del sub-trámite\n        }\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        944
+      ],
+      "id": "71c5ae47-de98-4b65-b572-2e296188c061",
+      "name": "Consulta comercio"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 🏠 MENÚ PRINCIPAL (CON DATOS PARA ORACLE)\n// ==========================================\n\nconst reply = \"👋 ¡Hola! Estoy aquí para simplificarte los trámites a distancia de la Municipalidad. <br>  Por favor, seleccioná una de las opciones del menú o escribime tu duda directamente en el chat.\";\n\nconst options = [\n      { label: \"💲 Pago de Tasas\", nodoId: \"TASAS\", trackingId: 200 },\n     // { label: \"📢 Reclamos\", nodoId: \"RECLAMOS\", trackingId: 700 },\n      { label: \"🏗️ Obras Privadas\", nodoId: \"OBRAS\", trackingId: 400 },\n      { label: \"🤝 Desarrollo Social\", nodoId: \"SOCIAL\", trackingId: 500 },\n      { label: \"🚗 Licencia de Conducir\", nodoId: \"LICENCIA\", trackingId: 800 },\n      { label: \"🏥 Centros de Salud\", nodoId: \"SALUD\", trackingId: 300 },\n      { label: \"🐶 Veterinaria\", nodoId: \"VETERINARIA\", trackingId: 900 },\n      { label: \"⚖️ Juzgado vial\", nodoId: \"JUZGADO\", trackingId: 1000 },\n      { label: \"📄 Mesa de Entrada Virtual\", nodoId: \"TRAMITES\", trackingId: 600 }\n];\n\n// Intentamos recuperar el sessionId por seguridad para el nodo Oracle\nconst sessionId = $input.first().json.sessionId || '';\n\nreturn [{\n  json: {\n    reply: reply,\n    options: options,\n    \n    // --- DATOS EXTRAS PARA EL NODO ORACLE (INSERT) ---\n    tracking_actual: 100,       // ID del Menú Principal\n    accion: 'MENU_PRINCIPAL',   // Para la columna RC_ESTADO\n    sessionId: sessionId        // Aseguramos que pase al siguiente nodo\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        -496
+      ],
+      "id": "f1aabeea-e503-4f1d-8957-d79cb4b422df",
+      "name": "Menu con botones",
+      "disabled": true
+    }
+  ],
+  "pinData": {
+    "Webhook Entrada": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-asistentevirtual.lasheras.gob.ar",
+            "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+            "content-length": "59897",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "es-ES,es;q=0.9,en;q=0.8,it;q=0.7",
+            "content-type": "application/json",
+            "origin": "https://web6.lasheras.gob.ar",
+            "referer": "https://web6.lasheras.gob.ar/",
+            "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?1",
+            "sec-ch-ua-platform": "\"Android\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "x-forwarded-for": "192.168.240.28",
+            "x-forwarded-host": "n8n-asistentevirtual.lasheras.gob.ar",
+            "x-forwarded-port": "80",
+            "x-forwarded-proto": "http",
+            "x-forwarded-server": "451a7bc9ce00",
+            "x-real-ip": "192.168.240.28"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "sessionId": "1e9c9e75-af09-4893-86a4-dcdbf205d4ac",
+            "message": "🎤 Su Mensaje",
+            "audio": "data:audio/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwEAAAAAAKylEU2bdLlNu4tTq4QVSalmU6yBbk27i1OrhBZUrmtTrIGTTbuLU6uEH0O2dVOsgddNu4xTq4QcU7trU6yCrJPsrgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmoCrXsYMPQkBEiYRFSoD+TYCGQ2hyb21lV0GGQ2hyb21lFlSua7+uvdeBAXPFh0svBC7QjC2DgQKGhkFfT1BVU2Oik09wdXNIZWFkAQEAAIC7AAAAAADhjbWERzuAAJ+BAWJkgSAfQ7Z1AQAAAAAAq7DngQCjjIEAAID7A//+//7//qNCiYEAPID7gwL/EP/+ffjTns9zLcTYCOJQvr6+vpqYxn77D7V+DfVhO+rMJCbODTSKVXsXONU59hlzhk+hLUO6UtiSP//zsgLWGiIih912mU5NKDO6JQYR03jjREXxOOaAZTSaAVyWbTkn7BtWZw6kfNuCAgqEaOJO0cWLHKN47MtounniIFTOKsoDcVYf4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6H2iv8Vxq03ZX0i+DT4I1FgUzfl3WRDIAEcHOaGUEQ3Wox+JAKFlwdaHMlxbIroTwLXt0ENVUJxc1OFSmEnR90XFVhwvuF0YzuuveX3Ejabh9rmSPH9ym6gAg7M0Fs+3ZsOvXh3hAy8Yliowc6FI4pe0559GcreGXjYPVR4Goaz+G/peD6RWxAjjlI5haVuZouHzQWJlIFFtfq64rlNSISmOyCMX/6mICMEXJuOUNpqLny2rv2InU5V2o/FmebatkTlzPPXjmfDBWZYCWTz6x8frJZ5YR2IIxHoBGqhGpIAN+ADMY5hPTT2PKNJqW99vqxSIOl/8vz1Xst+2vPgeXD3aSYmf9vuo3IvgA71RrJCVT8+UcOmj1BUlzWlqeuI10kYMqVpWAAAAABeAPbwDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAauuouabsqCpHiS2bL8UWwmWEgQmzLHNCTYBrxEFijPnSEsqBO36o5P0Gh1Pn8uHpFaor3tAjzSzT+ONv8PugAadsze5/GsYbj2BtAAAB2wcAAGMmfKVLQADhpE4PzC2YJPIxo6rvCijQUyBAHeA+4P/EALz/SxeBS0h/C3a0wJspiQbUXnBUAohY0KgE2QhHAJmKFNWnw/hnfPBMf/ywSjSuGj1DhxBbdRvudp9XxhIdZZFsAxFs/e9cIbHFj3OijrNClfH+uHobtrBBJWfg+vn3NTEAhil3b+joEjTzTGGESKW72em49QpkRXW/dkskCHLm1QL001sYCOQAAAAAAAAAAAAAAAAAAABzJvjZ/DP6syrmPkIu/tOJRtiCZkrx2K4lX+7fT3i/OM4M37ZOG7KUfOYeBHL9OYmpm+s8kEWsyF0z2gjkbRoPq3avZOiofY752hZsKFUMuhXUzMwUG1kxhnS3pC3/BMzBwRRWXfKyaXLj8S80OrZ55l3/dGhyx7d/KT0ZO2Man47sc6j8kdPlk8kqRi9THmTqsWPLUkm152OuiohKABCIjVgWzDLoE7Z//7//qOMgQC0gPsD//7//v/+o4yBAO+A+wP//v/+//6jQoqBASyA+4P/EP8Qf/z0EL8qe3w2WeahV3d3d3ZvGslg0F6Zs01oemrmUqbD30fJoyQC7OGiWPGC4cCzjTMO828X/PTwOKJAAQs19Mg6AyOGuHV/DQdbSbVB3jFNl0Ov0Famp7shy1BYuu74DoZgShI+WYhhl+a691FDwQomGoSuVUJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAExmAWnjyV9POiu6JrUDotkXkFmFnTDCMrB14HpKWYOwujGjiEsmrj1iLZsAhdxqW8cMuvM+xX6Crz0DLNN9cjJCztJjS9ESDCEKM9sMpBPieRU73jBjYmNaJjQ5Oy8uyeXYXLszl2tF78teUQLlACH36lAckaYp0nMgc31IBRo21gROlSDxh2mjg2q23kej5uDEiL6d5Nh64j4J047TvSNHf8mGMIGCL/C33krqOxh7xDO3Cu1kBi7y4bx1i8ZFnLz44EA1iegERSpSvYORe9Z5PdU8jQjzVFkRkow4hF5tBOhUVgsg7+0iFmnADI0faDChNAqQgc1ZfMnAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABfcpyu8E6yx8QFd/QBtQoZ2RV7RKIiKe7gAB0e197Y5kkSAENSLlYKIg/Rnw2dE1iw9QcI8DxAD4KBIGYGTI9lmQABzqh1odATBmLnesL6LXlhO4XL97G06b2z83ev7kUgT1gJz2bv7kFsEAO42AWDqgAADwAfY9IcO2D9ILgHBAADhYaejuxj87dXZrB4/4n//qOMgQFogPsD//7//v/+o4yBAaSA+wP//v/+//6jjIEB4ID7A//+//7//qOMgQIcgPsD//7//v/+o0FLgQJYgPuDAgL//v/+ffkQ5HfUHJr2BnfvDOfBPrEhLTgQkJqeMVaUkIwZjMfMgggS/nCmLrT5ZBdDLiW7LmevzhJTWWcWPWkFq+GqJWD+zYpunTgysjZnhvPR/6CaGi+21RiKX08ypozH4r1QW+SiKLP3h1jhUn9lOmoRrgmiBRB33a/rcpKz7SJKa5/o4x2FYOxpZyl9HMGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGOAiVsBEK7whgQZEC5oD4yns1Xz4F44wDRgcphgM0pXkU7qVkKPb1YN1yHCbLlrhhqcXhVmju2JTRtAl+/ktqpEAI1OY8DhT45AXkCcCdOeB6NWKvaG+asYiWVJh8uVah0b6GjDlxcESMu1N5k3qfg0y8BOGXhNcs2+Wl3LXQy7slnV04yYyoKLxCSUaNCioEClID7g/8Q/xB9+RkoEVcQgVvjgTkPDW2TNJlzwElecGBH9qK/uG4AcBg9iwdVzX2OuuNp84+joUXnMNOQs/jN0rU0RJM5IllJnqj45EX1H3zYMf9F3/e62QO5E7Y8QNQ4ToJLePF8fyOytpmC4u318nDJisndD0unbwBwUuBGymeVNy5BAsH4VbE9OHsqjuy6vKPK0wtgdRGNB6fqADtTcbj6cI6KrIaVh2WJNMwML21SQsJOwXMaQIGlivnyZe/Tw3hcadS9ecb31QwOrLwGrWvIrNO03ApTmM1PKFJvz9KPuVscZa9Bu+fLK98RETKqFtEOhSJ9M9OCDGdqkSfnywo0ahG1zZZaM4SrtD2GgUN5jgjgW8z25uXIW2xMGuuvbIoNOSG/BluGcESFWVb1xwyWOE0ejVuES6iEr2EE/lwg/qZdiDnrf/0SNs3QsxQooDVvN3lHcw19IQr8w3hEFnOFiABaBheGWvfGbZZVcy3dzDpS1hgT0b/pRuSMK2QARkGk64KiCv2AA8bGD8BzqDSK7IsVTeRXmq0ny4RvY8vZDi07vRcFdpwsPruKgJXoqO4heJadnqKhQuUHs+GeiSPyv+aMCo6DbxmW5fo8ETtQ1LehAtp/dA9/Qg6Kd+J5SHT6Jq3Uw40USozbBp7xAADd1t5TWRDGZj6RlGUrq8kr8sUH4EF7EnVjCW4eIUrm5ECebZzpF6CDcX5jwra9/iB7BQgLYZhud/kWq141xMgeVfEaZb6pIEJbax7xOo6RSxZl2iu0qzn8gC8qbhbUOZ62NJ2RKKqYUlwoAAAEKS4IAAAAAAAHGsYPGsZoAAAHGsZ4AABegfVG3SYV1vBGW4XRkl04bf/+o0KJgQLQgPuDAv8Q//597rCRW/hD7liqF4AW8hnZGVBgjbzNH8+EGbN4265TzSOjPOjvjw8VugxlzClympbYQwTyGMAYlOjoj+EG79QPxJF2vKYXS5rYfrw+5T0fdAFpPRN3OG8mm1JzAZcPxdoj/1Lokuwd7L3X4AQnx5CZSsqH9cjPlLaWDF70N4ThjAuhsFWY1Do5u5jUALSgAAAAAAAAAAAAAAAAAAAAAAAAAOEjAEdG+U1ZBtUszH1D0gNaxZhKpNXeEkxXbHdQ4Q2VBaWCp7p2BE3AQFOAEWd9yKl73pBkFScp15MTM3rStUJW4g/oYOabqw1NWbCZR1qCO1KfhcFuj0vyLta7iVucrm/c+/20AFjX/XcONnV4lqlEzxArz+WynYopnhIId0Z+kZPAAlZJSqVVFbGMDroyDIbIxUv9ID5DIuqy+RIufLdIILYgrDYXTv8DXOL43XU19w/QkH2t9umtd0wzD/R+TepstT4qWk5GWj6XI+qlwbJSNYDADHC72INCN+fACln0UyrCDTBoZiavorBUUamQ6XwNcH38VR2+axS7YwLtwOfVRo2crcg1tbnNy+biwiEa6TikVXH3PHPi//e1sffPvKdXw62iOYCxM6uOgE5UsHfkLuy1XSeSsBAAoiQW6fSov75KE50fWAHgYFFcLV+WMaZ99dQM5mo67suo3XD8hBBNKW47/4pbFwTzS1M5jvmCuaSuMrT9vZ1SnSHL6y4aERFB+XikgbNZ48UD3EAQHTKiQra1iGQr8iB9T3U3kOWUXpb0c6j2VTNalQQqhRoJ89FC9nuH/ynDSaw1Yxyb7fa8qv5M0O/Q/Tn0zukBVOb3fG2+Rc8AJZdW8wHQTaNDw4EDDID7AwFlRt4CSBUp/88kfxoX6QqwU/ICdGpFcFVmw6VXfBOAWDcqVvBiHgFH0KvaWphbYG8aOG+vYgu2atZKQD+FKVSL5goYwb3AVBPWFhMw/Eq7AC0aohhkbSAUScXTy5JFyVXzuH5MeOJ9wmgeE/Jro6/chnY7/raLQnOr+k8lLyenPvsrasRWCejgb/I+lYqtO6o/BIkMkyR/OrQtY6dT8LsO1p+eQsaNvixLhwfIitN8tOQcDFBKT28o5d66wdEs8DNpP6MU4nZtM1XAYL0PIbbASSmOcYt38Xp5LKE8uYJSSq57XnebLC321kXPBtt3TBJCz5baPL2/vvVTKv7qCVWdyIZG9y5YItbCeVJ7alPBCrNxApFEzb52JpLmc10trNYRvRg8gIxTxPLifE/mb5fVeKsSyxH6/w6rTzqvx67WbQZgt05hclWDrOeCbujD8sD38v+zuDrkonMn7EMtLaHd6sGeaRYYvkgbI+hGwHezyp3+iAUP5dg3KBKlLheLKhEu20hvJJXQRsaFMlMQjkIT7kGFWvbp/g2ealOhXFWno4HlNJz6IHchH6USTaLC/unof4UcJpSJgSSyShJtIZ7h81Te85w0ks1urmjN1L9gRqiHeYB+RxCv2zvkI3ZMht1GgcUKEiyGF6vL6uKapFxZ/i4A5WbEI+dwa5gIRh7MEIr5GHJjFKEKfzVh8NGaesYiTq+kqNCOAgwxyWBUNib26nkuUJwyu6HvMuQ/xm1i355BBgyLiSPbUG1EeKiMAwCMeTSP2KcBjpbJiGVfN7JghAEkFGdyyfwMJsInIoHygAq7lhx0wKjrnCTpeBc8uo6My7t8VK55xl4EuRSZ22axbqKDwvs27/RE/UwZ/MlA5w6eTYhMnLFSDGUwI58XBWH88rP+D8Q7fpBUzRhdFRjaRQiPOqRmWWA22/JBBSDEgZ5LyqyONP91BEYa4GrHZ1m+/hJs3hnrrieehlriYqIwUyy5dxeu0eAIP4sFAYIInQg1mouS2fTldIpSlDrh6BXC2Hq7L9zsu0EqDA1Ee5yLKnjzehJhtdKQC7d6b0U9AastJb9/uPBoF58Cgyszd3ladykhyjf1XTf41/ygOAo+yt0S9YrCoaQLCaYTuvnDqjZnYb94MEW/UI5/Ri7g6k9u3LMxkXlmUkuxt014aH+Iv3oMh6/q7kH/BYbiLkVrnNprlb3Jjp6SOrYtxNJ0Hz7KdWFxyxeswg+pZs/X7JZIzbw77oD+Yo7PB7AN4JswoWh26o0/RFcJgJibfKNDw4EDSID7A9mks5TKxN7kcLDQeuETNcyzy95G+/cW8QxEv4SGaR7c9XqBswQF6b8WVtqqUM70QHmyFAC4AnUGSPbaMU12ecLcX4Q6tdUoI488EYf/6rxuVmVRllG6P9FYHILMoK5kgkuDEbIjVViRC/CfJwGx3wyGzsngS5CDsOei5vjAYrqivThLpIWo881JDjB2phuz3mT5k3ykSiUjc0B3QbbCNgyyUOMsX4rlyDx/sgh58SdEfhvOlov/8daJfHp1z/pooE8zzqyPKelGmBWPWyzAL6YenXFA6dJU6LRlKB/dRR2s2m1ACBy3ujleiUmED1WTx+v5gEwUpC9ItnQFnJ82PfyjH5cUY5VCannvd6meOvMNAAG9PdVtThRTjrn97JVuQQVOF3XSKGOaxS5TyeY+b8M+VEtsRApI0Cke9CEZzYviMma8c2w0FI6EMOMnwVoD0431RK/Y8CAUkbxMXYndICtE3Dw1+f0po9IlO4LHM9Ddm3BzODnu+pFrc/iFkUMaR6Xr+jII/1QjvH5L2rV9KdabFC8EWb2d0O47bve8FcaI7rXLKwSETpUs6JFFBRCW3v3RxAHP4y2IwweVqWFqyHC6LX7qTE0jd74Yl8M/Y6eqwNuewW2FR+Xm4I1UnhUdVbYMvd6ahFofWsHcw+2lNBaHDBkCKww9ltY4f0TFvPzp9LUXGomONixBusOaJ8tl6buLRYALql4+HjvB1MjXTcMJlrZgYg/0nxpHRbffDK+SpeWsWLraR+qQRcjubN6mFswKir14mHT1kxoII3Xmq8JyDqHli/SFm//n8Mj3jIhm1Ajtmoyt0e4zWOtKystG4gecm/2N/r473FRKvSWt56KWjmC2MLS8/7Y+MckWRjJcHsH3X4bg1cQkXI0AxiOSgCWONRVHmJkDu69jm9cXU3kTGBte4XPZJkhFFlWTvGftobo75JW254npVvYF7tCrEt6GD3xGv+gHZTXpA28oaEbxPRmH31brevHle/jv9Of9uay6G2+vSCMLnDREiyMnu818mni3PnJsfxrdNAkvXs8ogjDFf168kWXUsMnN/6CHnUMbjH4fhnOuCv25NcQB6H43jbfsgnWWuXB5Play2mkuaq4pA8Lj55owLpoEyP69f85ddUfq1zJ3bGJMmZBEm20FMAC8LsnGJnw6/zphAujLW2QNbFr6aP2YYGKaxRg2Z0jt7tGeRjuweiSHUWy4flvXo6JF7KsiADhFNFsCPGNTdIwX+KLAQQ9Hnd+2Kkx5KY7PHMFRpQ9l2Wi9uKNDw4EDhID7A+Xzn9XvyyPorrcmUqJW3Vxn7JW/tZdkwHoyLDe036SQMUswOqxF/97fByRdZBrX3F3A65RbsyoVEUdxyoyvjOVzl7jyR68mrWhMIwo+Zg/sf6kc8ibd4pNqrhuAIytjLQOU7bcf8JSV48WMwOZGhYqwSi1yOEuP39eSbYvTyWIh+zSb6jJq4WhXKqEnOx09RA//nVrRbbXGQNzThy8yOsfgAuWfPSJgZvRb+hTPAPmVsgBWC/gAvv0q0CuVbeZCewPc7w6KB2wXzifSz+/FuwbzBd2flD2RWpc6vT54/eMJqZowuyLLuCSji+/9LKp1czSH+KPv+GMbMhOc90rrGQwxi4GTZiDrNLyE4XTLuvdNmECNuDHrJh7qmZizP3Y2hu4ZPtutYM3SYsBisfSTOj1se8ulRQT4VBYIUyTifcDm9uhZvcM30lT0sipfFhFW7+QeMEaBbIdr33YqTkmBZ0yHqnaXOObSS+AkLZk+e0J/jlnst510cG/ACYRSlew7gs+Yijd7LRiFRai3fwK6SfD5uxTKQwqkbW+/ix5CrEXbpULoosoSVCIIJPwt2WwHsKAv4gHrYtG7KAvi2IzKxA0Ewt5w1CWaBtd9lmLcJuNIfFpUlS4HTIscuAhaq8RrOfzcVxzuKXOblxVikhwhOJRRs4tM1z2fbr3P611DT4I24E1+cMRAOye9UBTB+DXaH9gU5Ay5T2m31BRbGeGkbEk3zFZdoNgvbO3zRrFOGPCSP8AirmRaA4qLjUwu5OM4i8oL7tE03Fm8L0/14NiwiXOD5Jm8ty9+8vek7Ne7GOmwXQKkD0j+PyGVn7JzVmszC4y6lsVlR+GwQBHKDN3D54l3Qmzcd7LT/YU1diUpFHv8tLVrnPpWe9fvbkgJ5jLizX2pwNJcnVS8fJTXGbL89FD6/7qqNHaitAG2lzVEw799cjErumPrd4TkKiWYa1p0sL2POvAQTePZz3IbzP44OiiMypM253WVI/tELBGm+mxL0mizkYS6B2RjHB0tczEeqLFgh4uKgg6JCun/NTDuA5rTA2vTXBUr4rPdmkbNdN9V5/Ikv8ag+8KhtJ/viwtwfk17nDv1oBUmw7OeH7Vn6QccYP16t02etlLXhFuMDT+GdU+ZCQ11GLFp5yJ0KhXMRcDMklB0yCg7Ura6dlMYyZDDA03ZA+aRytY+5n61gF/cp6ra2YylM17wtA3d30/a7cPBh3oH40nUuAYumaVgMzEos2gU60pemRtPqPhjgNhRVVO0NYTAQ4sIkOZNuaNDw4EDwID7A+eLAcyLmbQRbcs7QG8KXajjG53qC0vk34aqCKHRSz308Hep1pB2VGfCpFiprCpSmEMEGYBcC9kn0j07N607gBBzGTiAQ9GvIqqEIg4q2l4ybJPdMP6cF6Fqt+yvFERPizH34mTSW2ccETmHxNukUB6AquKz9HLKqqg8LbQJ5V0969/qUmZiUGpD795+B6MkNBOoTRE8R7JmNWkLX1wnFyweKG3HuZg0hFZnQ70hi7tgCLwkTudGiF5zYnBncTsuv4SxWsCiOTZjjW75jJ4jGDboLrqVBI+v+LsZP1cbK6AAEG6prJbjaEFeLiKYNWckoFGbd1iiN5kjwhKUK57KaNX2l3RYLm9PSj6R+G/2xJLOs2Q3X553DMzizPYxxDBP5v/vwUGWKLHh6u1gsheOCVHJVO8cRw3i/aZoQcA4S7rl0s+EfIirA2AVN5KkgNXNz0pulZXYhugZQCJGmLk8Tem3vFliRFwdFEo24x/iIiDTllrIPP2dxBGfaIatkxQnkMudD/Acg4O7P99FghCAtcIbgWuHYEYAlARqbPwqQ+WI2YkBVAo4nX7g2/rPJSYyPb77jxxrqMiSkSA9dovREeZ20Z4g/cpnGnz1FEqBggVkZaqrHspSjPauWvElfsNFnhgsMCc/BwqddQKNFmeQ5yX9RQN8L9ogE8t2eweNjt9Id/QAhZp1tVuzBtzqSPwYzc7drsV43m941mi7tAXD/O0zE0zaqlmnIyMqM/tXf/GsFu7YrQnzYWvQR6rNZpVhf3fQ5LU3G1Yhd1vsUVCVd6A//xWvmbM2cTVHWADS/dyjs6mXqG2j8oGqbNPh7xP97/oEhGSLPP3tYtIa/H205cSJrX201yPbFwAysNSCl8UIcMjihyz6eWDuj/MoK5vBmKGYCQgvFrAHWUgQcZPnq/y7V+Wkey7mWjPAbBo0kw/6Rspn27aFp9021Tb3ph26pKxpSLUM+r1BNeEMGOoa45E1zzL4Yx5ufsDVg6VKdaFV7MHCGccqimmdaxSdqFjn4Cyr8R8jDpUjvosfmXqQ2N7PzS8byUNfWoKLtUi5JpgjlFuzOjF825JCGYQDdupZedp3OvrESlzdiLOSRpOjOO0pcP46VmrZj+LqkoyWfy0IROf5kmJZRc3hs8sCilBg5Uk4KYfR1Ryms9hsS/cP5BGDW5yARzxzO9Qv1imLXb2fudtKGYNP7fIlpjqWKPmkkAx0jSn2S/H/eNkRYorBDDpEeoGRskmMGc7HhukwDlXcjhTS4eUQQw0s44utsKNDw4ED/ID7A+XPK8ZRR9DpPYPvjXYtZQtR2dsQGGnNi4T4tnZzY1Mh4tA8c541M9jcDtTbAPUjLMX/vO1Czvq2cQ6kRMMcPyJBON9XBsf0l6b6bwXBL1vI0yFxknZzsJnpdo6pz6VbvkviStuZLDHMERkrN0o3Q1w0dBkrrVxuvS6tals2skn9efn/Ftjitid05p3LuOzGVD9FZ1CmImVb3yVfs4VeBpZ+9uOIKRC+5pYGBuHKkxLBHzcvo8NjrN3hrU6nNF8vujch7UXhTIXInP7buGe3yC1/sBwpAWFtXN1p0L1Z1mEPTqv+QEL16mTzk8FVTsWK/fM0+EYa1GPWyj52Q0c7YtHh2i0cWoXqV79PLEt9zIsAz4nr00lCi+pLPnhqPzO2DtW0Z51SnunRPO14R4RqJxSc0JjMvxIT+cnc2mtsfbbnB9xbxRRNU26IsAJnqp2Bg3pBjWPDBlithJQHZyx9AKQjjzouIbNZUxcnAF4m2XP7wAWjI2oDLa0qiIAiECa8O/OGdB/e82Jca+LxQAZgBK0AaSlM6CIU07k3+bDwgr4o+x0TcE+2s3T1oAP2ua8rFLxsDYWO9rIK62fsLc0cZdzy9wUenLvu/FuvkpNcNzL75FvJMkEvRIP2rF69F+CZaEx1sbFrxLAjWGykKofp+TVqtRlPXbyHpE9p1ePNg/xT3a4P/kNkpa4REOS8hkxnEMLkpXAlO4/cBa7esX+ldgbMqwbl2IlmYp/Z8FO0lxrNWGWD+OvXEG/lK5LAMxDC+O6BhM/xe0AuISw1PqQ/PPsUyHzBOgfOFaTqO+aahdy6jvCtBP4hK1NJsG/LcFUYbfWa28QDZepufioPj4225cSE03OQtydIU5I6uxccXyxPXZ5t9hgmCEwqEzCq258ZXmE8qwzSE1MwGAHJh8mBFjLphicl8DsDKjN43GVaTyDrILrCUoyfhci2J+s9AZlxxOKD5+jcHZhEo9qKB5uAkDziwi611b0N45hPtaZFJ0B5MjxkL+Z1yapT+T7P7Xy59wDoceOsKT22lYQS7QJygmxS3ViW9oKipDskuvshyqyFM5a+MiTI9EnKG3df7rAiisOuepLeUQLHXqmfYXj2UAXcNsdDISB11FilTpwTtIkrAZvJer6WNJreKg75RCsqK46To6qmib/ZjY3AG3jLAOxNvWnV722HOllAv0bV/vARLKd0kQjSK0OrPC7rJelRmtDxk2BlEpT4AMGHHXcMFHl/PrILCJUBvjusRxreZkFMJcxthaH6JNFZzCpFuaNDw4EEOID7A+XEbghQDH2pA73lybF8XIKEm4Kg7zKMDkFhDCqsoR4l+oN08gEMb+bk3oNY77cPZSSIt+tTFeosoZtvnIj1vK0yD97SMpZrLVy1A35skUCGH0Q6J+cS8woIp2qrahvKna8u5jryQTDrD8JAG0EoEGye++AtgR2blNTcKCOLPO8W7D+67bwDR8EvY/08kA1HK0TFMlP+EVVe637LcsnXQJp+nxvyl5k8LF18EQDcd6yJR4kIYd31AoOSOK1O/7ruFPJq8qniDSV5mYy4eUIYhNmeyOMjv0rKmQLJQC4R+2dP4+eTUtOmhlOIKcWM2l1YF80j/EwkjN2fQQtlrSoUEbgySx1tkw8QsKfqFb6y3AP/v7bD+GUcJe/zWt0BRxUCtZmatUgVBzBm7scggWk3M7OJtqJERwrbWCXMu0wb3b3l0YB4ztPUbBLjxH2El2skbzh0r+aEBx0/YtPIhzkTngmCXU8139tU3TdJuGDr/9ktlT3p5grnk08OfmP/1Lk+WSvg9N0Ycg3ZlgDiBMuX9Q+WArMmreFDiB5y/ddGIl5OkZ0IgbtBvWOXqofn1aLh7HsGWjTxmpYB7X6JvdQjK0GyOJGPAYhbBkssnXP1BL+oQ7kJVkx1oNNZ5gD/S7ekvXB7QdEWJzXuPT/bQtxE3eZEKijffio600nnjnhCUunhSTidz2Rlfr5JHoIY6BRvkfa1qSKOUfaNKCZoayZhLy3KvJ9emAZlqH4kpqbJTxs8KIT2veVdwzBiW2LCpmIDU11ObZaItQdD3VgfAiKCDEbQyrBndzolfU3tw36mml1TzvZG804hBXqTC7ywFdUCmHAjCabF65ceU70iZVW65c2Kp+9j+Dc3W6I1grHeAG5pVc+u0vMBT0kQf/hmDlMGbvxw6tY5dZeUnN4IHFKR8bm/6qK9p3nyoigx960iHhezmsE2+z62KlYDdTbL4IuBlLMMcVsG5TP2TZsqTCUFFAXL0/9jYXMlSeoEY5bYiNUYy2Yt6wzt/16eaLoqAAUMqfxkmrU/ShfA1OVw+b/4hbwYlX25LJhICwtXj3NCqP8tBndtynzwkpzcIZHkND3+zUWCsMXh+seiNtMkG7qtpLd1YHgEXs6/A8/vsFc588mMy/WTxlEEIs6cgVPP6mvVGzhvdNDQwaVyOHc8acjPOvL/hDeoUgSoLU/p9ZTutTjckJvcT5oqvu63sL+Ae/XxZ9M7hnIETY3MbhESIAF+umsmWtSJdh7cY0JnxL5l8RWNMgs9lsj3+F9fgS1VvKNDw4EEdID7A+XLOji0koKC27ev90c1IX0EPyzxkLKqqO/wd6jYAIwZ4EMED1Ox9RDhwlBLMVWagOSnmH5+uOk1N8MUbFDD103uT4vVlTRevzwYqowaGIbIHBVXkQJMmxPuTnYTsSfZ5SDEeRsWQMOBs/D8z3ZEhMBGYvLD8DyzMI6smIPrLFen7hc7UnBdQUazAIetIpWiqXlZog2eRe3dJufZ5NEOVgXeDAG9ioMsrFqDjNlzGFxLhkjoOXWsJgKQMQf85Y/Vhv6+MG4To7bFewe59Kh6s0NVg4Vu39cguYqqoK9VxNQhL81NuVBQDGEOJCtGgjh/6JHQvCNHvilBweYbC1dLPudKgwbR69f0hUjqo2y9F3gXJPorVCqh9vhfPl69OvWmRrPvZivTMRsWW+2XWro52H3TtUzcTf0EQFs4zKCaJrnl20Qt+HB/WcX+YWyfhrnae2wYBdPLHGDJ3H6GsuT9pND0yR4BOWnLjGciJKRxTXPLN0m63xqJoOYsOvD9o8NTOMElm1tLCW+hvjTDRCQ+/lbQsFAfj1mErYoDAXfcPKbOE6dxvubEeX6zkJsD0VRHA0luz6zr86zRglgX1RrqwAK4uXiaVegvDs1bAmGNHyhcy2dNcLobUBWu5+AB15cpqwMQCDnbRmGG9CUU+QIreH5LSe7rAfzQfNrx6iWULcFZxvstpwqGxRQ2ffmXAvVWOZ6NPKaGhASpRzmpxiaD6l3COY+9FO3F9sSpMQm/3OGbW/MYbXNo1sTuDuETpy8JBRuHBLr3TAR6EnhUhwsEfHgFIaaY4WhMjM8+JSGrl8hVnAuikFK7t3xs+8ZMcoMlwKsw5sd0D0frd2fNIu615cZ8m4GwvUGOyiw4bh2F4fqKDp04zVsPxtwWZ4hvNOAo0nIY/FMlTMdZzx6etZbX4zKW9Bq5bmzs3G0MhmvxNdi/iKZsj9wsVCbCI0SZpmQuX17u7JfUdTkSQ4GcfZ81Zecaz0dZHTK12JDmkPZB6yrGkSDz3KB+zXdQpG0QMK3E9WPBJGkjxUSYQ6yeoWVsdBY+RAgBKD/JZT+NnFGlUiguhgUkO4+xs1dYvCX3htGcMXUhLP5ii8Xyye2w0WaXy9I8p1NYT/E1HFBEyMa3xZC3XQNN3dsZyeyEz2NGQE4WeZevsJhQ/Cmcuq28Zayyao+JgZj8w51RqY50R6l0lZP4gUkKC2DiKyVI2DujvgzqG33FIr8+THB46yPyxkXauIpTBA0WdZpGrMDJ4CEm1ezkRdcKAbFG6oFig1sesKNDw4EEsID7A+XDeGY7UGivDyjzHEFUunwOegG1IkDevSWFoya/OvqpPss7gfySXzDVr8QDojSpmTjDY2YrP3c7PAGQSOKVu+En3TBb1+bxXBzw6w9CVqJzL0TU0zh+anudhSxFHtUj4I4iMeeRg2Qd5b7rDltYM2Pu9rYr0Hm31ix3C0cRtgNIA6wUBwmR8hSxUD0WHiIdGCzAJyWmhot0F5xKDMbm15jWF3dWXht3MlQNNVpDwj2fvi3u6L5fnpuay3L+QoMhIEzlzazdAbkpPUIj2FogXp+Jzf4e+zvcUuB46UQyU0Jn58cQ00Znvcfk1XBM2kpMEGxWBOUAHJYOxBpsfp4zvDSoFJjopzNYLRgBWLUuiDVrXZf1JG+F3jn/jcj9v/UYCmMmedayI7JEQkOKPqgdrAKRfRKKifJFSyCk/0Lc1qvl3w/38tbdOZcGSGUAow5uIvnnjzkXEhk6BVCJm3owqO7Te4qwq2Ws25KEWsxbT97aSWd2+zGPFKAJn7eMgPF7d1xtJZVfd0VFmScmWFdbLyu/M7u3edEO/iMSq1KRqq2Rg2D7h+Lb3cji5N2bWutQmQFdm5xtLxB9478DOZsa981yFXze3iAfQ1k/xVQD92YKmxvkHyKTmZI3AsdNDV4uwngPjwT4mY2kN6MOuqS3/23dWkTu6pTsyE0wM0d2Rsjw5CBIBWTxDh0Z/1ML/6Wwfv2RJBguGhMURG6F2gc2+QCNDb8Y0A29QTj9bUWMKqYsQ+PEQx5bFxwfU3w4c2n/xPWclbQ8iELBf9UzFievAdYNY9bHLrCHYrXfFHX3QMVZoMTyvE4dYUPsQvX0/aBmNm91PagG23DGYqScBH6o5viAkbxHaFUbK2cBQF/VLofrbsFzfCRrmA51HPjeEPsDaUieSTcmM/FHNcVIwrocBifnjlXnBDmwVFNGtc9QvU6ogWprn/b6Qpy2J0WAxpYVsA+eUziw9LRG5tDlyEbDxHqUf7vm5bi+cMFC652ecF74XAopo11pRop6+T9/dzWjrJxWv4+nqZ+ybpnk1EqhKTvm6ENWm66hFRO1i8viTX2+NuxplsOVI/uQkuW+NAVB605VRlCMDmkXjAFbPzHL32s5a7S7nwA3y3eIDRjbDsbD2IJgWCrgHQXIYEH+jMCOcG9M2wkx5KfXNIHd4Z7Art/UPOZt/5Y3va4awP3X8YQHlt2BeB3bxsgFdF/Y7Pr/JhbIXCtepQAoaprB0WcN4wwFFLPm+NCUj1UHwgf5wqN5Jkhz2LlovHXKuO2tpaNDw4EE7ID7A+XGErdJeMci5tWtk7M9FJGow2embyXK0OeqHQj/szcGgleWWpYB8pea5ajK0KYCOiXtopiGNjjO3VYr9PRGxowajNiS5EWJfevNu2HTwyjjoVu45ZXSHpd1FGmztvpMmrgdOY+BXJ3K07DSevpK+2ruShEy4AVxaQSAaG+zTaDSD+TqVK/qJJL05WYpIEcOwjN5WUhqery+/TtaoBuXgBrnsByzAAgWxamojoS/MdqiUcXYXvrmroi+eMjwMElfWRs+YfIw2niTCRYIbpDqDjOL+Qh+aBptTe95B7443uOUUFEhg74vJB6yMm9Rad2RaTBTaZoxcjuokis2165hBvQoQmTu/7W7LzyYXGYjqjw1vnO7/OZ4b8a6sUuSXZkheC2D5sw8+OgqGiuAX+zIg95StVVCV8tx0oT0JizDVafnfJ7od5BfndTRJSpJm2trNA513LXJaew1mUTWCBm80TkdjYErZo92g3X9cGlnRkLQZ2bsD/VdUOPz7FlWuCMgj7AAX7CzmD3omG/zUSgWsvCO5l4aPoYoKXNDgs/LlzOW/8RAwwkPUvgjrEA/EILiR8AM6PJKO7jegmGp4N/ZeOz9pXPUlmsP6LYgf94d1Iekcl3Wz6g2r5hCqb9lQLj2juql+C8dArrE3Ht6EEPwJY/FI+bXvGxxjg/u+3CzWE/nOyuvA2vYiVX5TVkI/aGxs/J8lsU4iSXXIWxciM8N8CXbeu/HxJr/OQTNiZvFAFTuyxQXClUMiywaA2UMb7fC9WRtDvI+qW37bl5+BAYyLd8nnt8QHJjh0GFpOOQ8XM2ycUV4cwDPS2+y+31pKlQT+8SHI1HWCGLnaLo5Exqy5wcDuuMwAHUg0PpwAIrwCU8yORvcNCU7zwACcE6lXJ4/33XsE5Og1z+1kzHe/JiUe3pp1wfTg6sj7fbMouIXDJEryu73gnp9UJp1bHTwDEMJAIEw45P/wSMRhisxz8QkkZDRvVkhZxUyinsgQ5ehBaRtne6LCZew/sL+v5iThuSFkC++jbdcTT9f0lhu9vaubjbOyYJ7UA/BFSGFpiYssDFfwYVby33C8ONzx51x/YEwuK+S+dxpLmMficY4wBCw4zpeYkjnOs8n/LE6n9qiqShJ59r7+3Madjm+RQnH4cB7rEeSeRk2INGemXaSz4Ru+Tzq/kFay5YLMoZJhAQherwjypLK1X6OtqhevoARg+wkPWLHeAO+OtNKkNr+BaNL1eE/G9wZJFoETBGp37fKO78a0NOzckJfS0wZ0TsqqKNDw4EFKID7A+Y9T0uexPmVd9nY7e6ny7IsPmZKFiieWvdUAwIZU9MR2plzeZFOtCMLcNOastl0ddjcKmdEeTTpKDX+WHEIQlKBtkiaUWZPd88Hpbqh/isQ3kamE3ibsoGMbxVoYuaXJfdCrKZ5TAprnWrDJy3bX7ZhtBzXJTr1FAhHgcDa5QjRW9BXMsbGi8+fZ3PiL+R/EKWXZYrjYLS46FoTPxyzHy4iK390upkE9XvjU4k1YvbqOhLj7c1i7Eg78O45RG1ddB6yShyhuwi6EQ5uFgIP/zRy4xDhTX+yIWQdDI2szr0zTvHm3bSnEWVYCzw9hMTy2kosHFya3xzqkyah+tz7N+cqzpKTZTylkLwPCyvhi0PHDoKGDBgkgLX0JcGUdHljSwHBXKydlFTGetATLQqpNJA/h9RaM34Y8nzce3I+arF3UkMmY5LW3WMrStATmv6HGIyHHx8dAqB/kQQ5IWJgwuEDEdmFhUAVjqqhCvFLIeQTXqXFUUd0ENaIg2xRK5xE9AKVz4wMTX8JflLDpNz3SNtrxH/gA/a+4+q5QgjV9Oe0tUSJUH920hdq+pnWuU5dI5SvZGj4lR4qlnlGg/Yo17U2ubopwpciWgrMAfR7XXZdVXeDGds22PEKF7zw6qI5bDyEZ0BEPGEH0e+KogWfKP1Ldd8umruJyHxPUvF+wA4Y4i5RJFPpz/1eN4qK26AFPZe1NWPlrrHeraMEmbCvzB8W81TGgd89nNX6cqhEPEIFPjt06VvClUrTS5iKaCDIlOJbkMQSlnGKDGVvHBrDDsVIbaHhyll8KWUWNcgTlRiXM7XhjVW9g8hw/rh34WpvfGVF16VxcaQDCY5L3andEIWPuF7nK+kLlA6cO/hhRGZGGpnvYDxpzcIfPXmSmrmLSw0XNIB5FQOjH0iQLpne7RV4ht/MMbQ40cHyGmEcTJOrO8SZmOYQI0I/3A1Q+9Sgj1kpyZZJCQCt+U/bchPjA2bEXS1PTSqURzOJju2xZqFv4vGBWeu4yZDbjGpoNuGVA+cDw5ouaiURB3x8XrGsUH20hdluy/VuLbIkjX2w9qyIc1dBrZNTkgM4dfJftuurV7n3dXnj1PswgotUGBbCTin84shdr5s9+A1zuMJ46R4QNVrhIa9/k1auBNd2yJ1Uy1ERFNfHiCDWA11ae3WyiU31vMCvWUqqKjxd75Tpy+B9jnr4plM2LWoPjn4lwgBGKt4dOE6mn/gUIcMzVnhgOV0bK5RQN6obNM+wH1bMtwiGnUZ2MthvOx+zTEca5KNDw4EFZID7A0MjiPwAFiJCmJ5MMUlG8RSMuIF76ZnDwwqrBYAaldJso7R5SGJ32Geg1hvHqnt65JNSIm9JZ1rKEWT/3ctI/22JlNjIksomzEi8aH1H19gcBOivQ5nuAJW4ebgF1dt9hhGdsgoDc4PNFtlOWUGOfFb085n4Ja4xOuonWrIr4QhRXmZq+7zvRF4wvA/uY+48aKDe8zbdHYG083ocYzMsJ7tpfqQGTZzMlEFZe14/lQiUMxHFqpBz5i8QZI3UiP/MvV4lRuprRlyrsHIIadzYnBtzlhL7AfE+zLjfMFtoC7W6NoL6OUEnt4Xo/3K7c7OEqX+ov4r9+RdmfeCTSqZKjxceusIR2nC/L14amNwqGsSeUUbuuuh9E9W+sPVAuJsTcEqkFtX3Y3CEjwK+d7cUTZEogvZ42X8aTK/bZ20YA8gGKk22tBFHCRX/zFIv1R6xG19UK/uHeZzKj/YKDlkf05Xc5bTtrPmset+TmCF6+89N4zT6uRD8mPJlVCuxdRYNxWqoNhuSll0niB0jHVW+gB88jfA85GwF26bach9PyjiDfY2yseJCcM1+YCLuUMf/ED2iX9QvvN3U3KaKIU8BKHPz4IA8ZHntFICduM8oH8QG9rW5vvRoO/mQeO9dPZWq1x8p8egavdrg5LRcRTzrV5uFtPgEUjK3VvMvB32RZYW8Hk/A0YHD8kl/zrmxqOG1KPVgPr7xXSmDC7hlqCnCwRv63umX4tkDuPr8R4PtAnHtGuT3PlEKyVq7EqAQP3q5TfX3H9MS4kPuoCJD/25b8jlFEwFOMYAAAGZN/k7Apcmnmage13pI617WF3jyFKEHVTuru/Flmj4+muSSRcfHHlaZ7aGfoXgIwVwIEhw6zdFeIFY7QAnYGbJlXf+drx7H0bGZTOA0GM77JgcLLb2QGbr15QTaarjipW1b6yiEE8FoJzGhpliWWTWmMkgZnW30K9VPJ6zpjAADOtDD4jduolIr/wfupUmaAxDlT7w3D26Pbvge+yp0WKDKIt7Tq7xqyUpq3PFbRX03gFJB7arwVoXXwVXZ1l649MHA5pEOSGfP3rOHiOeE3Nm+a+LaDSQvHcdEJQITcu0O5rgfLSpM18A0a4gzxl6yXPcDjCw/cuWl8WD8VrQYbvhUc4t3p/7E2HzLlVRRHYSCCUoYJE+ii5ROcWsTSs9wBvL8WSJ6APYTGerXy1A6e+SAhhIxVF0JTuqmss3DRJIRWRN/dTlBSnWHxKn16Fl3ujNzbTFi5EYajZLoCn1KAGk0BX9yWqNDw4EFoID7A+ajAMXpoKcSsass8chIKEZLiEMBwHzlzrxTYW7HQQ6KLczdHvW1vty9QUYj/1/zPJF2SwByKf187EjUvO8/DkyRKP0EqMoSCGahgvOdSUjeAo73/6udsZtVJWpmxDyjg6tCdhx1FmLHT8dMr1eZI9s3FHMK4kFPTNenhW4j9J4HWyc732wwRemw7+coiQXHFM+q/7dIdR68+qTfA6Gv/VlwELwAdW4LmGRpq2zYOwifLwb86VuuyAEEhoCDY96TQn1yC+KgOdEtinCn5LDo3z+2Y7Km3PoYXFc/zurQJf4gd81hylouGD4h+FGmKEhbNnJM2FecmGyh+6M+8tYQI5XDPWVfEtQx659oTw4IXedLS0GHk2NUWgOO7TgpO0HQs4WMKC3MgUMYEOjcBaIngTSHe8YIFthBypJmYyPI4anmhIHLQymijSaxcABSaBH6LI1C9LkjRezHeq1dGnSw8OdWQLyhPxdC9nW2UOshtQej83lEHc6HxVGetKB6y7qMmx6DNzgNFOuUzJ2mZHHsk203E8w55oz7mNXEvdqLdAZunYyATYAOtoBkExcrQdsgMPAQGO4Y6TWuCTltQqtaVxkYDLyZtZQ3nJ+1cXdTG0xIoSUfxg0KboG8v9qrfawOY/iCwbFPzIpLOTUZXTaBJSeTmNV//HmOL0FiUejkY0zcqHORfsT8KS+kSK7TqMrPgdwqvLe0+JJE8iRpUBYrcjqf2+gzOpVV3XFE+lT3IIE0BzjYwyJtO8Qu2RJ6RSUMVOaF7FHAyRz0YzmGXkSHkMwvqan8jxNDk/3YIvacp7QD2hoU/RMjjVyY3LuucPPCz0NP9NU2M/bCmWRsnzmvFJD1RKmBZ0xoALaZSZNoW+LKUGESuWVX2iBXDZqIhCOgHTWHL8j5pTMttxQ2vWVB9MQIRjRMAeqk3JW/4ELPBWOi/xSyop/usGFZBYoktwTV/eSFMS9DwM74NtXW038RVGYL+ghbEUybQKVAXv833qZzRiqfeNbGDaFcCjqe3yjKZKMhO5074N3JoxOtAkG3tc3oa3ovBGHRQtdrppMeEdzUlqHUM0yBVmJEcBd6vaQQ7psk+VUz0ht+jOiTpgzzpegh8WVyCnKS5MsSmjnTdGpW6DOkYhjzJH3zVWgzXi6I5GMM/SfblSEohPhuFdjkVFnmB+xBT/+5vI6pcMINLsZFuyJYygNDVz4fdiTY+0GbWN5veHXzDKeOtbT35yMHNLuKYeufBUrgG6lIPchak7xtjBy5xhxMMBSiDtetMKNDw4EF3ID7A3kFluL3gm+Iz2lrzYByIAmocYhI7P9nOx4pkih/lVKD6T8GagP5dZkHIz9k7XNasoVYRypEGLENXEmX4NrNGEfxqGxdbxXaPTT7YR26A7flA3cC/CPXgDGubasEBbQCrCfbV3uh3SJDbafIPjd5nCzbijwN1+9/9f+Gpv+gMsXLEXQQjGnWGqBmhZ7NvzRwUbachSM+vc4xqVgwZPX2b4NA9zKmjleNPyG1nwhkY1aHfzHfqHtpO2PPbLVvfSnV+DacUVTAx4JDcaYu+nJdtix7RsV8WeHfIOiQhWKpJ4Ao+iyIow2f4PJ1/h3ExVeZArJg9U6i90IGmrdJRe/edcIEEa6lSNfUZKnfhQPxJ63NhthYD6L6S3VQkWkhVo5sg8LRBaU2MBHr4a23SL9u1LybTJvAISMQOVoCwmEQRIiVNKOy1ZARKcJFWrZWFpxeOofxoOdk54hVO4vMic+Z8DgcbDoXU42ElVX5RfrrbIylog+VjJv69/nfAMSyiD4vEC4bbqI4kY1v5FUdT6sBrikzpL82Ooz6Q5drS5MYtO5noqwn4YaM3vPtnG/Xr6IpsG6LNz9DHAJdnt/hCvpKNNv+IFNCOHOnzUQgip+aeBXf0AbULblPZwAVkvJkNAAABAADdBXf/V3OfvKffACCpXM+DX3TcNEtW1NbKuorcBGVeUkKEPA7/e6/loQFBV9CQM98ZwAdCgliExgyDAhkM9AwHkVfIAgfeSHr42s8iplBdY5YbGtJCKjpYnaf87V747ZOb7Ov+nReJDY9i380PBVxaaU6+4a0DqcF7mlz+6MBFgg5tyl8VxT6d1rcmw2o49kLeZ9elSVoD8vsqGnR/+O90hBWP0qQYBV0KoCAuS3z4nG3Mvv81//T8ry4JYjEzHGqKLjGPHxHpQP3z4QW2rdvnvf0+4M76I9XxmGulXGu7Tqx/pjW6VBw/lS54eHZZJhZ1XAfOg8SFJ00qAv84bz1wXOqRe1NosZRjBr2GxjLM17+Hv8EZgCTJmK3DNLCIRIZCbiVBsaswEAWVroQdCFfe+6dk1D/gm36Qbe5u1FLj/k83LZxr22WA0ypg3RGipq0757HubdCXpcSFQVtAw32vAvbfg3dUzYoKREZpWjSpKVmgySkEbZ59E+IAIG2UA+qsqpQ3wmAe/Mg6FM9eeLku7utpf5p3frhhVB4tgo6fQnqOoxRX5Et2cUU6wQDWeGJO2rcLi4KbBj9pYkrkXXZbgsEmpHPttFMFEUAk5DqYcoxSJTLk0JIu+9nKqNDw4EGGID7A391QoMFRU4bUyG7Kn0vsnDoHUbAwRYOBJC86a2zsR5WGkJ3hEa17JNacpDsb/blIDkk2oePhbWF/oWCPRBmFfjNMfYiKo0nIxsCNi3byxTrDem7ypWUwZopCtKJak0muE7L7sr0586NO6eEixczegx1QIdserxCmiOBMtwzi9B8peHnMT/MjZu14NMPMrWxcf4YWqQdn97BVvvXhGEmz7EpOBRTDP4zkzF9SMldlz/DWS/E/rbjxC3RyOYtUaVFrKyiOzTvGr91HRaDErCyxnPcFcUCmkhQe9UakZPFcUm3XgVZyjA7ZVDpwU4pRC5baSOMjnhcW0VcvFpXtKQUgqBlQ1X68i7POZaB+paCSOKn6H8Yk3wfmRgrRPWa0Zl4NHviROPdRmVyWg60jlZ6AtDr2oXVgdnL1IdEN9JY+OR9nzsWKPQypX/6J0tPPMMGc+MInbUH0fs8lS9OS/+YDkgIBq/+MrDKXmry6jD4hIVQjMNuP5GS9dajoReZBuAGbHILezH7kdpicbAMkMi4zzOES1roSeUEWkdKXSQvRN8ZOUCwb0c+yetYvF9I+wl5Sa6ZKfEBPUWpGDxS8uvCSzKh/3UiZBWYM8Mtjqp9nWgOlUEwYBVX8WPJD/wmRCVVpec9/ZmRGrhqzCVcBlVaaiICu6FPBU6uc2SHDpR0v8ZQXMeWjabEkMXvQmN8LmBPbrN+glmBBMFtnSyeL1uKSJ/6w4TE5gkMeLkuTIccEO0v5VZAzorULTRsSnfXBI097B3noKX4AXIsrfngPRERvq1ujQxXCCq3FdJy9JvdZ9iK+7yiDOZ0w0KudjNZn9ARXeFuJn4e7qVhqdNBfTvUd4/cQ12e/1T8GTTqwPOD85xc5Vij6DFK80BLp3s43HtmsXXebY5Nst7ZpjjSNbGm0CnIZYTtzcFCnTyh7yQj82yHpf5xgRmR9QBgpYi+jGpB/Jwhfx9A8jpuFHjsBSxQTO/Xekp0bqZNlX4M2jT25Tf9VoaMYnEt1K1lbV6VEuMTb9hqc264xL4OlGova1rO9FGeOR6H8XKhkDWpwlQRJKhQn8MdqC1/IIQVW2+KrMAfolm1iqBjeuoDsqV1PLr6bVD4kHgp7Bvce8xVWkGOjdtVk6EDHDGINliHYOchKNHU4IHLPxKRjqnEhrKj55os8io6KTLo42nsbOJ+TrkhQa4j9X4vznuajnSFpSZCeiD+yo9mABUCr3ZzoJ3sOxd7zUAZ1v7smX63Hi89JRaPOkQVNPcaqNW9kvwYw4veI6NDw4EGVID7A+WPPYe88B4CMCkAGCChfyazxVFOUnghnSxOXhsofnDEUqoqXXHm4mR64o77HdFD2ovFFugvSATb63ZMhALPURp2ndqtiDvb+SSlC7oqW8fHgeX3wOoDSHvTxKKDgcYUAuWNSbn7Pbcs2fusibiHLsfXy6UjmpCHSmxTeAZpBIt4C5MSKXvRRtd8BS9izowDProB/R7ymxw2Psfyo1NAwP2K6BJAwfyBNdqpKu+0im9PXoZa6FllsmWMnejzd95LaWk4HsHGSRjapE4Fe6CSMStZCTaZlz3/roHi5lXeXk8aaPTTcKoV8nJuLkFnW8RWAiFLGf66y2P1FhqDHjU6tth/QWqZZ4rPzRbLWsvJ1PnVMQxzezI2fdzm3LZVqxfXLY/6+rmAy5jRvNCCIsEZByFafZ7csupTJ6WLOolpIuXnfZlIvmlNVxIXP9tT/u+j4rhTxnfmW4RRypxFgr7RHpNDLsudeppj1iIx6+Dm+M8JnMRcSpI3ZqwS4ol/44jIz5rYZvUJY7xTGv1JSS0+cIM/OSPZZJGDHPjW/DHwnudcfgVyC4t3joor8ph1vFxLzFyqEgE7xUnSfUFneoweJZBJtlFJtasuR7b4atotbvUBI/Gscm7KqRRcPgAP22sU2v/x3DgnmLXgdA0AndMc4w5S3I5sks7u7GTZqK/3hJpFZP8yf47akgT9A8hrG8KpVDXXN22E22viUUSfd9RF0lzpPbo40FdC2IR9vq0rG1D69glHJdJUJ8Umy/Hm/69X0x2OdClW08seyEqGRflWy7pfjKIUo0/5+stn2MKyc77+Cz0JKMyfZqVlWspDPe07l8//w96OPu0ov0U9YULN5vXY4bQmdLaNCY2cCWOl5KQys/A5p536xilxy9WlKa10xU6C90YhyzpzaG7NEb6AB+b5ReUmCpM87W+rTzlM9hlidOSsykkHjBXymNXvjchgVW0i6MZ+sYtqq5+zn6hVYqy+SH0+G/EpuRULCL/HQnHRn0aAMCrMFNKEi3NsCH71JmdeRmqKY8ROltWJvjHB6juTdV0BGOIGQa2Myc0BXx3j7iMTVIPHpXMwoE4UZhF6/ZbWabm6YWOQ0JlhaH5tEo9WzSXxQKlc4CT873x9oz7YH8Cz8vasfT/DZgo9KzyZ31yHKTsKPBxYiRD179tA2gtHSb/Ph92UWXbdZjiD9zUlEZHVCydNudesMtazff/D4wdgz0y/ykmF//4V/JnrFGkhANTvUklTUesg3caVANx9dWxTtN/NmFHUrrekwaNDw4EGkID7A+cHBkzx/RjQJCxbKRI8y6vTNoDogOZPqJtfzKBBs3hiFwIsiq/Wdm/xu3yeKjPN6wkhHK11s49Ll2ck1ST9t0UH164G6BY4kK09o2NxJwys/rg6HmwjXaE8MPw320Ng8kUu10TXe/1mbveR+HtjJQJho9LFtqFoDuj/jhhpd7S0QykoyZALpVwWqiPle3zuX8sb5Mzbwo+C+o6xgl/qCoX4TEbSzmIwev+9L+jG7VV6XFt1YsPd72rjDDY/fEZCbjNBRDR16mY0eN5WgnDtIZIcvFH8S+eax12PRs5s0h+J9aaXZgEBssX0Ik1vr8MNtdbkyu2F+hfgetpSAiXI4GTomXytuhfq3iQ4M7b3EGyPi4yvGZpXPMpuAwf5dwKIEIDlPg13ox7MAstHRs8Jox5FhwF5nI3BxsAj67XkFMTm7E7SH4OXDLG3Br9jizy5Z1CtZqefCJbDH2i+vjiG1sA4vYkN3mu/GBTN6/NVmgplJ/8vd/og6PSrMrt5NR+tkBK75slCvbTvMFfPs+Hu98ZKQFeBbM1hz14IwzrZIoKQlAYGSXUQCV1NIIAMcVd35wmbudXzHLZHGgPrJvzLfECZc8pz9iEYKxPrClimNpx0/JVnaFpZ7P/nnaCkVVXSzGx34wwJ0u9KZZo5Rz+NMvMQHLA+HSf/pvxZjkq49T6nvxlPWnEh3vQpSlArgYTDGqktjPfZtJbU9eL3Hkbvtwscww8T4//uOqAuMF8Z17cJ0JQSMRpi0BaT4naxgESUddcJcD9L/7KRk6Pn3ljHC/L2IABdIDcTCbm+913nPOnInsTuSoUpeEW/m6eeLMoVKNgMtK025KLb6TetszTF5VXYt7OTn4T+DeeAEPLCbDrpXBVVhI83KHpuRob4zzljw31KsEgInY+0dI/wu2qtzaxDXY0BNZIsg3Zf5NrAa/vO/KjD08pSLIrP58+1mTn0CSOd8+eYHdH9HdNGFGU9HWUADMuZEqt7vBuSzib4AEhelCieGKoVRhB9NpI3srXKVl5xLDGYh4M+iD/Ky8ekmvpuPNB80tN/Hivgh8KuN+aMCaXC+ciaRnfE0RkuvxpYSk+uj5adQ171CoyjPky7gtzUdOM9GMtJjdMduwLmewCQ4uzg9cM8paZo9DZe7PY6dfiSHnH9yftDAH9mPLbGAwLiZMDISpFEWuWFhbu1nUWlgy4O3kM6sYoovJN4emOPCom0NQTaJEmIEdzO03Wn7A2trkE6O+rjGZLUFNV00TQ+fJI9FntDzCt0gNdUz6NDw4EGzID7A3oqzkr5o38tyVlHMrZ1JMgyAsB4Gx12/Bik8KJUu/eKZtVW5THyY7L0QLqD6fDQLpg9zh6fFgRgq0aKe7p1+HfUNk7oX/c/1ba2pvnH/egiyP5n5b70pToN+kJgMqVI7FMp/VtxLcefuNKy5uGBxd/xaCIJKUHA1kn0JABv/9gvweLDXqXDvqG7TabhRw+Tz4qMjWg6WPBejvZjwTKvjuMwh+1QJzQ0EmnGYfJSJc8D74fXEV4gdmHatHizbGfjl3wklooBePoHpNM20jaFOAAE/6yUss2H/a/wa6w3VgPjQYpIQVLrsdEhKQfr6f5od6ei0zOY1JDcJg/poVJBkAi+BGsQtnvMq+a6BcCUwgCE/qbakgwddoFkprKichSx/tsVfUCGqp9+XC2ZFhv66g2hk3fQMJ3ilFK2pIguvUx6hXRLAr2WFl9vdeK7tnfOkHDYJ7BRTBmjihwSwFBpGIgMPz5LaUSqIEOVl5DgunPCHGQskRPNlTFfXvIp05QHK1ixnUDg/RCy8CdF81jCvuv5oqCoclMXEJW3nJarNztRm085WsSyu/0Ju0AWbbCCUXIXPaZOl1Y2rzGspxyAH+nSbmKNlKe054e5rREpfG8rtzRU5L549SivgY1LJpnZoivKOcpAx0A7+HD1t1YzgQPfx/34J5A40YqH1Xv8u7seq7uk8vzeSph6z5LHpPdsHCrej8ihZbxU1Llt/jqW5p7iNxzqSoKbCIRjX84S7srMYZmodPxMtrGgN+USx/3+QPqfnQridze+ZxsTzmcnPpmud9cz8AN4WwgE1iBtLVPP/M5U4fcgpSapsQCGuevtTqP5niNfgAHROhSa0rbAGXlHi1zCQdNJBix1pN+5xt7NN0h4zZ0ja2ZrjDcoX4HsXKMfkx0BRqU1JlmXJiQF5mza40j7MhMjg9jK8hUfUMEnehsid8PEGCERjIWsx1Jb9d/sZ14+nH833nlPRk3K/1EMvskwEUOhRxkDmdoxhvRmeXddg3xHYbIbv0+sC4LejZl/Jfa2mvoEpuiN6x8GzF3o5KQTPTG95oxD3EPdwiadf9RnkxUr3NFl73E/CnyXTZWjN5OG0q0vxiiDVwOLP0pNexenOrEIv7F8F9OFiduqy+4swnfmh5eBL25KZafZmdIx2LmG4C6dlNdIYuUA7GKUVXTHVIvBwHtMZFfVn0qBZOW5etSK5PdMhgq6wwxyOEWo06nVGeQjPh3yA8kXFgqCe//K/mN9++qX0v554Ng9TyCi15jdNM3k9oyyrKNDw4EHCID7AwJbFsEe8ng4WyFoyhaAV9zMgl9XYqkK1gC70RfNceoOPiomlTutvQ7JoL29Lv+Hn2fgA0vKnPBoU5oQnGLGFYzaFBiATNpxuFvP/DCI2/4O6NaAhy55SxTZ1ypAOVQ/pSkqXt/i1ytsRu45b+jmFxgesIAQaEHsK7RSYeuSpiDMlsGYbjkm3oWXxmwtouPjwdYA19LDm3g1hewGFsnilj4QZcwhJK6qmveaoDvbTYK4AIxyG1DQVP+6zFP6yBeEFl5iHa4HHII77mcDbbUb+kjqfwY/SD0PNMTljG/G6tOdxAslz6POvmrZb7NO/QJ9SntvtD6TSr/c8KjTR7gxWc5uzHg6vbazltFaMu6mGZCV+c+ZqWvQ9ZA51DZ1+4n+zyGL0lQsUflncJgbnVEexsRNfF5zenH7kc8oygEk/SQRAamF/zeyA3alDG8GwbDn9TNHAklCPdvSkXkPZxaPuKQizdYHhqrPuHyJCr4EmlUjoEZ+6V0/y3ec/1lm7KHdn4/kITkf5rDuB+62utlo4B/MTT2bv+lY3QKWEKsPcpX6x97yBhPoMSnBNAH9jpfdRpDAODGgsscGFV9K+l6Ifq9r74znaAU7Cc9K8enVEW1N2tMAt9NsBqF0w2Ej7GlNvB59CPrIICQqIyZiKIWcRUvqw/m2HwtEXNSpj/B89slsQOPffC9HA9m3IpQvcFZuTxpoSCE0ZMUe8qKUMdGIoCm8UQ4Qy25uIMUcqN2rq8PzEjVUYijbdCkOQTrhI+itwcqIu8TmqWsYvJKIzjv0Ut74pQruBN2Yq8/ExPjJqtTucrk6alXoXR1iM727oCYuPxmo3yWjLpgh4mV19+cWG020zAwSfXJj0G2ZzuFa/0KHJg+GtWzQfIdMD9I5T1vUSkalNoiZZmZSUYP1S4a2XN7cFG+E6uD84+GcyYfkLD2NWDO4nlkc4u+irMe+1k0Ta4l71QrT/K5UJMPDswOhmV2IbZekOlximLl+QeocjuZnfrjOny6wS0wbRRgltuSZZbUzr6Pdv8QAs+6Fl2U0V679n5nlQ9F1AnlY+1RtJhu+jUTl/AV87UCWzPuGbDMtVjEsl570uEOBpiCTeZfDa0L2VGkTmtjh2hw6GoEqwcYTeJryV3lO/WcdQCZK7ogKKH4udDMLuw5s3I6ju45GQmFiCbvNOeUe70TU/dOgALlKjoZlZM+EyRAVGvXaYjWsqZU/NvWz323C5extKdFxitLNeQuQTL/5cP2pX2ZzUCmyiw5VVM2eb5HXj+yUoKNDw4EHRID7Az5AcJOJ/0plpd/i9IkuEGXLpu/ljFPbYPCBvBC05itBpybgcQSaf7p54LX7/gcbzfx9F65lNn1wmSl7cj3KfZtlmnGcMTtwmxxwBqElFDQCL9MwkLB9VDQ8EaimjYLSFEiyq6zitmVdZKtOLQ5Zaxr2opU10g8SIaPfPFU1PSSN3UGIYVhJ7X74piRGL+iyRjnxSR/lxVJFwLtKynDTTDHBX4L5jVYq0+kFRR6FqimKEDV6Y0fnvebzv21D3umFhyqAPrEDLF9rvKE434IKshnG8eL5RjWoNyMZYRYEgLmol4IBRpoWYxe9T9rdSqlZv0FzREpIEu3WuzIMN7FSffT8Ba4zWeGyxrMsQqB9bcpmjLF/o3sqve2rqPSm9Y1FFo6mUBe4ZAHX8rGdaalvpVoGNQBv86y6LUlUlQrelDV8mz9+dj51A1Ux0IvoBCf6N9qCKpJ+jkwK57vy7j9S2nxgwmrHn+rNKmF4yt8Er7bWxKCigDGXYRF3kDmCDxqGlZNyTfiiV/EVf2X4xZTQdg+VMjy4Hbr2CSQ4m69oIGb9vOoY1JA2HwknknujO7vKZwST1VnGbmPUPabSmt1B8DkCIjhyNwUUi0OX5WEMkqzG05GURy+dRvURn+o04OP6dltwh8cfRvDFv6RG/rd6CgSaTAzf0lgR6/3XQ9mzODVQPJP2/s//TOvEO2jt22iXLPUzUbq86IIFmeEpCzGRpxFMXcFd+mtPEW4eG/ZYC6Bc8ovEH9iS+f+2f8qemm6yJvdlLzcWM+tbv/gMmPNEfVoItHNmN7LemMsGQBf43i7IAOIcQ5J5g8Jju/tV8BWdHSoFAOCpHy8t21iu7GQZI/RbAd2fAqxvSRVEkPRRk2cYGx68xDzw7DyZbTCDH0zSXISdBEqEZQvgrBvxwA05L8B4iBe3jOJtEgIhr2QckmLrMXfpeH5vpBmSZKkz6bkZj050V41YIhMeT687agzvyKA+oC5LZevQnSCHn0F3W2TpgFwUt0WxiR7CSmgnmjZ2abcydbWCeemK8BIQmMQL6VJOVEEJZjhAesl5HUa8rjnZHmbMo7FhA2Kx3YmNUBgTJi4uQw5RYEeuqVCKOjV99sIk2BegQKOOip61FcwXKXHN6o2ADl2sGxRfxj6gIy27zSQ8H8ywQexlSyhslyQrE5pddDAh5lJWWA88FdYBBoLQpVl/vbnFqAaUtMmLIYHhGaBRtBeC9VXzkoPdvYchZh7YxMeKu/hWjg0L6WZ3Rtt+9+Dq8kD8eZJ8JaN0R6NDw4EHgID7A+WHARuzpFaX5PJwLMK3g3p9xTdP/o0Zk/kZFZKrhmZ2xfejBUymyPQaH5Wf3Hl8id6JMF4Rzerh/9ZsxhVO4h3WmMgawFN6r9c5LNUDsZ5+j+aNwpty2pI8CQWL3e21ii02P+O3SeGyxHOWC/CejxNDAf4uYgxdiFteY2D2ayib09vvMqHovEmuYBdh6QfRblG2ZbWV+3ipl2R1WRKDPO6nkHz/bfff5t/i6VWWOaQYK+AOQj/SW98MPT0EBo8qiECqbD++zW6tLF9trXJC/RUv3t8SDyN3Q5+fycRA+N4WLSuWqrHDROTtruLOAjc1TdzUzY2jQHU/XWvNQKgaN2PoCnu+m9NrhRij+ElB31cyjmUSNbHlIh+IlQEFihiNvHaNQD6uUEeBhXx28Fd7iXAX9Bv8Q1I1vT9t9Del86TmmWgwXJJ/cMLkuZb8erwkz8M9zXzH2WYLwGAl7FwP4pn8Sd99jZBTG2egRpMyeuV32zwxWAawaWZ73Z2pvHDobwrSuS+HQ8Khd2+TdhGPekvNCLrcqtJCE5K6S8w3qw/hl0tMUutRlXtDn6nCNAqNnHsla89FKqvfXZgHkz19uQAAZBInSs7HyEO0mNACKc62QVn9FGajE+pMr6DMUjXWhJSMCwoP+NmI7IMxw7efg5s0AZI5R1guM10Ir5F6KkDFUEuigLuc6DuqjmOjz9XzfPSeK1WAQDDUQWfIjiWP2ei78WUB4qWzkbuQ00mJo4GglJyeSF+/Mgkdlgv8lCR6sYKc8MbEl6XiFlLysWSALiLAUqf/AQkxDv57iMvhJxnpeeSIAsym/pokBVo5WbNmf6aHlLpbV1YrHnaOa5yr5cto9EGLCOiQn+X2jBHye9B2AxfpeMUzILaRao9qe06OYhN125+Y03HxnqNWWXl0tDprqKs7xlnOKslTul8zTrM7lYocvfPuGWdOOY/gcUaXBG283zBqMejl8ddoqDvvhuAaagWmUtiUjqPPitNSvoVABU5eNaDoYhyHh8CQUzTajqdQ0sHAS7UskxTIc24fZ7B6CklieUKW7A8CpcXMpH6smi6nB8HhWMEQytb/+SKvKU6hpPeI2xgFXV5oSq81BuMmfcLysy9b+Y+KF1YCfxexoxT6qNK+SSxbcRmUP/e6sh3eA2xmwflUjtHSctSBCF+TYB49OixiCaOpP9Ecvf249cjgsBrALjAD6w1uhQrob4GzBaiSYwYTdZEUh+P0sAt8uyhc3xBlNFUrxrFskk6Fd5NMnDkfpqadFSg0pqNDw4EHvID7A+XCOEUJ51ajRXZXPUXn2Tqv4oGoK6bICUN2hbHCSVQIgO0oSA52jmDy+PojKaAP5ceIIlhJoTC02LOV/vVmPbJIVItjL81+GXeN7Wyp8Kr1loxQgZkMOYBMvsIFycFbal662d/f9PqI+KIuMjAk2nN+L0eWF3WEviMs2tLWydo3q2mD9EBf7S/0EDGOHIkCs7UF4PNVi/redmYxMAGJuvl+E7oIgUvDBOjSgXGkbUV6MU5Sm92hkdENLfdOcd+0s899Ac5MF65XYLiQJpSwAbaW2Y5NgmQKNrFT32r0kVr9fWb0DLLOXXzQj78pZZNmgSrFAjY8irszbrL1F60qtyMXOIbrwrVRsiGoCspuVZtf0T/JfKA2XpL+cl/GVwjO8OsNewqEq1+t+yyaoWX07A6Zq+OJu3pNyIRO3a3QhK3m/RbBlG9J60/eIOI0SOHZKbwukZOZB6yWgEmDVaKwvNDRDrU5MNkHXCmUTltHxwi6PXdYACgRj9ZQkhI4KWAFmY6gVhav+4a/jrcOos566/enFSL1SdRayuRhN28M304W1EBOXbzmTOQZ7LquIWrLn4TWajNcjhRYICQ0sDPt92zPRjchlq1m2e8igF+wrodyaqxVzAOYTSYpvXvQciINzb9ICmMe3CZwZITOf1IgXaqTQQld6nLFgslrBDbOdD0NDyZQ2BOouss0XT9gtxnl39WT910fesJaGmyZoNkpIc1CetD0WD6GQA3I1kt4S4cC0Vub7xuwhD/QovY1XcMNDmR/smTO3Bez7bacF/pEhPSDK0PaH2R19DnkbcAID+EZoLw88bm1hMNXNpngBqvNMsxQZNN8V7JJe+zjlQS054Y+4M0kzzrpgz/ipcjIyY8hkc6jCpLQbvz9ajSN4UkbJ4Le7ovmaPX3JfZfGr9xLJYjJxp/xqneyvKOrvAAZbUImVYGZmoWh+LLmAd1x+LW07Y19uiIfUHLuuODJnBekXe6Obo/Zma3Bm0qEPQ7dTt/BG3NnbnFS1Q7/d34zX3QUyC0AOkuRzy9JlRse/1WLNpfCxIT2RX8C2/B2PiT3MbpBuI+KGSKVca14nEGD92d3aHn8noOPiJtxLPqjTChNSU1l0+VWP7NSJ0T+7FdZxmWDXD+rMbsPuOlSVh/iMvdQe3fPRbSRnlttXSqYd3gCyHkj4CdsOHYoM0+mfjVOS8XqrEQ7e4vKvmkbG5Dydv2QHUgYmqngjiLWnz8t0ER5hpNKgZygplfKeS/DiR4MQsjqvw8E8anXygsawTMr6NDw4EH+ID7A+c59szRiRm78Ww4s1Y7YqScSC3Q+u0boJx2x4mYqWpGgq1cV1yRatc8PbxC5NwdJoZKEHl9DBh1D2CpmHc3ZEPSDLuUzMGuJJM6z/U7rTVA7BXrkebJw7y47zU4c5YhaIvJOFmwGM9fOHpbtYoFHOJDzo0l9WeFbHwbNc1TbR83ZSBUzMJ/S59Y8vi/8GK6ykmVNMpCGd3dTpKStW43PWLfZ2cw3PCsaI3x/zSc16xMu4KsoWBkkSfOWPJA4iW9hQBz2Iqcterq++s1LSm9jetZyEC3IHqse846Rl3BSFSyI61o4e8IvLNJX7UjLlB2u9xVjgNZGa1GKZ2uO8bFFHdy2XClapTMat3CljAOoHiOUIBALGf/A0+8kDGtfyheM7lts5hfHPRjiA/mXX+vqE9qq5E4l7oDxwvx5nsNJKjnjmDbN7sxv9KXy/7r0oFNJQwvxZ1LQaqgXEViObHJ+GI/Va2XPdtaTHRAGBebMgp1REs56YLLOqbxhov/SxLDs2VHxnzxTAs0kZ0KXVTzKYPAPVQoORMEShIcb294Z6NqmZhnUNcnk03qnRi5TWCO10KeZaGUw2+sqhMg8nCcFPT75aRjmIaeTlgw4CbDogBijlTv/negha84Sq6SIXoUBoo+WFR/RuwwiCBe5Niq/USMj914egIsiZB9TGNa/6T+u87e/PvCzvA4vWGGM1v6Qf+GYndwI7HVs4NQPUqFEACy2BLFAFWzlvMN+7f3Mt7cHidyxR52FGc9/FsLDyGhRS5y5fvWSw9PN2ke1wYBNzSWs8RKkanNySJSsy1U4chuQX2b9gSvxv5R+Kd+qYr13eax/Vxm+Xqxb5llcQyq5yq4k/vnkCN9UVr42T5tBwQOJ+X9p6U5fvCQcvWKyoMffSyEn65PJjybSnamU26oZFyEZnbZS4LnPGeucQ8BE5Tr9rtkvZboNTNp2PDG/qznsHscvvSf+kv7y8Mjx0KkeM8DHMJGPn5TMnwzSuwS6eWJauPZ1I1vDpLS+xl6jUciw/Po15cTXAFemFzufhDO8a2zuikZuHmfOxm2/adGfat8Nv0iK9VQQe/60jASTkfZgRleuQKnlsVpwEMIh43+6NIdtuXZprI5CwyvCFnHTdl/dy4OSKeFcwXUA7Ki+6fPTWFPhxZxM2yJ3+NSVXiS/ByCRWgBzW3fXrZ5tHK9MpsHMPcfVwGTfiFF/qJS8SjJMT0Wc8PkhDWdYRLllX72T9X9VH7wFO+6ddoAsWG0i4PBndzMnx4dSWzLUIWMpKNDw4EINID7A+XwNxKyuSVWJTCDGThC8CCHYrKSjHpaIfDPfV0Uc3mQ0ppMPfe3urDUK1Kef2S+Ap/dNSG0PTNh1q1vW+MMHHw6GY1USWKWGwcCXAHZlI3nfw+Fa4rkMxFOtxot9Ql4N4S2ep8e7+stbxEPRFbXU2Kntaf/79NgOb1/sl+1nG/qAwG2NfjdrijuqRlKR5wAGhNbIqz2w5X8wU4M/+7BWSCUmfHJSNorujYTc5wgIxHoNUAK2TiOxatuCPJeYva1tV9xOc61lxrgAnvQYV5Rjk0tRtUmYTgs5wN1kOIu/5aKibFaY1y8Fi8q1t3Jy1e74c/8JBpL4n2oc2zSi2Ek2RyqDp8uoh9wEeRsk52iBv96jv3N7kVYCUcdEKuVzJrsqkngOKXJnFAmq+l5+3+IDbfAvZg5lc8+MnvCQepTPKUox2d+v3UzXbTK+MhFjbIP6QWpayn6aFs9Z2k82cizhH8nSwKVlU7j1nGCkZTpAYAC9MgzhpuYCHbq6JFwSXHyoZMqJKVHqsk3T5zJwZYQMvGTRpos6bBEGS/h8d9W50tLrZmHKQrVb22NlwecvYUET4m1sqcD/PGDjKwhEamE99icPFoZ2i0sgWVa2Dr/O7ImxSWuv7GVzPKaXMq7le4ESwHRkxrORNOEFFipbBVN+AUG9+kDfZTprYRaR3WPY14K4X0XnKUFnrPLgUQl3DHFXRiAVI5P86fvWrLyUWrGTxNjQyJEthFcAt659V9KfmE9ep86khoQ1LPi2AW/Z4CY7mAGIVrE+C0453Atht7zpc13O0HgIQWiupBN6/Ok5bbGBVIIt6Nk2yd6PEp6uozBw6Y+eq1GsTLQRUB8/FHpIUPc7iSiZTj2pzxR8RpipwAJaQinjQDeFsz0x5jUWBs5FNhojMAtp9007u1SrpDzFghVL/QyLbUIkx3+RHIzPLM+TdKW4lbnbqDkeTTOaaL7GWNw3leI1sGsOj1/BSDof0YRF6CzEM3ILmfBHf8gASvJqvyVJOkOWgoyU6Kv8LlnU0TQjye45pJXyW4CSf7Q3uc3oN2dFkjPJnB6Ia/cg6Z+UDXr5fMc4On6RY/18qJPvdp0Xybsy31p0fdlZgnUY9v3QzgyVJW9ToV4GCZVhtI946hJy2p/7Ougc+FpYu8AXrCY1NY1g6BcXLbI0fJ7X5Afd+Go3HQIZLT9uWg0W4oYvhHa6RbQt4Ma92GcS+q25YJnrN2Aus3cCtABe2QUzFhxxrcvAiGezTirpE4IWFLwuL/BdEuceNjSl19XJaNDw4EIcID7A3r0FSCGInsejS/zQntvIQPYVT/7DVdaxlFdEx2cZfhjqLMcxm7n9/gFmv+hQXrDUhA/tBAbeCpCYBKvYSG4HgTbg+NqTjnrH+WNFxgD3+M/gOecnGgATzyGPklKHX47fWKfw5DvGUE5VM7J05Z+uWTRL+ML+B8YudyDwcd3g1Af4DEFYMC62STgV2jlCGwOh/R+Yt9AVAdCo0LYLD2AQCpINWfue0GFg5fQJHOwRnvfTqJC+hZotxT7BiHUwoiIaP+eV+nmuULK3X8MyEhV5bkgBcejYLLEhZUm2uZb1miD5MW4Okbc+HVmgLOt1y0lktw+mIKu1aVv8F60dL+FGw7xyTDSF+AAZWICiaaYTzJgcs++lXnStuFTW/mr/2FGs5a2NnyuHFb9xszzgWEPj9aExYfisNIfYky6QAg1TCx1nXDezzU8VM3mL6fueslm1DR2Q6X6U2WRAmZfDHBlOJ+eYKIiom3PvUr2h0TNYhULUg68LYy3SYRBRezaAIjhlGuUyh2RrrBChJKleggNRxn9OHnSSQrSgYf1NKADxEUoPaI2plCjk+HQw1UzQvVNvbYkUc8GxlNO7PrIvRvHxejpUc940A32ejPkP1hcTTLtjGaVb33m5JiQ5Skywbbaah5+ma6pxq3zplykAmC2wNMqdwizIHqHaUO+cQbwx8Tp331PmPw4iWOfgCMQLx+HA81IX+/L0c+kIbvBie8ihtEQ/2ZY4zOAlz+NbzviAN5u0jd9ABbrPYG7PDHd+RYQFjJHhOiswr3OAICYtj6bP0ESVOTvbiIMY4r+NEManteRcAY82o0SIsWMDO0jgx6sjgW8cwWWWsgOHEXWw2OfDw5CNO5fJj9P112ENjOxvV/tISk1M21/w9TtOnBQ1Si+9UK3zFM3Bu1hMPBthaxLE6W7tJGbl9f0MCcAWmqey/61bBoWBxBUfyUaRbXBeSGvYoUP7wccBzYQNMixl8dnTEE3gjvVBu4cFmLX+RCERTKUGLT/5iUUZIA8gQW1X8wbHxYs7yGh0IRc/WyiJ/j4golFhkDNYT6Zkcb2FiU/g++FB9hxH8dPAst/cXL25uZK4cW/18E1Okr+eA6IUPSUD0wlJu+ibxFlMG+d+MxPTP9S6pjd/CBuI+qXNDg2aBz+8i/ApY11afq4xzYW820QRAKyOrZFsEHNrtIhhTJFWekwyvonVeuP2V67+ag4btOM81IJ9CUfmZtSYnb86gnkr09UlkoS7vfQ7mvdW9Kyl/aDwMggp4pg5ZTqcDIzWqNDw4EIrID7AwqMmmmoVi3GwlLW2pL4g7R0b8XYJzT4NwNVadBC2XeLKbfRWoJPeJvDMb8H6p/yQNLWrWOqczezMIzfu9u9xr8z+c/XYX+Eu3BLaNNQyfitSL1jliuOgoLxSzho5yOVYDELxHxsqRgzYlopNBfvlvrRmH0hR2YCuO+88Ra6BP9RQlqN8/kveZPm2tYnRt5H6V0CesuerfthOy3Zdm8H1hzjlnz3dqLEyr/yPpIbv2SCreRPdM5JFB6zaoGd0egBBKFTwbTmkD1267oBAqdWHVQ5dfe3/lGyDRo0Q0Ze4rYLbH1S5aaT0DV4D/eipYnbkqqABw+/lGDkNBaHPpHup4uiV6PqnOLrGkq+aazuLE8vXEV5UdUp3hXdhINFaryWg87tHikFob+8UqP/+QGf8AhqQC538WlhI2OqYSvXWslGSJQkzNsaCF2lLcPQLik2JELJTQ51IokzGD28T6XulJIjYV6B3CW6nhTWJIfbA0wuNpfihkZiEjl9b7u7JWCbpVnHY3L9o89oiK5iX5QuKyojAOxs+IaOSqttMbvq5TF7mKFXwV9/nvVIXhHgwNgRKra8oM0+TMnqMAp9TiVzZcCSCz9peAILRCfUZgU42LIwRujUSw3Whe5rHHdIXUHDhltaGyM8Gd/evoNA4Lhy5H5iOwkVb/74qrMM9h+OXI+PR77/afVMyrUh/R4/pA1ck43G2+uZn1plRyClFK/ceF1kt4SXSSBOzrsDlXUII/qFnbpXliIAphiBz4mVPdwH/y1R0L5aK5QbWt9wx8BkanAlJU7zm83zDTAeWRLNcMr9Vizkx3MU+QavgossL/yQLwR7XA12m9Psqq8OJ77Q5b9WbGvL52vDWpkj40WKSNVVbkXKt7AsDZkkp1AIkir6S8/ifmvrrBKGWzwUcIFBWqURxSh6/lnWyc5hxcqu8wfJrzyf5+vXAUIoQI0bOCF20e6iweFFvza0rzbFnhD32dTwzrMGIEhgK/Dy1A6OFrdMpJolY9Wumj25unpssC67MxkaMmPVQLMUOvDuEZbl8rQn9tffhKie/E7jAYq4nO8DGQ2Xuq6WZ6xKBospG67x4u3R4j7mfUPoI9a5+997cCBSIR9c0ucmhIaK9G+c1ZmohrY9wdl8DrOHnQinuPEFvs6/k2nKtoYtyU9L7tJdb5AuoxAgZ7d5d4vnD6U+9Syr+wvITJ5CY4mLfSSPYgTL331xI8si7KTuEmAVu8WYEYXWvEcYOoNsNRPCP0Qf68vkl3zT+ArXvSV76KNki6NDw4EI6ID7A+cNbkL8WaK7jE+U47fLbbpzUSD1325htNfR2dhw/r15opYoJU4rnuZ96ElAHtjE6nvNlfYMUzIBNKUzUyLRVryHMzkfug0zvPPZh9wdBmbsrdNpLlt2XWH16Y84U8D2nOowW9PyxHaaIpSomrhu+UeB/3wBL4ppvf9Cg0BEX64abYJYjkaE7JDgb/lGkgEUbY4mAVSet/mdUcZ/hvbroJBsdiFUlU4ZOZo8+1aCdSo0wd1VYSNK47p1MTW7uc9C9/hdro3e3zbEsJeRTNoJZ68OGPmD1nDEYypCJkoeO5M10Fa1dLjoqVn24C/xMub286NQLcEc2SAuQCabNVm2QS0KM9tH15imbbIeKWwXUz0ij60d78+/VibNMpMoBwztqxzGU9EfNYqTa3OlhSHRBLhbJrz1TCo8vIO5gh/nsqJ5+L6rtCmMxlzFK76gKUFxCzasgjwkKU4VvoxroqYPA7nJASASoJnrr7zCc9Phm4UTYraDJK8O77jpXMOdIyXUxO2qeJ2Mc1EHs/qQBSwfh+xK68VbkOnYIyIwfsYJCdE/jeyH7P4VMjp3v6h7m/0+LdF8cT1BQQ9N3O2S8WQlMJfAhA6mH9YFXUsxkZTTPV/n8543dWjwb0V6FH7p7Flz1PavXPlfo6eHciRSdIJTs/OTZj+f/Z8QtccOrlqMc3FNiMzGvqQk/JjgdVgkMLwwzxA/Yfw/QE9KtoNoMxjI2W7pLzvxDpfPgMeOd5/BqBzmUOgCmD+cqIsMmy1ZUNjQoWUbDIUQF5xiaU2tZgoKN2RFaAhPFWeJJBJJFtN4xINjoY2XF+CrkWx2iMe0W8CjpMKPAyh/MO2BE47GH111IGgf777GnFlcYP5toZF4juM66WvDWd0LHB2Bl7TGMtdnERajN5V+gkCGUMiURlkaxNv19KpynPTC/qfk7HNsnP0vSMhxZqzmHNCy/+0WNZbzB6aooqrHDVOyR6q/m5TnFg2Bf6/cC9qMOwWC/ceJz9Sy4KQ9Df6NHfPnmSFWRxQiAOwsT2fFUMcM2ax+ZM69TMeBpOagNhIq5tWA5nLSYMhowx5wgBAFk+7q23AyrkiKwUmaNlO/HEsS5nbnGYfEn9wf19XXVmjvdRi15/XqZ+x2maA7hT66F3YziwRA4a6NLSmH7bfCC/Cdq6AHA6wnYmxf37KiMg4j++JhKTv3KRVpYV2do3ylDRTBk+psuVN8xMJCoSAIX9LRzOr5rzDqWRc8202hxYXBN5HaGSB2RNgxO7M2wNJCwAG86MHmbaNDw4EJJID7AypaBtnkFiUBSu7twWfgbBjpJXTvGsTDGvHZoKOPgCvYpBPaJoiVviGH4Ej7avc1XEi/tEKPgjH+tOMHcp9Sg5O4jaViy1Hr2GTHQqA97G8+bLlL3oKediCGhTam2Wt2540AzRHHBYaFilNJOhbY6ex/3z2l30qsLs5bD28N2bjNY5wgok7PiHay7ENLYGqtwfL1iCmr3sipUtiKKKr+OXYFFG+oMU0nZq0l/T0/k2KWFbBdbqLa16oJdZB0TByIovmenf/xPI6RXbpuiVv2lr+jVaU3caVkeJTSczERJx1rNJ36mqBXXjVGPQE8R6x+9gvBugzZPAja24pYl4JPzCyxzl2g+YsUwv5lqnq7Mw6XyKQWHBqUqO2OhiMyiv0QE0+9Tt896sdwfmuTLGN4la/R/Z/j+DdM9GlGCB3XfTALNCh6nTo95HS44l2qzdhp976zBZ3JOxIMICo3DusSnEcMJxmwJ1Qe/vSBtS4VnmnzAyh8vJAGPVP+zS0Ru9CIxVEmIps+AjYmmpMuBtNx/JqUZ+ByPFs4GeBxa9aJTlU5CipHgZktO05G+ElokHGDmWI9iMibxuAbTd/fqIVh2X5pnliCwHXtTkfw8HbFKldjizItu+jTrvLA+cMlvlPFXg6JpNsZn6pVBVT1NsqgpSCArs33P5sZKvMG2UkUIie3FOME5bOrMgofD1X4kscUOcV/4KoPaX0DvowviP4aAaPGrvFX2DfpY8NefSGy4B3Ta1vUYwg3a3AX49cJFBlp91mMPg1Fto1GBY7x3w2WAn3X7LZU+4bKFX7CWFAtn62lYEJ84cbDjkQG2mDNMfl7JFTNt0BzpYgctyE3RMkq5Vr1aH0NgHLSHkWupV2gxs4WRk/6mqRLI4apuNuATjMwA+ufSLNno9WEsj+0fRjTAZK1JKJrUfMmmEM9oEmWqnXn/swpBlpvmeuoS59zafnvEloWfZy2YDl7cgNMk3afAjQfqM0MRBhQ3xb9UlrUDRl8gdS3rSp5o67dQ+8iUXEbUcSV8ZbuWPfzlVUrGY3ahhT6WAL3KBDg7qxTZCqMQkIo4I99AuX0TAOMxvtXU3M5eKoFef4o53b1zzoD2OraoAss1zUj8zGfg2GeREB/4o0ZWtksMuPoD3HeTyJrF3j4CJuH1LuKD6+/FucbQJoSCtLfyWUSwxaP9uJhW+CkSlKX4ob4gYGXkOEa1y/8XZJzGRb2bwukIleeKqBYbBonSa4gB+xByK28I1gg8Xj985MPlwrna+N9SUnUqUzxt6NDw4EJYID7A+VhndEAEJkkAbA39cakQgvTFtwkpYb57s4FNr+bhB5jLSoHSXk4n0MRxCgoVjOvNgRlzOdmuTZh7KdZySDzp3okSOmmFJM4Sn95XEknQjX4s1vyEdE4cMA6QE1i5684bmwGZj+yw7fq1yX772VZaKH2WPzw23CjkLvaaweJscuFzphDK+iHPTEJKbvBgsUCf5N0oTph296E2gJTyzQCOTvkTOXWg618L/ucZ/MUh9jvbyHRd2nREz0uATrSrS0QUPFv/hHxqhUy3KBDu18fp+77jytRbmnBmLf24V2xSXgt5YLv+9Xtiue2x5JIcCQ6mdobngvnGtggydXP9eThnTSg20okI4AHWIxmFUX2bJ8z1CDZW9SN3h+4BhS7KhtrtuOW3uwD2qEC37lIvI1XUnEKZ+YJ3le5BXQNVCgdy8PnurxmsKwgg7UMe9WvsWCMPzya1GUAZW7/ujeg+NlwVXUwQrTYdtDivJr12iNCQZsMxSMdkmkr5VRo+X0vSA8AnaxirTHRTeMRDuaKj7w4I6YlikstdWl/1jSWVSvbuM3rU8xoalnHKazIxUlG/rTUPcGejte/bogQWGckERDa3Gowmp87N2k8uG3UtBxMgtWQpF7JvLj+KtLR94kq4D+kvlMkewBuMrOGNI1BHT6pWCVJJatZj2KsRThxyT6FErzgE0bi/4eg8JOPb/tQsJJlH1B83mFr1TJaIk9pIlsagpt62HSfU8LUSibztPQfmTxVJuI5KSVQcgjuJYKbM/+lnqccA1MQt5zb0KRmEpqUHmi/9UPUoeLlzbeuej1xezlrsVp2VpnnrgX0OVBAaDqDI9OnssGkU9pCxNJo/DOo54oZ12Cxj3XWNoZPbjAjTIwmV5NjFshniSpj7QoUphosUbXxFg79B61VWieKO+SWfr89VYwKy6k6zcWvEg9Hk2JXg1oUlI3AKaqQ6rol6KkhRA1GPJLC0ePV5KtZ6e8vbqaSoY52St9u+f7GTfF4EsVlDda5d26XK4aziN4JYzLnNnwLBDHa3K4ZTJ0IVqPkN4jlNhx9C5SFNOj3rKotzMpMtCuwegaf9z+iV519FGqhj0fVSOrVB/ZB5iqR5kpTt7SxB8A9mhVLBDmG2/Lq8CfeNnKwuGvn2hp0tMBlZG6evU801pNOzuRd5wlyRewlWVYxYPkeK7poQpeLD5oTCIREr25S+JDDq7bdaq3c0HO/r/SjDm3fbV+ggBv0UNI9D4lUpsphLiZ2ODzoVDMa0M544m5BergBWUSTEPCbxKNDw4EJnID7A+c1Xp215OtXYAlf3XF26ULl87Pe1P0IJpIBLRvI9XK5on/yKZg7kOzKna+oAG9a9zAjTo6G5cMFCnrnezPBciE02uphQgWDsydGB8K7jYTk+WQPISKuICH3v0ZXj7JY3fX7yneRSc5XWWjccWI2LXKDGbvWmaaM8aKSaJgCBrWg6kri2MmjK6cJr6uYK9CmmJ4Oz0ZIPfjHIZz3Ny5irY+XB+niBZp8CRKRN5bPysGTbXpUIk1amWixXIwa/sAxO074mZN1h2mlvjFBu/QIO4FC6V3xcNi6gdizK3Du7VQWBTOGF/RBLpr12EQcKQYHscBS+OXzWtX8OtM6ZOyaIZ6IT7ohcB/an+mQOeCYLPqWhf4NN2hPYKJZWs237DidgqMT4PKwCXdDtSyBKbPY9AIN3AnTmKVzL4yCxjqsG8/m+uh8zvO8hIExBk+LEsdnxXS3jHDIZfWdVjOKY1LNIreshJcYjfCO3jrlhXkbrLe20nUk5Ds6HR68e/mujISzV5k2WUWU8ctAv8JRwP2qxLp4h6P6oDJ2Rh3a+03X9YVfuoepVsNMlqpIyrrOCT07loQs+/QWyq+1AOHUz0e/jf94Ntn3nzP52gKVxSEkahmtVEsqYKF+AmWB8KjIGQ20s+mF/c0QAn6eIC5bRL+RnGQdD3MpuxKy56AnB96RhTKizltvkL+CbdSBEZ4vHbtl6yp6OktgD7rwEMkhcBXZq3XZYlCDLsEcE1ZtduKPBPLG7eZ7mgTuDhtmDxYMqVeWtVv5YxYMY/EtUje7XYlli7uVViiUmQzesPYKOsfvkqUMnaB+LqKXihr9PnIH/CghuBgXm7zC0U8qKeHRyoPO5xVwTo7PAMuUjkfc1SfN9xHqki/F9TOibdT984JpHzfWyadbtTMNZHx5UJB8hvGQecwLBQUs8PTc1RkKp57GjkF7AZWyZ7Oa+I6mM9sutxPnty5gZxBA8XxlLz9aV/C3wQFiTjExPPiFWlbdgad4SMeMQl/VkDNLcnqGm27C5hFxln00PNDQPIaZ4X+Uqa7TLsqtIMoO88sOQbOhj2mOx07akQQPKlH54W1KfTYT+CYgFL0iB2l3oyXKqESJooWIbjGBul4KUSygxBs2LVQb5o+IPT/mFQ8DCZ+emlOInVGntjAcsF3SvnkfTSDrfoJ+bEecbpxjyUyAZH8SlH+29T5DgibGygawlk+fvMDW1YM0laUWa6tOOJy0/qkS8u7QTRsv0GYhxH5TIvttxWWEt7rVF5OpZEOnR87uZdkD3qNDw4EJ2ID7A+dVseA/9Ygkmm83rLmpmTpPh2qD8jwYDSh+9Pomwrg4i85L5AOEk58005WJfNqTnDj7hF3tLvdF5Er/V1mv8CyBNcy7Vu/Ym64yQqLA98Er71FA6MejqhYZMlNNpB0MzhVTAnJWyp8w/KP2uyfvwsffgWL0bykObdTRZ9fj+3hWY3h/ad+rsUP3G4c84uTJ9WpVAx3E3iRgA844pf/7hgWlLwPCR+fmSWBXieGUm0EXaUIyPnhA6hXEiXV+zSkKMtF1DdTYPOljZdjKTeAgejWAol0TeU5HfjUaHUB5IpiNcQV/OxVhrfLAerWBM+/UIpClzDd1w6OqI+9kLBxPnjyl0nM+2dlFuv5hAsSBpCDUO0BxwmK1/GGaIvz8cPJBwUBaCK2Eze5sEMKzSj1f5Y/gURadRZTInZqm2bT2jNnlbP7G11mycjGEyLLGAWo4zmIyi7eaSvOQaecvF3DnQYiUg1qZoBNkB5XQFXi7ni4bz9iOWAtcOtClv/+fZTMrCIMDId2VBNgB18ed379yFhe0NDnlYa1J1MIFwBHSKc/jjNCfk8iWpFJt0K2y8MZz+Tc+9AisSBTf6fBVsOGnngj15chx1+XixJP9XtUBNsTRQt6ODm5ovqkJ+dIqlcwEy5ZoKEHzQPGOm00u8bm16U6W6YaPAPu02/4FwkSyqsohheRofCnL1XvyDBO7tBoj4l/DryvPt9KEaNvucMaS+LrPk8GSNxv9CQKNEnYUkNnzbvruG5gywLc0eKceXpH53syT1VLw3GmDURGVVIJpsnDdzsaUaqzbp4lZja4ya6+l8v1+7bbgn7B0wLZDVRxUAoQsSML5wgkoF8UGlNTpfu6KqxEhfTIpdewx3P296OLQWZ4yE0+fVMfx3qwmEgnDHPMSkhVOt0fspmvZxdUbNoyisUmstiYCMUr7Tr6wl2s8DSsZ7G1JqlF5YTHhxoCfH2iONv0b454RyR2auyYhcwomSQcn1w8jR4buaPtnYoMYI+Qe+OqfOjqM618v0zy1Okxs1TCsrxggnWZbSwUK2XN5fXD7by7TYe7ZHGYMvJ4Hr5oToFEPPljFiR5nYhiGCswqd+rRCFBuoWR7fzKcCjFWXoADrssLjMIGxAXL7kP5UWiXt+lYB+97hQonPC+iYllUYy0/ijaIlxeSWz47kM5cbLA+sQ34/VTfJx59+whPoDtyQdu/V3BG4zOqtuqQvj0S5LgWAly/6jvdrf5yxTRvVLTHEn7eCh5EUMDlrySfZJcXydlZ3XIw5cqMF6NDw4EKFID7A7tcANduWezaPQf1klxxvC6jUqZq/HCFcZ0RLsPSAV0OSFq8KQTmLGOqP2vXFZKmY2dFTLOHhyRJ7RZf+3sfBV/95gUPDj6WDeiC9E4v5ctAmoMZvAVlfhufWVKhYlc2DOc4ZOnOqqEon5V9ylRW2dv8MfkSI1yMREGH0gGLwGAu+TWnQk0b0yu24Zy+sd+WEVSMa8Bs1mutQeBnwyES/Mn7c9XRRo2cnZdbG6pzgeH6vwJyx70ONRIU3CCpgc8VZX3cAd0GHEMlw2qmLH/E9kXSDBiS9OLeKx/moCkAwv8BkfYAWhQ/Aaksehfx60iftS9Q7BoeGYcrfKx8o9xfrUVSg0J6DG780adR3UyI3E00xF34gGd9O9d1+xuwbcTu+fK/c058UCXfKDwoRg38hLvyQjID9eaKLF8Nh/3/hF4kltvccz0hiousr0KgAeBeCXFkulWQHw7I8MX6U9zutUigJWr0paS5fxV90I+pGqGnbuVv7e3SplOfggh3aArB6HxEfZhcresTEOOegcuMAd6lMNhuE3cSwacr4RDsCmnHAV6RoHqI6PN4Sdv+ZpEmUW3RrHHWJJxE9eyyuyjpjyuoD+e4AsNU1zdvjd1joC/cbJOHXCRkKVawmZlaqDaf5Zk63dxFjWCuR6GMd9u/YZ4TnuAWgdxgPGLWtw8iQjBvNbb6QjaoBsnpdMukzoSxRNRrIPPRvy9AeVLPaqaWQj2yY94dy5qBTGmL6ZjHRKudqgXRVOT2V8xms1BssuCzjTpZlO0zGzvGkLW9BdwwNguuIPRBETTt42EAjoUvuKpjBp9PmJ6WTcFLJWfe67mlSrMxYLbQ03elHs/a6OFc5VaT+pcPA2oa5I7lCkrNYGzeTSkU5OZuKwPK80RdarNrF41bYAAD1JJRP+6wo0nRJsTU5x9WUEKZOjuVT3hoYK9jgVeYkPx1+23qdW2EiYlIP6HKLQynqU3zKOUYYUEMHI/OrLYh6mzzBhtoOpdngKzTfPDHBRqNu+j3DwEv4Szjm9ddUgWlE8k3Anc78VFH5B/i0p486ijlwjwcG8eSr4EbdFt3Qr88sVAbg4dTA68/tpGT1Nxzvjh+dYkp1rb38fg9SYI2Akj/sBTo48JUqfFyavgzwBZ26mTP9gDcCRegAuYTdwjEG5S2rnc/wUUwf8V9ekeo5NXi62zjzprJp3A1BwBJ6g7Tuj9ZOUSeTIObqqGtRLTXVbJr9ezrB4aKaNo1m0CrZXmjvvxo9DPrv/6nArJDzb/UpX5EoT9LsaNDw4EKUID7A+XLQEE1epwhiaZkG3hh5wc2yKGutYsY4yJ08xhzogoSU0IlvKgW2ZdzuBFG/JIoIXLE1oK5KZa0NEixhYnjrKdjtmnhgZWQpljet9ui6acr8h4U4UQDd/+xN3TgM5TXD7feOyx/JDE7NupNcdO8pWyVvcVHlDb4iJx42FxNB6hV+fvNNfOiIuUZbm8DErJEDdNj+O/Jikbg8NTqwFfXdcH2B7dmEuz81eJDwxjMBLqoboaUPnCPyuF37pr9TWXYSX6py4nO6NV1A11MmoobKkxQwdoLsHenIzvB8qvlIaSwTYW2+PUP57qKak7UQVFvwC7beTQ6chkKSdvTUQ67ls3233XtZDjaUmvJ7Uv8cvFznc4mO16p1zb+864AejmeqUU/b1F92EiL24pF5An0ygvi1fFkMuMyAAAo4lWLG7fnFe2n7q8hPO5PInek7nlQ9SOAr+S3XkTvOkTHXAvUbCG4/tTMlXCf2UhIKQPE46gKgm0oLOp+S+ZiMJx27tubp+D5gR94XtSXKU2iR7yUKcYg0OTHgMLh+i0aRvHMVLBzlcqWIY+9eSM3UrIuUdS9vPjGBYIajxXQjMyP3BfqDdX5JNoKbfjEAGIpeQeHmiHSjbBiBdwJ1fJMSC04fKCLCtNuwpzh5X+3wsOfkm2VwN0sjCwJ/VqouSioNll+5levrLW1NfLNHw3BGNHjciq/r/PpzNG92n4/mzO+zpQ2upTpC5xXkdXAZzGBs/rtr/rhisU9CDgSi5C2dh/ytLmsH54MaPOIbx2+iDgXXr7Ffcs/L7HDeLXNUzmPHme1jX1ZWLp9J9NtppWM1FIHbXGkFK46mUyySmVPWF5TUuO25tUxYLkx5bZIfA6z2w8XdJ4hfCUE9WjulUnfpSl3X8cYF5SbpseB5W0ZnJWFNQQCUmMsjMErcuMlnmdp9e8FvrZF4gPYi2udO7F4FngWVXN4NanhTRJ9uYR0xBtlYt+nqJfDKN9D8OrLTxzZqS4kWziUJJDocPUs44JPqirl0grVJ/h2L+Nbqvw5bCCA244N/FGPywHp5SUkxohXDYMLg3kI09zfp7LF97xPf+OlDuIXtDaXklj6SvBvekftLTvto2esfKPp/nlekDCB7ePfy5DEvv4b7nLkLwZQKZ8xjZVtqZKvmtdVMkBNOKH6jsa+VtJUIzgFOggcB9ydRJbdaD7R0Xf3WpPUyexYPiAi8ucQkSWIYs2fm3nzp+9haYQp8AjXV2hbNL2gepZMKJUMR+z/M05Tnu0sC3ZDpSJdxqNDw4EKjID7A+dl83BxRM1TJeR6bIPKuZ8s8DQq9tfj/iA+AMd1Irgl04lOtsiv7n03TxIlMnPrS9S3bxTwpYQhJiIp2toGwNDVzFvT23uQ2oWEMiefAkE/vPNK0wZ687MsIEG4yC/wAs+nn3yY1kjlXpND1fR9EFtw70W0B3xPyUm0wnLFekKSgceD5yZI71sWrCFIHzF/udz8Ww1KfWqzX3WM8AXQy0wh6PzxgYiknubvltxiEDFog95UicnmfO68iU7wOmNyUDqax/Ib1qCv0IEigtNXHspaRV63rJcwNDTI9S9ht/8S/iZfXMymHe5FnWd3Pb/0fHhTL/0kW5T+i42LY0RU5F76zeU6ZJlQKyry2JIf3tbsf14lCQSFJ/4WHvzUNGBI2lln2jtnmWcBu2tjX3+sDe3n43/Sq1XrCnRDeQiH3dHR3wUAQeAVptleLvy+B2QjqoNrrA8vJpvuOEk+oVN5RX/7ZihPRRYbCWHdqiIgaidJcneen/Mnzv/GY9k60XxfJaWRIazRnvu76erwNmPsxsDNPGrBea4/Ry/pyznwRiMRsQvj3zPdBWToKkqq1PhN3cVnNslVZWv6RvXx5yr6hQmUbN+krYhWj52l8ZYB9oSzgPIubFeD3FoeUsHfpawey5RwkYncYxMhuU6GbQ2Ry/JsyLkKv+gz7B6kdx1Tps3120toFGW/zlKKlr2XQ7UrWfQD++V010heJs01EspwgFu1a+UcK0b1y6m15aL48ygU2VKtOmrZW3Lql3usarxHC7htvTJNTRfuYYFLQ3DD7pc0ysqtWgXrme3s+SqonW8R1ES5nci3FLucs8QoBVjSmoWagc14z5j72EwyMuXs0bkchwp78FQU69dwhP3v2wNNRJRg5oR1a3/nDM0foG9jVvz6+P0U3/UdKIxbo5c+KiFCtGkochcln87nT7XXrwpfVlPpxbdphFYhYB5AEoL/yFudkFXIxc+mStYHnZtxNTkF0BFkBmq+KJka5LcbOOLbgkx+aYpqTru/truFIrh3fVuwqsPh0FArPuZTF9KT7Zcxglo5dYZn+MJaHuMzooaa15/fbx8DO+iLhLTqWVhODOu1FtfnuStaERQJmvRVOiBpP6NcefWqpk7SfmTIgSUe4oImRPXtIXZeMW4RVbXxWXACzrnIu/lS+DdATaeRhDo9vSxwqNycwEpJQTt4U5bR1Mvi6if8zxudQ9SDQ8VPtpQ7il1rPxxnQ49tlBztasvHl6a3Lbo1uXD/sKKZ0LhgYd2eLm5AMJw8XK2B7qNDw4EKyID7A+au0h1lEpJMJUXPI8leWVEq8Ff69MvK148EiEKn04XYY4PV9hYLf4FJP2XH4FAVnV8Z1odF/0WF1YlRf6u3ZcwvjZs3QU/m6/BT/Ssw8zSeqz1C31cNoai4xYyzjN0LqianCs2qDSRcIvwannyMgSKNIXjveiPoy7RK9FrbBE0sn0QwrUo1/1ZG1I7LQ1tXq9tF6JG4c7Myzu80iUpurl4Dcz3JJzK/XCGk/bfAhYbfpWQOIAR0xdsvVFr8M4D1XcVPxrUK8AWEaCgi9uSsANtc9qi9EHSBT/rCXfEII8q+69avYXX4lwPcMvrFSNEpiZ7colGSszjgRC0Q0cgG8MR1M7NSDU6OfQE1L95k/63D3Ec4Ga+0SIAqJh/r91iDpOmzTj2A2l+vLYr4INEVr2uX8dalYnzEmK4Mfk82bc3nS8Qm4jsDoc0jwNzT30pDe4YOGKjI5Vx26mM0yQ9UYjAxxCzAbLaNYBYb9cCAhcBoKU5XRPACDJfJnW344wLuYdm1W5jDuAVflp1jEE3T2S080Nu+nyjizmFR23KBjU23L+t4xEUYgG58iRUgeqgHX3QWvefnT7L5vxc9PWB5iAPufmAByf/eFLOqNL4uv7M6Y75SOymp6NL+tAis4k0+bMt64kUg5ygS4X1iJETVWxqFME8xMYmU0pFbGYjL63t3XMAkw0/ZjtmmT0Bc1D/YsdH8ufza2XwApkVDTWgwr6nJUvWqYN44/OudUlP1UPqht02yupg3PS1LCIhp87qyDKt2mglzS+0zYo5S+F7I1FvYKGjYF97IPw0WNJ+Pi7gPMwgWrN9WjpRpBAx8LrGBzkk+mq1wP993KIsRA4zM5VgDR8jV4TwkgmXE+ZOQWHn/XD+PGMhmsMpmF0XZniSUep4ujXo1VCYTJVIxR84SZq/h3Lpvmjwu1hB5cPrLkwy3QAQNPcakhVUmpzLmxQtiRlqYG/cM9zcTaw4750oHUxGEkCNYSrUd2AX0H0YvanVWBCTe0T3720+6GoED1dtQk1OGrtBW4rceOVuemnYvkAV2RsYLZFCknG2F/6DV5YucLQjyh9AW27bCSaErzgFZeaLjx3A847NIZ3jkWEJ1Zn6K/34PG9KPnW/3JAmiXxYAChRIFZ815Y60b0CurkPxLyfZaQnB3rYicqu5x68XudtYdI+1YYqL2KwV/utstcHCVfnYX5WELBIuSoxOXDMgT9AFXOo41X4fOb8yb4duwokA+gLp+qvBzZQA18gwzxWnOQQ1F08mGBJpn6U8zqNDw4ELBID7A+VX5JJBcAS9k3CqObI+vTdISvd+Eq7JD4YCYFvoW0CUgNYxcbziqoM03xej0tsWEGwz8yTyQRRbvoI4X8+UpNgVO8q3rNTvdTeeesoJXrRb3ToCUlgNqG/aBGY/jaKnQGnOCRQkSrV1hnSaPJn5cOgAyeY9mcXmYrBZFrd5YvNgocrTwhKT2OEEFdDP4rdFsEUEPF+ezhukwNWLkLwXoDWoL+JngSaLa6fRwXZSvlTtrxYUocRmPITsyVDIYmDONn1R/nv5YvHXIKQ5exEEyNwZ3bC/FfT/WkCmkrAsWnowXS0E/LKIDK5N1cWfbce3MSp+0hdx4qEEZ+3QYRnSyx+s96GBKCqhYWDbSihA6RnkoEGQtKk28Nhm8F2k1uA8M7wTniTKbu2b6lG5oeq11QExs5Jl3kvhjjOEpnbkOtICGpFTi5EUad5oTdkrJhbKWFZUDMkm+MePIE8qTYHB3+LFCGtSAjLRqXMlv0nDgYjix+ro0mF0tLHd38yUHa/vDcsC92M0Oo09W28pBbWDUh3XoOMt4MDEWgTtXN4k1EUXrLe1NuDMnUX4b7S/WWX+/ogPoWI5h4w+X8QrC7V/sxosrs3WoRfQsLthGKrgcjkpVMMvLWQkwX5+94EkGoJpszIW6CK0FhQtwbTZ2W0TmMlvWBwThHnV9v5CkqmTsriFWk8XRo8rJR3XQ0zVr9MN4F++QbJwKP3epR+ALrrnZDhs+PNbCVKWyEhd3edASP94ZGNvMnQDxyHupYgY7Bik7DybnuX9ukDB+WZEgpOGzumJ3yR6NedXEPydHTABygFnuhjYYWTqNi4hy8Z71E7ixSe8lXEyFFwk3B9kiCkcHKJR3kG6RGZGIm8IztFyVNFCwD5dsRzxjjruSTMCL3YM5CsvUhL1YNr66d0UlyfC8dS8aROu0HOjD7eSeNWmHv4laJdDC/Cz8hkkL+IoAg+Spv2msXK0tI/vC7+UX3gt2Fxbip8+ERBWLawX5fAPO6A+uIgPerNXXmtSUtMe3cj4LHh9eJ/q9wmzIoJjNGndDoSW0AQMjqRtJF8VTU8MVBxLTchxOIjCPYpDu8h2gFBfCILacDeHv73ANlRXGKxyytCv9zTbNdpjnsZB4LDSy5F6Kllh6tHZod4oYh/NDNHw/mofv0NTgPcNE0wsEivmEn+qUinCg5qKeV1R0ndqkaRJQD+QLskz7dlAmlCaj3wtEIjmA5ezO5cBfkcLlX2Fr38ODu2bE1850QP/t49hDk7ddYH93txmRoenHi8+96NDw4ELQID7A/sFC0FOGtFAyOBSkuJzz5QfDA+o7m/7apiroRIxbQ/NZ/iq5ncH1waWmQb0wt0lp18mwP3xSsI/t7GT/KIhxxB5yxXMgRpzu5ZcRfEagkHzgR/5ahzwDExB8iJI1+WUB7m1GbNpvkFClcH6YJ5alaLn2qe6ygXWY9rgkIogKQxAVGUtGu6VW40IMJpsauZ6Ozs2fkE7i+cT4VLwtkPwWTjG8AWM7W/gbtwmvmg5Q2K3ql65OIxBYq16R45xBLE2Tcx42rxPHHkYO/+P8dglnmOusEuzk+NIbP+bcFqdm3l3vNAXrx5f26A/wqQArUuVSV58VrOhXie/1L4Hx+svhVLVyIzjvnvvaM40lv5ZADoI7qac9iPX6IZWIlKLyYUBYKarQpOKkheCC9OwQVqZnvldHzACAfNLdAkeKEpd2Pv9gy1Ohk9sRishoeXZo8p8ljApqRXZB0WzZLz2nx9MS73h47SQ0BlWOno69nz+1Rl+163MzCTU6MSexAM+N9hfCiPAXxGxoDAC/CEaCLHY3BlwkS15Ex/LWS7OgeSiFxdqIewmwIUe4rjo42U8GZ8uECZCnGWTLLnbIw6Qw5MDb+BYVDg35pJs5HMHnncNiYgxDmSM4zpDXJjfAkmq9Zx4zcd8rIKDcyoMku7vDQivlcyZmtefbBokat6unLxiCau9lveDya2dzzAIfMJ3lJAFVIPpLkXkjWM5LXhWQOff8XC6vYlFImKKG6aofsM3RIi5FMqx/Dj9gsiqPci924ZE2BWSNAYry7dwaSBoKYywORS33+hE1VRmhghlg4Vm7JAp00gt0BUjghSc7DBBmScRMSEjvOvJPnqMoQUhkNT9+vca7aOL3sIqZQgPIxbMAJ5kVfgg1SeU0VqryYIre4qMIKwuNTqvNAOuMty5BQmQCtPE5/tvhM94vZaQGd0uNsQw5MnUr0IcdD7jzz+XcQ5ie0A3nYOeNBvmdXehyH8fS/QElyq9KXHqKMDYUKYJMXM3RFPAdYAlfYDt8an49BmpqTikpRQKvKJJ1zWm6trQAtOtdDzfY/igHZg+/bMg9VIF38HOUkAv5FGGZ1CNbZ7hu6ar6pGj9C2Whec0xyOQNtzU7tktVBZ5Zy3hkUBo40OFrUeAHB/jMHJqaJA5EiYQBiMHKMxz5xg+ECwPDNkXKkt+tTzNlhnUsxLy+F/qQIJVm31HOnhy2QrPgah2IzwhaubPyfiQfhfDNxz6cMG++BecHQtCPebSQV0hZOtDOz8YTKL4WOKb/ENKnqUU+qNDw4ELfID7AxYg8tH6rPpBNfbU2Xw4/C4b3FprXvoK6BkK2WNJCaCoIdiSCRPBthDZEyM7h5D6byS3L60IqggacPqqRo2V16Jxr6WJzjlPGXLIgPK8lxMvVmfEiDK6bejQgUz+XvrRlyEC0ME6Z75N4qrEs53VyyraciS74aq1/Wt8jygqOqM/KHHtqDeCwO10dtbDAwRckvsV0LUc0ULzrh6M32X2SUrsrI1aK5BqGIy+x1RZQGb6Um+60CYSAurvWa8MJROMpSOiDu1icIs2pAaLuRZL/IVFjGO7x/v4NtdKrFEYZe1XPOvO6+W/4zNWyJHVrIaNJee5dqw0Dc+LQcyTD6qnFQuxwaPn8G4poSi182+GdxcmuA5dORXyvEwTBPVppPmDODkCdTCYBU+OIoDHmk5xQlWZtJ8Fo1Z0v12K6F444a79QzVEXdBkeY5DxjbB+H/SnYOqR2nVxZ4TX7ds0Un0C1p/bp8iJYh5h5ajuh4c7fHRpvztH0wVbNGicl9dayZJrkjJ0xai8wxIIF+JM0imdBLIOP0uG5xBb2t1pC4rPPUGpwT/CRlep6aow3Z85cdFzMti35ECbeuNeQKdJm0WW3SSuWBFUn7kJFBYrNXT645oyehdOhcG5XxTWeSN04CBW7nXyyRhs3uMwtCAUO/Cy/dVKmznZ+lgc2n/RxF6OLFpEAkW9Xg9z9T5q1lj9MBTpX5xRLKnspd4r7jBU3BzFgQhbf//rBh7CB/oQgmcifRColUM0+r5KoBW3ky585C1DGQpJHTbQImECAclbNIbnV+nFASvV/FIVk18ZOU7tSYnp9jeIfPrZlSk5r1tLjPyKSi5Q2MPT5ZODpMhQVb0UWMRnTclN4e1ArcGHHD/BW7HcMPQGo+bG5A/aRhC6kudlVDJgmDDwFMpXn+d763J7ykXUbYT17FNeTPbBqyYiIajZAQz+WbomVpKPHjdgrWz1S82uNWwaibG9moFRb6ySF5IBmhfprTgm8NMenTx2lnTXtivravKg0UWOvsadAK7ubiwou6rW2lGPID+vy8pQ0QPO8sowU0qyKrWYMgGRxlZ4Ac4dkIEL08O+yCaQpZuAxoHWBf07Jo+X30fMuMd1tncYdQ1xF3MyT9wBQaNxFqD79HZInKyu5g6XEDt4LV9ZrK/3hHLq7Utz+49SNuX3bB2SmPJ2h6v6GKgiGEyrKFgwawnHUd3MKp8uIFFiY5BT92vp3Z9BRfu+SlPYYFfzKhKeIF0zOdQa80HTtBzOJYjv5ehyj/4YwxBr95HLqNDw4ELuID7A1sXmVQuP9aKRc5oDkuH8ajg4mJdbpLBzOSpHEnGpS2ZMKPb45DzbkSNxC8KFajMz44LHNbcnIaz3fZwyNzBzYR4X1viXgaf/X0TNcO9GTWosmA2+nxIf8l2LNrBp/df8vnAWkP81NUFw9Jmd3aAqFNnIBtXFLN5XMePWt/E9b6Y3clYHFijPxzY3MgC3cj6CELnaf1hIsIKlnAAS7y1K5ik2Ximh0o9s04mE6B7XOBQ8suecq5nNlHuT3l8pTRK3fRnaLVjf4CC2/0GCx+WaSI7Ke2Cd30G73rm+azJZrkU4hJffMFd+oOw7rnTVZML6zZ9Juxdpu9mQ7m65Hu0b5K+FA/jK+W8iEEyazUWpgZLMwxc+tBtOqiBT2aGOPGdwz2SLRYowtzmMPmSkuy0kdeBFYSM/Xf7V/4NK4UEvYxaCVSltwccck0hHo3G6xuxCUV6Ckm3WNpg0g9zl0PoDeHtMh6zp+hzJcqVd0Q8NfQKDtwdCFPi7+G0wziyNkgVyLNBh2kC+uE+MMTmHBDocRzFcDCImiRwKymKZbbJ7RGvhvloBqTkAveqbLXUE9U9loRtK9vSQ9ivMc4j4K+glulKHF8OJsnwFWx/JQfHeEpL4LcJ9q/+Hb6QfT8KRc+Xt2DbVPI6MpNWhto3FYBMb9kG5RIAQ3elfvwSFow3i0CDEYlAByaCrTcLO1dDiLQHApZvRd5vIeZ2N1HslCXrOBAM7eikV8/e7VH4/NCG0iD1U9fuDtRtWqbrjY/xdLDQYmXtCvb/g+RVYyT8l9+TXu+L3XXzz34Vl72yxh/inIZi+48d0AI/TZFToUPKqXeS007ZnkFfSI8+w7Vh+D6eWdrlpQHC4tC7DdfGac1uDCDQTUoqQPlycJ4xNXLx60KNsIBwGwGnJzdN/fPrFTs55B07M//DVnNCxPmm4AUtwMxp+d0qpbhkV8QWyl/H7LkuPepxQIKjdZjAYCxDrOZ/9WzbfrEIxOj9858I4f0QG6Zcb9C/rlb7va8jYMmKb4uHMEbYbkiLexCOdbVd0c0KypbDZtV7dqyhe3MFBsJjtcsxqDeeqTjT80+UHFh/E9qb6aJZgj6iznhPF3ORLzoN0RyTB/t3FK0hpn2jyrbwktOIWTf8kMjPROCu2kio5sT+Pl99Vj1LftcFx/vwiSjTdKCAOJKtxwxyjblXOWpl9SBz+ViJkf8Cru7Fti+DcIAhz42msA3+kDuWns1DRPHL1FbWK+l0tgLRMWyIMrVTjq3B7BkN7gje06XDc2pA3qNDw4EL9ID7Aw3OPr4WSStvAyRqnWwinCzCELuS24OilirsdOOfxboxIlpX/qInekI3vLDUm+ZyylPXMMe6vxLRPeWeVcdiPedDD9zIozm/x+w9+v4ak5p47uOE36cdReX2+WC66tmAw2yH2Xgs8s2C25M87Nf24EDXv28xxLXR3fYFFsPpYIgvqU5DGC9mEeF8SBLz4bdeobUwQIWiY95rpMk1whr5Y0DcFLiVOTglbmLlV9sd243k/megvWVup08MaG8G6leaaysVuVEt0rFU2EU7563T7vS7sKeCQkkkhLTfPix0Ob5iWJtNH6Mo0BXoYTE2buA+PpLFIYz5ucI2GUFack/W7/3VFLuAppHhPI67VG/piFVOaM6ab9TcB5xNu9IBBXD51judxz5YhNiTwghnRDZTXW43FoE4BKdH6iuryELUb+QWkDsi6u6IoMbB76VFzRIgeLiQreyKtVsvE7oLQzAUVXps9TZin51bZwP6zhMAMsjOGHvyBdt+6lerFj9Rzxa7CrPPvYUMn0+59Ti5XTOQmbnsa1DDgGt9yqkePPTehA5KYm6fY2z7v/l4LcVANZZoIPZ+KwFE7MX6kFNwjc1JNmECeruUqoq6kGPS2VavXskFtMdsb6446Z8bJeNxE77vLwnq++De8YUgYCtZ7/su0mtfdu6VJwnmbGyhbjx7fobb0i4igIggubJGagYWKvV+apVQlQCWiuySLDx4NWxNADY8bxaB0ovFjJasPTkfzft44cTTLecXeZqFWJbu4mYZDuqp1KNcL2T71zEsWcXRs3wFPrYaxBVj5tI6v7pZHbtpXgLXTXbpm7H51f46IDR7ZcbhwIVFUMIq19E39XS5G0MpCALuv1eqFJSDoPBa9QL4AQUqi10sB/p41njYxayoeOtneUNpEljlgWFqChSV4Ny0y8VvC2mCMX0/6qch/79DUtSE72FeABM/vtla23NudXPODwe7Z1JbqYMAZDpdzh8nfvOGCXs2gVN9od12Th6IttNw5ES5g3kWvW8HORt2Gadc3Um1PLh5uFsZu5TDejhi0fHjLyMtH+N+argrniSe2yb6qKKDqx0XxJj/eC8O/jzSg0/0VdPdkLP3iQnPKGhcZLEcGCIG/EEZvP4cRRYaBi3rVyZOfbVuQlh7iuLwpKXZZy0bnSXp80bsULO27nUnNFV/xx1FRkNJRhCMv36Oxj9og6yGLkadNWgnikd2zkT8lazyUgraQqsTfQ0Cj2i43LiI0kYxvfBeAiLy8Umo+CLtHIuIJW/3Rthd2KNDw4EMMID7A1P9WjYklyQ4+l/zPu3nFOg2Cskm6aDoqb2amVf+4o0fhHdv/k8KH0ulxxWSWFaIKpiGBPn2rac12Tubegw889HOqB3gzGJxHV4DZJp/roXyQGoc7AZ3kOWUiKq77h8B0Tr4w4uTKOflRwAWZgt3qDvVmDdnw1HW/WRL9pW1eoBGKBb6Ff+UwgYv0Ipcp8ruLFjP0LuHoHyG7jWywEiDpByvxgsDdzzz24KN2IOfn8gQe2pPcUJDwX+WmewaII+6qz7VF3lR7zWwc8iVVZ9e+2hFNGLIxhS9phDOVD/04CF4ndswLDmi1r6j3F1GDkmYYfmhqwAlEC4sWYKpLMZv4T6OSiSNjeGpV7zo5E/4M9Ox0PjwOynFZvrb7R2piDS29APxifPa2YeTxfU69ViZLvjnovgtGcBafBvaG92Ma7wUSd7TFbit6OoX8B7sD7JR9PY/FNa3wm3/IXQmyIJ4RWerOfzgL8sIOlpYfZtTM78+nObuMfuIcuFcFmvDhox5WOwARdg7n9YJOZKgj/utsJJlRFqFvw750JMVRtLAc/jw6+Oc3L2a5vxiPb3Z3o3FNyI4jHUPjYw05a8ok3d98XmMXpN1uEZkIxhs7AFMlsdtJi7p/QdJO4vq3r1C4QaJQF3C2E14sixOnfustVquNv638/G6TytcH0+jCsHiUmeU2dnY3907ecXtR32EoeC0cbVmNT7jEbzcxOHjyQ91N7MG3D4/vkdhj+qjEeuKzbdypZoMlLRf7MSmK7BAypNo6lQka0W0B/7D/TVWpivXO+HnPFxzd+18jB0EtwqwvOESnd5wGKTlC0++Hks1uZGCLAOENVzZvLrRO3klXykS/il/W2Bsym/LjfKjvYDui5IoqThmCWE2REbOr1t9mih51X8iRFiYT8QyCEtorw0uku+9R2nge2qwEe8/3hJaRD6ChPrK/7LqQ28znEa7qot1PzcF+v+JOSF3scZ8EEnSzwg11ZcAXNfBcbehB7Z9uXkKlgAFOxDOjpqItF6KyH2iZi10DjbhAG981Hcqz8xWmppNsY1mj58Ti/9Du9ebRSDk01qu5CzRP90e9e+vo58HX6IxSoTmHtFeih1myEOo3sWNen0zkSTC/bTUGRzHMcgHJN2nwEsS7+PsBSn7e+mWzNlzSaoPfqARGZmGnh6FxZR9p9L6hG7tjs1EfUnoxGn0IyVRDZmGErfE0kGtl8sse6qIurcHEBfhhiFpFTCKLnWqFI2n+yXhzDMMXohu9QFrD8B7xzqrLotK9cX1TqNDw4EMbID7Ax8a+7wIPIiLveR674N12/ya066Dof1m6XZPmTRxGUR9v3zD0lHHVfXfWfV/G/howLyI1PmuNWKx4tABZPYd9ruqLqLDET6n/aygprULc51vlBCrUUkoVl1SfhR8qLx+ActmmVMbMbXwQyKimh+VzSavHcFbSjjxQGmFfe3xlrSWv0oQQ1G3akwLCNkuzsVlAdnlDnWEJIixe3m1Yzi/jUcnzDte7PgIInRxRLGGSjNvuxr8eq6tqzCDXDt65JjM+HYSBDhBjdEEwrFCQylYYvxnytifYpLXmPTIJiF1h0juMW7uVw1/dihbLRGeZRWMEU1gVXxVGVGeIiH2185Oxq+FoInzMl3TXQFXtfR2K5WMD5uTjQE8WSgjAyUreYtle1BkDi9DH62wkRjwHuSk2Se1R6fznf/uRzMYj+0fklrmQcoFU57ny1hOVk+rwWUqbk5cZ60w55dtlNCwXGr+8OhDDxuyyTUyXBCsdv5qMRXwyhDmvC15sh49vhjvK3FMxOUguJwZiV9BxfLRwfxyYTRhJjIV6GaNJZoYGir8IlNlhPPtV3nkV8nLoPiPGCX67Do3ki0TlT6XobwubJT+sQmE+OpuLrqHRWYcEVdtzeGSCoAyuKFpg8CIeDIQoKhenxCLfrGYl26rS4KAivQWJlCQv9xpzwTbGssZ8nbzVPUmC+i9sgbNmv0L22lyFsMSST7N9Wo5R5rwFDTWBC0xMmEGtBsfH6K5RvAodrShuxFF/kttiqqdXPx7OuKFu/KJdeHCJ3nfivNpUEQd87cEJoM3khQ3IXf5e0BgtSnAgkgKKGAduz5bLTYyYP+9mXcc9epo608i7x0I1W2cFUS55pQGO51miO/9M5HbDdnuaIPjr3maKCAzMeJiCMSSRIYr39KMaH5uBbUp6d3LkNf9tSGVQ8dJQKwBoyiwh+4IWJ4U+2aekIfB7Y9DeB5gafgAP2BlpqFI03aoB7IWHU/T5wuf9RgpFvBP3D7U4h5QoQubDC2k3WM+lcQ3RC8k1SaJWRY9zJY8BVQKyH92NReSsXX5q8KYQFXXBSwcihAMrzniM80hM7gNcx8K0QjXi8YWkM//hFG4+STOzbCGcBe7JEqsUBay2QvOiTbVS0JkAEY7PcTOTGdE7EdckpyKm1a0ewpyqu0563QJEtGeoHycbY/c2t1FC2kMuTvoACMboX1gP2JyOnI5HLgMSPyHboYRZ7CPv/pUaPdB2vw8Bx6tJqB3sOK48hha80UdvXUhyep1iAoYr48joSyw2N7MtaNDw4EMqID7A+WMgJ5jaLXGM1egZtXbhR8eZvwvv/z5MIO1kqKNGm1tt5zDXvKV9esTCxzfOPHt1KvGJJmdXQS1RhPQ2t2aWLjAsoWI0SQqOfIr46ZGJG1OUMHFsp9uHNoBa1tvTgwE0G+aS2xojY22HdMNw4jHoyKQS7QFnNEutGABWQ1N6D0NDGunIPQUNcoZYWtnZXgNSgG92reN09pmUXckQXTHiYXfs4yfzoRpKM5aUUinf7Izj8g1AwEfMHJKXP0YiymXDAgfMfZvqdMZBUN5oshDlNYzkECS4cVGh1v9EteZx39+9/cBUftFNeq4Leb/GfvUIy+a0sfvVdPYsacl8jW5UG7O3mCMiQppJm7SBS7vz3gW4s3HenLraj1DWldSHiQKRAsQqImygz/iXK3E/NYM8JzX3twbJdwVd/889A20FbPmuh3C8v30mmQD0/HagcFOZEVtPfW9N5DzjUIAqQ9L95KUmgjXjkhH51EzdMXyd/CAxgbfrkmCBQkx1sOvy8GmA0pQfQ1KpnL3kAevqo4vdyQ31d3j0wFKA+6+wqjxQ1IxV/u78opHgRzxG2C6rsHJA+242g3kgSNdayNAnEaox3+vhtR+n43nmnOxhRx0iFJikbvmSQKcxToUNsTYtvisbZbyrMC/XTzXjSjtSJetz0xP8bfbMYSHlVSFT2D0CySBqPkZ/14wA2ZFCMIdkX09xaZitzPH5HsAo4YqiA43bHpvnVQgd4fUNRtPsRiLmgqxaWVUeQKteb+f5bRFQgOjmJ/Fnz9PN8mBC8CwNNpMIyFAGN28eZpTiUHAUMxJKLm1a7G4yilKF5V/unnClPK+NJyhw9UEPLpeBDK/qe2w5kXUKnUyjTZW9DBkZvP+Ux2SUBU7lSqQZKRE2Nv9Yc8yZD+Rvhx3v7v86PooDtHFWEGrTSxmkhdbhxFXlTLQy9/vKrkYhXRMOBB8Nl/BLvEHEVAnN+8CAhuSWFqI4ihcqDoNy/YRc/PMLGjLtmpTIWEXg8rLo3N20G1MALUciWvYzlrAxaPZESVDcr5xLt3COtDK0YSkwNrFZWnDXmyoQ3iHhGbGfiuXJRNLnkqP3KRBeay0cKE2g3kVjFg1QNgx2Wx+kiSIf57IIQSRGnsTkwKfH94TnCRl8XYiARpSrIsWnHgkYEEQCfafkZNYm0Tqvhpb/7eEumQ1fgFS+9LqFXQ8wm2J/hpNt82hT4sVaPcUGJuYyuw5CpDRaCMaSGDTutIAkz2eJmFfHyb75t2vVD9W00rr5mVeoXAMOUTFsRxTu2uNu4uzgQC3hveBAfGB1w==",
+            "menuId": "ASESOR_NUBE",
+            "timestamp": "2026-06-18T14:32:12.719Z",
+            "history": [
+              {
+                "role": "user",
+                "content": "Quiero pagar inmueble",
+                "timestamp": "2026-06-18T14:30:22.751Z"
+              },
+              {
+                "role": "assistant",
+                "content": "Por favor, escribí el número de padrón del Inmueble (Solo números, Ej: 050531). <br> <br> <img src=\"https://web6.lasheras.gob.ar/apex/chatuser/rec/1\">",
+                "timestamp": "2026-06-18T14:30:25.574Z"
+              },
+              {
+                "role": "user",
+                "content": "🎤 Su Mensaje",
+                "timestamp": "2026-06-18T14:30:30.660Z"
+              },
+              {
+                "role": "assistant",
+                "content": "Por favor, escribí el número de padrón del Inmueble (Solo números, Ej: 050531). <br> <br> <img src=\"https://web6.lasheras.gob.ar/apex/chatuser/rec/1\">",
+                "timestamp": "2026-06-18T14:30:30.984Z"
+              },
+              {
+                "role": "user",
+                "content": "🎤 Su Mensaje",
+                "timestamp": "2026-06-18T14:32:12.715Z"
+              }
+            ]
+          },
+          "webhookUrl": "https://n8n-asistentevirtual.lasheras.gob.ar/webhook/chat_apex2",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook Entrada": {
+      "main": [
+        [
+          {
+            "node": "Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Logic Router": {
+      "main": [
+        [
+          {
+            "node": "Update Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚦 Action Switch": {
+      "main": [
+        [
+          {
+            "node": "valida horario para desarrollo social",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Subworkflow - Tasas'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Subworkflow - Reclamos'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Subworkflow - licencia'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Subworkflow - veterinaria'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Subworkflow - Tramites'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "JSON Link Directo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pedir Sugerencia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pedir Sugerencia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pedir Sugerencia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Subworkflow -JUZGADO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Subworkflow - Centro de Salud",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Subworkflow - Obras Privadas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Subworkflow - Desarrollo Social",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redis Leer Buffer1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "CONSULTA INMUEBLE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta comercio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redis Leer Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Menu Principal": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Link Directo": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Redis": {
+      "main": [
+        [
+          {
+            "node": "🚦 Action Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis": {
+      "main": [
+        [
+          {
+            "node": "🧠 Logic Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - Tasas'": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - Reclamos'": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - licencia'": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - veterinaria'": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - Tramites'": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow -JUZGADO": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - Centro de Salud": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - Desarrollo Social": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - Obras Privadas": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If-SUGERENCIA_GUARDADA": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedir Sugerencia": {
+      "main": [
+        [
+          {
+            "node": "If-SUGERENCIA_GUARDADA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "valida horario para desarrollo social": {
+      "main": [
+        [
+          {
+            "node": "JSON Menu Principal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "JSON Menu Principal1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Menu Principal1": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - Asesor1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta Bot": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Call 'tokens'1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Subworkflow - Asesor IA Nube": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Leer Buffer": {
+      "main": [
+        [
+          {
+            "node": "Buffer Preparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer Preparar": {
+      "main": [
+        [
+          {
+            "node": "Redis Guardar Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Guardar Buffer": {
+      "main": [
+        [
+          {
+            "node": "Redis Guardar Timer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Guardar Timer": {
+      "main": [
+        [
+          {
+            "node": "Esperar 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 10s": {
+      "main": [
+        [
+          {
+            "node": "Redis Verificar Timer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Verificar Timer": {
+      "main": [
+        [
+          {
+            "node": "Redis Leer Buffer Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Leer Buffer Final": {
+      "main": [
+        [
+          {
+            "node": "Buffer Consolidar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer Consolidar": {
+      "main": [
+        [
+          {
+            "node": "IF Procesar Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Procesar Buffer": {
+      "main": [
+        [
+          {
+            "node": "Redis Limpiar Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Limpiar Buffer": {
+      "main": [
+        [
+          {
+            "node": "Formatear para Sub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear para Sub": {
+      "main": [
+        [
+          {
+            "node": "Call 'Subworkflow - Asesor IA Nube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Leer Buffer1": {
+      "main": [
+        [
+          {
+            "node": "Buffer Preparar1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer Preparar1": {
+      "main": [
+        [
+          {
+            "node": "Redis Guardar Buffer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Guardar Buffer1": {
+      "main": [
+        [
+          {
+            "node": "Redis Guardar Timer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Guardar Timer1": {
+      "main": [
+        [
+          {
+            "node": "Esperar 10s1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 10s1": {
+      "main": [
+        [
+          {
+            "node": "Redis Verificar Timer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Verificar Timer1": {
+      "main": [
+        [
+          {
+            "node": "Redis Leer Buffer Final1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Leer Buffer Final1": {
+      "main": [
+        [
+          {
+            "node": "Buffer Consolidar1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer Consolidar1": {
+      "main": [
+        [
+          {
+            "node": "IF Procesar Buffer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Procesar Buffer1": {
+      "main": [
+        [
+          {
+            "node": "Redis Limpiar Buffer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Limpiar Buffer1": {
+      "main": [
+        [
+          {
+            "node": "Call 'Subworkflow - Asesor1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "envia texto": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "envia audio": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "envia audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "envia texto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONSULTA INMUEBLE": {
+      "main": [
+        [
+          {
+            "node": "Call 'Subworkflow - Tasas'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta comercio": {
+      "main": [
+        [
+          {
+            "node": "Call 'Subworkflow - Tasas'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "d204d7bb-5eb6-4db8-8805-50eee2990685",
+  "meta": {
+    "instanceId": "46593b1e7eb065395f40f358db9a0ae03edbb5beb280dc22d9dffa4cc9c1f3c3"
+  },
+  "id": "9ABT4Qq5ZL3uzkOf",
+  "tags": []
+}
