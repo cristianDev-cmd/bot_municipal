@@ -12,6 +12,7 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
   - Vinculado el repositorio remoto `origin` apuntando a [bot_municipal](https://github.com/cristianDev-cmd/bot_municipal).
   - Configurada la rama por defecto a `main`.
   - Realizado el primer commit inicial con toda la estructura de archivos y configuraciones.
+  - **Resolución de Conflicto de Push:** El push inicial fue rechazado por existir un commit de inicialización genérico con un `README.md` vacío en GitHub. Se resolvió realizando un push forzado (`git push -u origin main --force`) para sincronizar el repositorio remoto con nuestra estructura local limpia y la documentación del proyecto.
 
 ---
 
