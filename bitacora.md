@@ -4,6 +4,16 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Instalación Global de la Skill responsive-design
+
+### Cambios Realizados:
+- **Habilidades Globales (Skills):**
+  - Instalada la skill `responsive-design` a nivel global (de usuario) desde el repositorio `https://github.com/wshobson/agents`. Esta skill proporciona directrices para el diseño responsivo de las interfaces de usuario.
+- **Control de Versiones:**
+  - Los archivos locales de configuración del espacio de trabajo que registran las skills asociadas (`skills-lock.json` u otros) fueron actualizados y sincronizados.
+
+---
+
 ## [2026-06-23] - Estilos del Botón de Micrófono en styles_widget.css
 
 ### Cambios Realizados:
