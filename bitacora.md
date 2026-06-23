@@ -4,6 +4,16 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ---
 
+## [2026-06-23] - Carga de Nuevos Estilos CSS para APEX
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Añadido el archivo de estilos específico para la integración final del chatbot en Oracle APEX llamado [styles_widget_apex.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget_apex.css). Este archivo contiene reglas de presentación optimizadas para el widget de chat, diseño responsivo, estilos para reproducción de audios y compatibilidad con las plantillas de la aplicación municipal.
+- **Control de Versiones:**
+  - Realizado commit y push del archivo con el mensaje en español: `feat: agregar estilos CSS especificos para APEX (styles_widget_apex.css)`.
+
+---
+
 ## [2026-06-23] - Estilos de Respaldo en HTML (Avatar Gigante)
 
 ### Cambios Realizados:
