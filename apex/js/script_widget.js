@@ -13,24 +13,11 @@
         localStorage.removeItem("chat_last_activity");
     }
 
-    // --- ELEMENTOS UI ---
-    var launcher = document.getElementById('chatLauncher');
-    var widget = document.getElementById('chatWidget');
-    var btnClose = document.getElementById('btnClose');
-    var btnClear = document.getElementById('btnClear');
-    var btnHome = document.getElementById('btnHome');
-    var btnSend = document.getElementById('btnSend');
-    var btnMic = document.getElementById('btnMic');
-    var btnCancelAudio = document.getElementById('btnCancelAudio'); // 🗑️ Botón de cancelar
-    var input = document.getElementById('userInput');
-    var messages = document.getElementById('chatMessages');
-    var badge = document.getElementById('notificationBadge');
+    // --- ELEMENTOS UI (Se inicializan en DOMContentLoaded) ---
+    var launcher, widget, btnClose, btnClear, btnHome, btnSend, btnMic, btnCancelAudio, input, messages, badge;
 
-    // --- ELEMENTOS RATING ---
-    var textContainer = document.getElementById('textInputContainer');
-    var ratingContainer = document.getElementById('ratingContainer');
-    var closeRatingBtn = document.getElementById('closeRating');
-    var stars = document.querySelectorAll('.star');
+    // --- ELEMENTOS RATING (Se inicializan en DOMContentLoaded) ---
+    var textContainer, ratingContainer, closeRatingBtn, stars;
 
     // --- ÍCONOS SVG BLANCOS ---
     var iconMicWhite = `<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>`;
@@ -102,39 +89,7 @@
         }
     }
 
-    if (btnMic) btnMic.innerHTML = iconMicWhite;
-    if (btnCancelAudio) {
-        btnCancelAudio.innerHTML = iconTrashWhite;
-        btnCancelAudio.style.display = 'none';
-    }
-    toggleInputButtons();
-
-    if (input) input.addEventListener('input', toggleInputButtons);
-
-
-    // --- EVENT LISTENERS UI ---
-    if (launcher) launcher.addEventListener('click', toggleChat);
-    if (btnClose) btnClose.addEventListener('click', toggleChat);
-    if (btnClose) btnClose.addEventListener('click', clearChat);
-
-    if (btnClear) btnClear.addEventListener('click', clearChat);
-    if (btnHome) btnHome.addEventListener('click', goHome);
-    if (btnSend) btnSend.addEventListener('click', function (e) { sendMessage(e); });
-    if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
-    if (closeRatingBtn) closeRatingBtn.addEventListener('click', hideRatingSystem);
-    if (btnCancelAudio) btnCancelAudio.addEventListener('click', cancelRecording);
-
-    // --- EVENT LISTENERS MICRÓFONO (CLICK, HOLD & ARRASTRE WHATSAPP) ---
-    if (btnMic) {
-        btnMic.addEventListener('mousedown', startPress);
-        document.addEventListener('mouseup', endPress);
-        document.addEventListener('mousemove', handleMouseMove);
-
-        btnMic.addEventListener('touchstart', function (e) { e.preventDefault(); startPress(); }, { passive: false });
-        document.addEventListener('touchend', handleTouchEnd, { passive: false });
-        document.addEventListener('touchmove', handleTouchMove, { passive: false });
-        btnMic.addEventListener('touchcancel', cancelPress);
-    }
+    // --- VINCULACIÓN DE EVENTOS INICIALES (Mapeados en initChat) ---
 
     // Evalúa si las coordenadas del cursor/dedo colisionan con el tacho de basura
     function isOverTrash(clientX, clientY) {
@@ -328,16 +283,7 @@
         toggleInputButtons();
     }
 
-    // --- RATING Y ESTRELLAS ---
-    stars.forEach(function (star) {
-        star.addEventListener('mouseover', function () { highlightStars(this.dataset.value); });
-        star.addEventListener('mouseout', function () { highlightStars(userRating); });
-        star.addEventListener('click', function () {
-            userRating = this.dataset.value;
-            highlightStars(userRating);
-            submitRating(userRating);
-        });
-    });
+    // --- RATING Y ESTRELLAS (Mapeados en initChat) ---
 
     function highlightStars(value) {
         stars.forEach(function (s) {
@@ -410,8 +356,89 @@
         });
     }
 
-    // --- RENDERIZADO DEL CHAT ---
-    history.forEach(function (m) { renderChatElement(m); });
+    // --- RENDERIZADO DEL CHAT (Mapeado en initChat) ---
+
+    // --- FUNCIÓN DE INICIALIZACIÓN ---
+    function initChat() {
+        // --- ASIGNACIÓN DE ELEMENTOS UI ---
+        launcher = document.getElementById('chatLauncher');
+        widget = document.getElementById('chatWidget');
+        btnClose = document.getElementById('btnClose');
+        btnClear = document.getElementById('btnClear');
+        btnHome = document.getElementById('btnHome');
+        btnSend = document.getElementById('btnSend');
+        btnMic = document.getElementById('btnMic');
+        btnCancelAudio = document.getElementById('btnCancelAudio');
+        input = document.getElementById('userInput');
+        messages = document.getElementById('chatMessages');
+        badge = document.getElementById('notificationBadge');
+
+        // --- ASIGNACIÓN DE ELEMENTOS RATING ---
+        textContainer = document.getElementById('textInputContainer');
+        ratingContainer = document.getElementById('ratingContainer');
+        closeRatingBtn = document.getElementById('closeRating');
+        stars = document.querySelectorAll('.star');
+
+        // --- CONFIGURACIÓN INICIAL DE BOTONES ---
+        if (btnMic) btnMic.innerHTML = iconMicWhite;
+        if (btnCancelAudio) {
+            btnCancelAudio.innerHTML = iconTrashWhite;
+            btnCancelAudio.style.display = 'none';
+        }
+        toggleInputButtons();
+
+        // --- VINCULACIÓN DE EVENTOS ---
+        if (input) input.addEventListener('input', toggleInputButtons);
+
+        // --- EVENT LISTENERS UI ---
+        if (launcher) launcher.addEventListener('click', toggleChat);
+        if (btnClose) btnClose.addEventListener('click', toggleChat);
+        if (btnClose) btnClose.addEventListener('click', clearChat);
+
+        if (btnClear) btnClear.addEventListener('click', clearChat);
+        if (btnHome) btnHome.addEventListener('click', goHome);
+        if (btnSend) btnSend.addEventListener('click', function (e) { sendMessage(e); });
+        if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
+        if (closeRatingBtn) closeRatingBtn.addEventListener('click', hideRatingSystem);
+        if (btnCancelAudio) btnCancelAudio.addEventListener('click', cancelRecording);
+
+        // --- EVENT LISTENERS MICRÓFONO ---
+        if (btnMic) {
+            btnMic.addEventListener('mousedown', startPress);
+            document.addEventListener('mouseup', endPress);
+            document.addEventListener('mousemove', handleMouseMove);
+
+            btnMic.addEventListener('touchstart', function (e) { e.preventDefault(); startPress(); }, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd, { passive: false });
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            btnMic.addEventListener('touchcancel', cancelPress);
+        }
+
+        // --- RATING Y ESTRELLAS ---
+        if (stars) {
+            stars.forEach(function (star) {
+                star.addEventListener('mouseover', function () { highlightStars(this.dataset.value); });
+                star.addEventListener('mouseout', function () { highlightStars(userRating); });
+                star.addEventListener('click', function () {
+                    userRating = this.dataset.value;
+                    highlightStars(userRating);
+                    submitRating(userRating);
+                });
+            });
+        }
+
+        // --- RENDERIZADO DEL HISTORIAL INICIAL ---
+        if (messages && history) {
+            history.forEach(function (m) { renderChatElement(m); });
+        }
+    }
+
+    // --- CARGA SEGURA ---
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initChat);
+    } else {
+        initChat();
+    }
 
     function renderChatElement(msg) {
         const textoValido = msg.content && String(msg.content).trim() !== "";
