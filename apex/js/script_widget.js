@@ -81,11 +81,11 @@
         if (!btnSend || !btnMic) return;
 
         if (input.value.trim().length > 0) {
-            btnMic.style.display = 'none';
-            btnSend.style.display = 'flex';
+            btnMic.classList.add('hidden');
+            btnSend.classList.remove('hidden');
         } else {
-            btnSend.style.display = 'none';
-            btnMic.style.display = 'flex';
+            btnSend.classList.add('hidden');
+            btnMic.classList.remove('hidden');
         }
     }
 

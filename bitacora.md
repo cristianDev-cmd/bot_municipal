@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-23] - Corrección de Estilos en Imagen de Chat y Alternancia de Micrófono
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Modificado [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) en `toggleInputButtons()` para usar el método `classList.add('hidden')` y `classList.remove('hidden')` en lugar de `.style.display`. Esto soluciona el problema de que el botón de micrófono no se ocultaba al escribir debido a la prioridad de `!important` en el CSS de `.chat-mic-btn`.
+  - Agregada regla CSS para `.message img` en [styles_widget.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget.css) y [styles_widget_apex.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget_apex.css) limitando el ancho de las imágenes al `100%` con `height: auto` y `display: block` para asegurar que queden contenidas perfectamente dentro del globo del chat.
+
+---
+
 ## [2026-06-23] - Eliminación de Nodo de Prueba en Asesor
 
 ### Cambios Realizados:

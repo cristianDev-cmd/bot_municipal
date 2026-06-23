@@ -274,6 +274,13 @@
     border-bottom-left-radius: 2px !important;
 }
 
+.message img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    margin-top: 8px !important;
+}
+
 .message-time {
     font-size: 10px !important;
     margin-top: 5px !important;

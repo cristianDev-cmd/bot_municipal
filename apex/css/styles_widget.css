@@ -383,6 +383,13 @@
     border-bottom-left-radius: 2px;
 }
 
+.message img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    margin-top: 8px !important;
+}
+
 /* BOTÓN DE MAPA ESTILIZADO */
 .btn-mapa-flotante {
     display: flex;
