@@ -14,6 +14,7 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
   - Corregida una declaración duplicada y redundante de `var INACTIVITY_TIME = 1 * 60 * 1000` en [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) que invalidaba el valor configurado arriba, asegurando que el tiempo real de inactividad ahora sea efectivamente de 3 minutos.
   - Corregido el comportamiento del botón de cerrar rating (`#closeRating`) agregando `e.preventDefault()` en su evento `click`, evitando que envíe el formulario de chat principal al interactuar con él (hacer submit no deseado).
   - Corregida la función `formatearEnlacesMapa` en [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) para omitir el formateo si el mensaje contiene una etiqueta `<iframe>`, evitando que se corrompa el código embebido de los mapas.
+  - Agregado un fallback/polyfill seguro para `crypto.randomUUID()` en [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) para evitar que el script falle en navegadores o servidores que utilicen conexiones HTTP no seguras (donde la API Web Crypto nativa no está disponible).
 
 ---
 
