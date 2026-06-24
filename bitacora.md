@@ -2,16 +2,18 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-24] - Gestión de Rama, Tiempos, Corrección de Formulario y Enlaces de Mapas
+## [2026-06-24] - Gestión de Rama, Tiempos, Corrección de Formulario, Enlaces de Mapas y Reglas de Git
 
 ### Cambios Realizados:
+- **Reglas del Proyecto y Git:**
+  - Modificado [.agents/AGENTS.md](file:///c:/Users/PC/Desktop/Agente_municipal/.agents/AGENTS.md) para agregar una regla sobre el flujo de trabajo en Git. Se establece que todos los cambios se suben únicamente a la rama `pre` y la fusión con `main` solo debe realizarse bajo petición explícita del usuario.
 - **Gestión de Repositorio:**
   - Renombrada la rama de desarrollo `preproduccion` a `pre` tanto a nivel local como en el repositorio remoto de GitHub (`origin/pre`) para simplificar su nomenclatura.
 - **Oracle APEX Frontend:**
   - Modificado [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) para cambiar el valor de `INACTIVITY_TIME` de 1 minuto (`1 * 60 * 1000`) a 3 minutos (`3 * 60 * 1000`).
   - Corregida una declaración duplicada y redundante de `var INACTIVITY_TIME = 1 * 60 * 1000` en [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) que invalidaba el valor configurado arriba, asegurando que el tiempo real de inactividad ahora sea efectivamente de 3 minutos.
   - Corregido el comportamiento del botón de cerrar rating (`#closeRating`) agregando `e.preventDefault()` en su evento `click`, evitando que envíe el formulario de chat principal al interactuar con él (hacer submit no deseado).
-  - Corregida la función `formatearEnlacesMapa` en [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) mediante una expresión regular adaptada para discernir si la URL de Google Maps está asignada a un atributo HTML existente (como `src` en un `iframe` o `href` en un enlace `a` ya renderizado). Esto evita que se altere el código HTML nativo de los iframes, solucionando el problema donde se generaba una URL inválida que cargaba un error *404 Not Found*.
+  - Corregida la función `formatearEnlacesMapa` en [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) para omitir el formateo si el mensaje contiene una etiqueta `<iframe>`, evitando que se corrompa el código embebido de los mapas.
 
 ---
 
