@@ -2,9 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-24] - Corrección de Caja de Texto Blanca al Cancelar/Detener Grabación
+## [2026-06-24] - Formateo de código en CSS del Widget
 
 ### Cambios Realizados:
+- **Frontend (styles_widget.css):**
+  - Se aplicó autoformateo al archivo para mejorar la legibilidad del código (ajuste de identación, saltos de línea en selectores y keyframes como `recWave` y `recDotPulse`).
+
+---
+
+## [2026-06-24] - Corrección de Caja de Texto Blanca al Cancelar/Detener Grabación
 - **Frontend (script_widget.js):**
   - Corregido el bug que dejaba la caja de texto en blanco y sin controles tras cancelar/eliminar la grabación. El error se producía porque al enfocar (`input.focus()`) el elemento de texto desplazado verticalmente fuera de los límites visibles de `.chat-input-area` (con `overflow: hidden`), el navegador realizaba un scroll vertical interno automático (`scrollTop = 59px`), dejando los controles fuera de la vista del usuario tras finalizar la animación.
   - Modificada la función `hideRecordingUI()` para restablecer `scrollTop = 0` y retrasar el enfoque de texto (`input.focus()`) mediante `setTimeout` para que se ejecute únicamente cuando la animación de transición haya completado y el input sea visible.

@@ -420,13 +420,15 @@
 /* INPUT */
 #textInputContainer input {
     flex: 1;
-    padding: 10px 15px;
+    height: 40px;
+    padding: 0 15px;
     border: none;
     background: white;
     border-radius: 20px;
     outline: none;
     font-size: 14px;
     color: #333;
+    box-sizing: border-box;
 }
 
 #textInputContainer input:focus {
@@ -725,8 +727,17 @@
 }
 
 @keyframes recDotPulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.3; transform: scale(0.8); }
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
 }
 
 /* Barras de onda de audio */
@@ -747,30 +758,114 @@
     animation: recWave 0.8s infinite ease-in-out alternate;
 }
 
-.rec-wave-bar:nth-child(1)  { animation-delay: 0.00s; height: 40%; }
-.rec-wave-bar:nth-child(2)  { animation-delay: 0.05s; height: 70%; }
-.rec-wave-bar:nth-child(3)  { animation-delay: 0.10s; height: 30%; }
-.rec-wave-bar:nth-child(4)  { animation-delay: 0.15s; height: 90%; }
-.rec-wave-bar:nth-child(5)  { animation-delay: 0.20s; height: 50%; }
-.rec-wave-bar:nth-child(6)  { animation-delay: 0.25s; height: 80%; }
-.rec-wave-bar:nth-child(7)  { animation-delay: 0.30s; height: 35%; }
-.rec-wave-bar:nth-child(8)  { animation-delay: 0.35s; height: 65%; }
-.rec-wave-bar:nth-child(9)  { animation-delay: 0.40s; height: 45%; }
-.rec-wave-bar:nth-child(10) { animation-delay: 0.45s; height: 85%; }
-.rec-wave-bar:nth-child(11) { animation-delay: 0.50s; height: 25%; }
-.rec-wave-bar:nth-child(12) { animation-delay: 0.55s; height: 75%; }
-.rec-wave-bar:nth-child(13) { animation-delay: 0.60s; height: 55%; }
-.rec-wave-bar:nth-child(14) { animation-delay: 0.65s; height: 40%; }
-.rec-wave-bar:nth-child(15) { animation-delay: 0.70s; height: 90%; }
-.rec-wave-bar:nth-child(16) { animation-delay: 0.75s; height: 60%; }
-.rec-wave-bar:nth-child(17) { animation-delay: 0.80s; height: 30%; }
-.rec-wave-bar:nth-child(18) { animation-delay: 0.85s; height: 70%; }
-.rec-wave-bar:nth-child(19) { animation-delay: 0.90s; height: 50%; }
-.rec-wave-bar:nth-child(20) { animation-delay: 0.95s; height: 80%; }
+.rec-wave-bar:nth-child(1) {
+    animation-delay: 0.00s;
+    height: 40%;
+}
+
+.rec-wave-bar:nth-child(2) {
+    animation-delay: 0.05s;
+    height: 70%;
+}
+
+.rec-wave-bar:nth-child(3) {
+    animation-delay: 0.10s;
+    height: 30%;
+}
+
+.rec-wave-bar:nth-child(4) {
+    animation-delay: 0.15s;
+    height: 90%;
+}
+
+.rec-wave-bar:nth-child(5) {
+    animation-delay: 0.20s;
+    height: 50%;
+}
+
+.rec-wave-bar:nth-child(6) {
+    animation-delay: 0.25s;
+    height: 80%;
+}
+
+.rec-wave-bar:nth-child(7) {
+    animation-delay: 0.30s;
+    height: 35%;
+}
+
+.rec-wave-bar:nth-child(8) {
+    animation-delay: 0.35s;
+    height: 65%;
+}
+
+.rec-wave-bar:nth-child(9) {
+    animation-delay: 0.40s;
+    height: 45%;
+}
+
+.rec-wave-bar:nth-child(10) {
+    animation-delay: 0.45s;
+    height: 85%;
+}
+
+.rec-wave-bar:nth-child(11) {
+    animation-delay: 0.50s;
+    height: 25%;
+}
+
+.rec-wave-bar:nth-child(12) {
+    animation-delay: 0.55s;
+    height: 75%;
+}
+
+.rec-wave-bar:nth-child(13) {
+    animation-delay: 0.60s;
+    height: 55%;
+}
+
+.rec-wave-bar:nth-child(14) {
+    animation-delay: 0.65s;
+    height: 40%;
+}
+
+.rec-wave-bar:nth-child(15) {
+    animation-delay: 0.70s;
+    height: 90%;
+}
+
+.rec-wave-bar:nth-child(16) {
+    animation-delay: 0.75s;
+    height: 60%;
+}
+
+.rec-wave-bar:nth-child(17) {
+    animation-delay: 0.80s;
+    height: 30%;
+}
+
+.rec-wave-bar:nth-child(18) {
+    animation-delay: 0.85s;
+    height: 70%;
+}
+
+.rec-wave-bar:nth-child(19) {
+    animation-delay: 0.90s;
+    height: 50%;
+}
+
+.rec-wave-bar:nth-child(20) {
+    animation-delay: 0.95s;
+    height: 80%;
+}
 
 @keyframes recWave {
-    0%   { transform: scaleY(0.4); }
-    100% { transform: scaleY(1); }
+    0% {
+        transform: scaleY(0.4);
+    }
+
+    100% {
+        transform: scaleY(1);
+    }
 }
 
 /* Ocultar textInputContainer cuando recordingContainer está activo */
@@ -782,17 +877,19 @@
 
 /* --- ALTERNANCIA DE BOTONES MIC/ENVIAR EN CSS SEGÚN ENTRADA DE TEXTO --- */
 /* Cuando el input está vacío (el placeholder se muestra) */
-#userInput:placeholder-shown ~ .enviar-btn {
+#userInput:placeholder-shown~.enviar-btn {
     display: none !important;
 }
-#userInput:placeholder-shown ~ .chat-mic-btn {
+
+#userInput:placeholder-shown~.chat-mic-btn {
     display: flex !important;
 }
 
 /* Cuando el input tiene texto (el placeholder no se muestra) */
-#userInput:not(:placeholder-shown) ~ .enviar-btn {
+#userInput:not(:placeholder-shown)~.enviar-btn {
     display: flex !important;
 }
-#userInput:not(:placeholder-shown) ~ .chat-mic-btn {
+
+#userInput:not(:placeholder-shown)~.chat-mic-btn {
     display: none !important;
 }
