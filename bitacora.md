@@ -2,6 +2,18 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-24] - Fusión de Ramas y Solución de Caché del CSS en el Chat Widget
+
+### Cambios Realizados:
+- **Gestión de Repositorio (Git):**
+  - Fusionada la rama de desarrollo `pre` en la rama `main` tras la solicitud del usuario para actualizar el entorno en producción.
+  - Subidos los cambios fusionados a la rama remota `origin/main` en GitHub.
+- **Frontend (Widget Chat):**
+  - Identificada superposición del contenedor `#recordingContainer` con el input de texto en vivo debido a la caché agresiva del CDN `raw.githack.com` (`styles_widget.css?v=2`), que seguía sirviendo los estilos antiguos sin las reglas de la UI de grabación de audio.
+  - Confirmado el correcto funcionamiento del widget tras la inyección dinámica del CSS actualizado (comprobando que `#recordingContainer` se oculta correctamente con `opacity: 0` y `transform: translateY(100%)` cuando no está activo, y que el input de texto es 100% interactivo).
+
+---
+
 ## [2026-06-24] - UI de Grabación de Audio estilo WhatsApp
 
 ### Cambios Realizados:
