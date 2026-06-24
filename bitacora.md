@@ -2,6 +2,17 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-24] - Corrección de Caja de Texto Blanca al Cancelar/Detener Grabación
+
+### Cambios Realizados:
+- **Frontend (script_widget.js):**
+  - Corregido el bug que dejaba la caja de texto en blanco y sin controles tras cancelar/eliminar la grabación. El error se producía porque al enfocar (`input.focus()`) el elemento de texto desplazado verticalmente fuera de los límites visibles de `.chat-input-area` (con `overflow: hidden`), el navegador realizaba un scroll vertical interno automático (`scrollTop = 59px`), dejando los controles fuera de la vista del usuario tras finalizar la animación.
+  - Modificada la función `hideRecordingUI()` para restablecer `scrollTop = 0` y retrasar el enfoque de texto (`input.focus()`) mediante `setTimeout` para que se ejecute únicamente cuando la animación de transición haya completado y el input sea visible.
+  - Mejorada la robustez de `cancelRecording()` y `stopRecording()` desacoplando el flujo de restauración de la UI del estado de la instancia de `mediaRecorder`. Esto garantiza que los botones y la caja de texto se restablezcan correctamente incluso ante fallos de hardware o denegación de permisos del micrófono.
+  - Realizados tests automatizados simulados en el navegador en vivo, confirmando la correcta restauración del layout.
+
+---
+
 ## [2026-06-24] - Fusión de Ramas y Solución de Caché del CSS en el Chat Widget
 
 ### Cambios Realizados:
