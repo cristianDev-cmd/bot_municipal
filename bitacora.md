@@ -2,6 +2,16 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-24] - Corrección de Caja Blanca al Enviar Grabación de Audio
+
+### Cambios Realizados:
+- **Frontend (script_widget.js):**
+  - Se solucionó el error donde la caja de texto quedaba en blanco (desplazada visualmente) tras **enviar** un audio. Esto se producía por condiciones de carrera entre la animación de salida (`hideRecordingUI()`) y las respuestas rápidas del servidor en `desbloquearChat()`.
+  - Se ajustó `desbloquearChat()` para que solo intente enfocar el input (`input.focus()`) si el contenedor está completamente visible, evitando saltos de scroll abruptos. Además, se añadió un restablecimiento forzado de `scrollTop = 0` al final de la función.
+  - Se mejoró `hideRecordingUI()` reordenando la lógica para que el restablecimiento del scroll (`scrollTop = 0`) ocurra **después** del `input.focus()`, anulando cualquier salto generado por el navegador. Además, se añadió la clase `hidden-mode` al `recordingContainer` una vez terminada su transición para retirarlo completamente del área visual y de eventos.
+
+---
+
 ## [2026-06-24] - Formateo de código en CSS del Widget
 
 ### Cambios Realizados:

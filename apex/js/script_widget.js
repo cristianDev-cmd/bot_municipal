@@ -204,18 +204,23 @@
         stopRecTimer();
         if (recordingContainer) {
             recordingContainer.classList.remove('active');
+            // Devolver a hidden-mode tras la transición
+            setTimeout(function() {
+                recordingContainer.classList.add('hidden-mode');
+            }, 300);
         }
         setTimeout(function() {
             if (textContainer) {
                 textContainer.classList.remove('hidden-mode');
                 textContainer.classList.add('active');
                 
+                // Enfocar el input una vez que es visible en pantalla, si no está deshabilitado
+                if (input && !input.disabled) input.focus();
+
                 // Asegurar que el contenedor padre no tenga scroll vertical no deseado
+                // Hacemos esto DESPUÉS de input.focus() para resetear cualquier salto
                 var inputArea = document.querySelector('.chat-input-area');
                 if (inputArea) inputArea.scrollTop = 0;
-                
-                // Enfocar el input una vez que es visible en pantalla
-                if (input) input.focus();
             }
         }, 300);
     }
@@ -344,10 +349,21 @@
     }
 
     function desbloquearChat() {
-        if (input) { input.disabled = false; input.placeholder = "Escribe un mensaje..."; input.focus(); }
+        if (input) { 
+            input.disabled = false; 
+            input.placeholder = "Escribe un mensaje..."; 
+            // Solo enfocar si el contenedor está activo para evitar scroll indeseado
+            if (textContainer && !textContainer.classList.contains('hidden-mode')) {
+                input.focus(); 
+            }
+        }
         if (btnSend) { btnSend.disabled = false; btnSend.style.opacity = "1"; btnSend.style.pointerEvents = "auto"; }
         if (btnMic) { btnMic.disabled = false; btnMic.style.opacity = "1"; btnMic.style.pointerEvents = "auto"; }
         toggleInputButtons();
+        
+        // Asegurar que no quede scrolleado
+        var inputArea = document.querySelector('.chat-input-area');
+        if (inputArea) inputArea.scrollTop = 0;
     }
 
     // --- RATING Y ESTRELLAS (Mapeados en initChat) ---
