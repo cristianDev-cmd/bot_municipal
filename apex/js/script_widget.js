@@ -104,8 +104,9 @@
 
     // Evalúa si las coordenadas del cursor/dedo colisionan con el tacho de basura
     function isOverTrash(clientX, clientY) {
-        if (!btnCancelAudio || btnCancelAudio.style.display === 'none') return false;
-        var rect = btnCancelAudio.getBoundingClientRect();
+        var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
+        if (!targetTrash || targetTrash.offsetWidth === 0) return false;
+        var rect = targetTrash.getBoundingClientRect();
         var padding = 15;
         return (
             clientX >= rect.left - padding &&
@@ -143,15 +144,19 @@
 
     function handleMouseMove(e) {
         if (!isRecording || !isHolding) return;
-        if (isOverTrash(e.clientX, e.clientY)) btnCancelAudio.classList.add('trash-hovered');
-        else btnCancelAudio.classList.remove('trash-hovered');
+        var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
+        if (!targetTrash) return;
+        if (isOverTrash(e.clientX, e.clientY)) targetTrash.classList.add('trash-hovered');
+        else targetTrash.classList.remove('trash-hovered');
     }
 
     function handleTouchMove(e) {
         if (!isRecording || !isHolding) return;
         var touch = e.touches[0];
-        if (isOverTrash(touch.clientX, touch.clientY)) btnCancelAudio.classList.add('trash-hovered');
-        else btnCancelAudio.classList.remove('trash-hovered');
+        var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
+        if (!targetTrash) return;
+        if (isOverTrash(touch.clientX, touch.clientY)) targetTrash.classList.add('trash-hovered');
+        else targetTrash.classList.remove('trash-hovered');
     }
 
     function handleTouchEnd(e) {

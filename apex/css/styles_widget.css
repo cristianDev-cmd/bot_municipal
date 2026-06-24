@@ -616,7 +616,8 @@
     padding: 0 !important;
 }
 
-.chat-cancel-btn:hover {
+.chat-cancel-btn:hover,
+.chat-cancel-btn.trash-hovered {
     background: #dc2626;
     transform: scale(1.05);
 }
@@ -672,9 +673,11 @@
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
 }
 
-.rec-delete-btn:hover {
+.rec-delete-btn:hover,
+.rec-delete-btn.trash-hovered {
     background: #dc2626 !important;
     box-shadow: 0 3px 12px rgba(239, 68, 68, 0.6);
+    transform: scale(1.15) !important;
 }
 
 .rec-send-btn {

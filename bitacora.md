@@ -2,6 +2,18 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-24] - Corrección de envío de audio al cancelar/borrar grabación
+
+### Cambios Realizados:
+- **Frontend (script_widget.js):**
+  - Se corrigió el bug que enviaba el mensaje de audio al presionar el botón de borrar/cancelar o al arrastrar el dedo al tacho de basura en dispositivos táctiles.
+  - Se modificó `isOverTrash()`, `handleMouseMove()` y `handleTouchMove()` para que detecten dinámicamente el botón de papelera visible activo (`btnRecDelete` de la interfaz estilo WhatsApp, o `btnCancelAudio` como respaldo).
+  - Al detectar la colisión o el click en el botón de borrar, se setea correctamente la bandera `isRecordingCancelled = true` antes de llamar a `mediaRecorder.stop()`, garantizando que la grabación se descarte en el evento `onstop` y no sea enviada al servidor.
+- **Frontend (styles_widget.css):**
+  - Se agregó la clase `.trash-hovered` para los botones `.rec-delete-btn` y `.chat-cancel-btn` para dar feedback visual (aumentar escala y oscurecer el fondo rojo) cuando el cursor o el dedo se deslizan sobre el botón de papelera.
+
+---
+
 ## [2026-06-24] - Reversión de versión al commit a45d6e5 en la rama pre
 
 ### Cambios Realizados:
