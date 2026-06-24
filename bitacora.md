@@ -2,14 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-24] - Gestión de Rama y Tiempo de Inactividad de Estrellas
+## [2026-06-24] - Gestión de Rama, Tiempo de Inactividad de Estrellas y Corrección de Formulario
 
 ### Cambios Realizados:
 - **Gestión de Repositorio:**
   - Renombrada la rama de desarrollo `preproduccion` a `pre` tanto a nivel local como en el repositorio remoto de GitHub (`origin/pre`) para simplificar su nomenclatura.
 - **Oracle APEX Frontend:**
   - Modificado [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) para cambiar el valor de `INACTIVITY_TIME` de 1 minuto (`1 * 60 * 1000`) a 3 minutos (`3 * 60 * 1000`).
-  - Actualizado el comentario en el archivo para que refleje el nuevo tiempo configurado (3 minutos para mostrar las estrellas).
+  - Corregida una declaración duplicada y redundante de `var INACTIVITY_TIME = 1 * 60 * 1000` en [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) que invalidaba el valor configurado arriba, asegurando que el tiempo real de inactividad ahora sea efectivamente de 3 minutos.
+  - Corregido el comportamiento del botón de cerrar rating (`#closeRating`) agregando `e.preventDefault()` en su evento `click`, evitando que envíe el formulario de chat principal al interactuar con él (hacer submit no deseado).
 
 ---
 

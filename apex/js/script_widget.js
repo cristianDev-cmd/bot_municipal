@@ -43,7 +43,6 @@
     // --- VARIABLES DE TEMPORIZADOR DE INACTIVIDAD ---
     var inactivityTimer;
     var sessionTimer;
-    var INACTIVITY_TIME = 1 * 60 * 1000; // 1 Minuto estricto de inactividad
 
     // ==========================================
     // --- LÓGICA DE CONTROL DE INACTIVIDAD ---
@@ -399,7 +398,7 @@
         if (btnHome) btnHome.addEventListener('click', goHome);
         if (btnSend) btnSend.addEventListener('click', function (e) { sendMessage(e); });
         if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
-        if (closeRatingBtn) closeRatingBtn.addEventListener('click', hideRatingSystem);
+        if (closeRatingBtn) closeRatingBtn.addEventListener('click', function (e) { e.preventDefault(); hideRatingSystem(); });
         if (btnCancelAudio) btnCancelAudio.addEventListener('click', cancelRecording);
 
         // --- EVENT LISTENERS MICRÓFONO ---
