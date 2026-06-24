@@ -209,6 +209,13 @@
             if (textContainer) {
                 textContainer.classList.remove('hidden-mode');
                 textContainer.classList.add('active');
+                
+                // Asegurar que el contenedor padre no tenga scroll vertical no deseado
+                var inputArea = document.querySelector('.chat-input-area');
+                if (inputArea) inputArea.scrollTop = 0;
+                
+                // Enfocar el input una vez que es visible en pantalla
+                if (input) input.focus();
             }
         }, 300);
     }
@@ -276,51 +283,49 @@
 
     function stopRecording() {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            if (btnCancelAudio) {
-                btnCancelAudio.style.display = 'none';
-                btnCancelAudio.classList.remove('trash-hovered');
-            }
             mediaRecorder.stop();
-            isRecording = false;
-
-            if (btnMic) {
-                btnMic.classList.remove('recording-active');
-                btnMic.innerHTML = iconMicWhite;
-            }
-            if (input) {
-                input.placeholder = "Escribe un mensaje...";
-                input.disabled = false;
-                input.focus();
-            }
-            toggleInputButtons();
-            // Ocultar UI de grabación WhatsApp
-            hideRecordingUI();
         }
+        isRecording = false;
+
+        if (btnCancelAudio) {
+            btnCancelAudio.style.display = 'none';
+            btnCancelAudio.classList.remove('trash-hovered');
+        }
+        if (btnMic) {
+            btnMic.classList.remove('recording-active');
+            btnMic.innerHTML = iconMicWhite;
+        }
+        if (input) {
+            input.placeholder = "Escribe un mensaje...";
+            input.disabled = false;
+        }
+        toggleInputButtons();
+        // Ocultar UI de grabación WhatsApp
+        hideRecordingUI();
     }
 
     function cancelRecording() {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             isRecordingCancelled = true;
             mediaRecorder.stop();
-            isRecording = false;
-
-            if (btnCancelAudio) {
-                btnCancelAudio.style.display = 'none';
-                btnCancelAudio.classList.remove('trash-hovered');
-            }
-            if (btnMic) {
-                btnMic.classList.remove('recording-active');
-                btnMic.innerHTML = iconMicWhite;
-            }
-            if (input) {
-                input.placeholder = "Escribe un mensaje...";
-                input.disabled = false;
-                input.focus();
-            }
-            toggleInputButtons();
-            // Ocultar UI de grabación WhatsApp
-            hideRecordingUI();
         }
+        isRecording = false;
+
+        if (btnCancelAudio) {
+            btnCancelAudio.style.display = 'none';
+            btnCancelAudio.classList.remove('trash-hovered');
+        }
+        if (btnMic) {
+            btnMic.classList.remove('recording-active');
+            btnMic.innerHTML = iconMicWhite;
+        }
+        if (input) {
+            input.placeholder = "Escribe un mensaje...";
+            input.disabled = false;
+        }
+        toggleInputButtons();
+        // Ocultar UI de grabación WhatsApp
+        hideRecordingUI();
     }
 
     function blobToBase64(blob) {
