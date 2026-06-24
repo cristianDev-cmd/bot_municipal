@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-24] - Fusión de desarrollos y correcciones en la rama main
+
+### Cambios Realizados:
+- **Git y Control de Versiones:**
+  - Se realizó la fusión (merge) de la rama `pre` en la rama `main` de forma exitosa tras la solicitud del usuario.
+  - Se subieron los cambios de `main` a GitHub. La rama `main` se encuentra sincronizada con la última versión de producción.
+
+---
+
 ## [2026-06-24] - Corrección de envío de audio al cancelar/borrar grabación
 
 ### Cambios Realizados:
