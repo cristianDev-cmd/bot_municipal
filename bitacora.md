@@ -14,6 +14,8 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
   - Optimizada la propiedad `toolDescription` de la herramienta `rentas` en el JSON para asegurar que el agente enrute correctamente las consultas genéricas sobre la oficina al nodo de Qdrant correspondiente.
 - **System Prompt (`n8n/systempromt.md`):**
   - Modificada la sección de Rentas del System Prompt general del AI Agent para definir explícitamente qué es la Dirección de Rentas municipal de Las Heras (encargada del cobro de tasas, boletas, deudas de inmueble/comercio y códigos) y prohibir la generación de respuestas de conocimiento económico general (como alquileres, IRPF o inversiones).
+  - Corregidos los datos de ubicación y horario en el ejemplo de fe-shot para la Dirección de Rentas, ajustándolo al horario correcto (lunes a viernes de 08 a 14hs) y dirección exacta (Sarmiento esquina Rivadavia).
+  - Añadidas instrucciones estrictas de salida conversacional al final de [systempromt.md](file:///c:/Users/PC/Desktop/Agente_municipal/n8n/systempromt.md) para prohibir que la IA dé respuestas meta-conversacionales (hablar sobre las reglas del prompt, dialogar con el programador o repetir los ejemplos) y forzar respuestas directas orientadas al vecino.
 - **Gestión de Repositorio:**
   - Renombrada la rama de desarrollo `preproduccion` a `pre` tanto a nivel local como en el repositorio remoto de GitHub (`origin/pre`) para simplificar su nomenclatura.
 - **Oracle APEX Frontend:**
