@@ -348,14 +348,11 @@
     // --- FORMATO DE MAPAS ---
     function formatearEnlacesMapa(texto) {
         if (!texto || texto.indexOf('btn-mapa-flotante') !== -1) return texto;
-        var mapRegex = /(src|href)\s*=\s*["'](https:\/\/(?:www\.)?(?:google\.com\/maps|maps\.app\.goo\.gl|maps\.google\.com)[^\s<"']+)["']|(?:<a[^>]*href=["'])?(https:\/\/(?:www\.)?(?:google\.com\/maps|maps\.app\.goo\.gl|maps\.google\.com)[^\s<"']+)(?:["'][^>]*>.*<\/a>)?/gi;
-        return texto.replace(mapRegex, function (match, attr, attrUrl, url) {
-            if (attr) {
-                return match; // Si es un atributo (src/href) de una etiqueta existente, lo dejamos intacto
-            }
-            var targetUrl = url || attrUrl;
-            if (!targetUrl) return match;
-            var cleanUrl = targetUrl.replace(/[.,;!?)\]]+$/, '');
+        // Si el contenido ya tiene un iframe (mapa embebido), no procesarlo
+        if (texto.indexOf('<iframe') !== -1) return texto;
+        var mapRegex = /(?:<a[^>]*href=["'])?(https:\/\/(?:www\.)?(?:google\.com\/maps|maps\.app\.goo\.gl|maps\.google\.com)[^\s<"']+)(?:["'][^>]*>.*<\/a>)?/gi;
+        return texto.replace(mapRegex, function (match, url) {
+            var cleanUrl = url.replace(/[.,;!?)\]]+$/, '');
             return `<br><br><a href="${cleanUrl}" target="_blank" class="btn-mapa-flotante" style="display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #212529; color: #fff; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; width: 100%; box-sizing: border-box;">Ver ubicación</a>`;
         });
     }
