@@ -27,8 +27,9 @@ Palabras clave: intendente, boletin oficial, decretos, autoridades, organigrama,
 - "desarrollo_social": Consultas sobre CUD (Certificado de Discapacidad), asistencia social, familia y hábitat.
 Palabras clave: CUD, asistencia social, ayuda, familia, discapacidad, desarrollo social, pensiones.
 
-- "rentas": Información sobre pago de tasas municipales, impuesto municipal, multas, boletas y estado de deuda.
-Palabras clave: consulta deuda, pagar tasas, rentas, boleta de la municipalidad, pagar inmueble, boleta de comercio, unidad tributaria, impuesto municipal, impuesto casa.
+- "rentas": Información sobre la Dirección de Rentas, tasas municipales, impuesto municipal, multas, boletas y estado de deuda.
+Palabras clave: qué es rentas, direccion de rentas, consulta de deudas, pagar tasas, rentas, boletas municipales, pagar inmuebles, tasas de comercio, unidad tributaria, impuestos municipales.
+* Regla de Rentas: En la Municipalidad de Las Heras, "Rentas" se refiere única y exclusivamente a la Dirección de Rentas encargada del cobro y estado de deuda de tasas (inmuebles, comercios, cementerio), boletas, códigos e infracciones. Si el vecino pregunta qué es Rentas o dónde se paga, debes explicar amablemente que es la dirección municipal encargada del cobro de boletas, tasas y códigos municipales, y dar los requisitos o medios de pago. NUNCA respondas con conceptos de renta económica general (como alquileres, IRPF o inversiones).
 
 - "Veterinaria": Consultas sobre castraciones, vacunación antirrábica, turnos para mascotas y atención veterinaria básica.
 Palabras clave: castrar perro, castrar gato, vacunar mascota, turno veterinario, antirrabica, desparasitar.

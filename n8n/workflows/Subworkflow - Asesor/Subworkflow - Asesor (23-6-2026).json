@@ -111,7 +111,7 @@
     {
       "parameters": {
         "mode": "retrieve-as-tool",
-        "toolDescription": "Busca información sobre pago de tasas municipales, deudas de inmueble, deudas de comercio, boletas, unidad tributaria e impuesto municipal. Usa esta herramienta cuando el vecino pregunte por deudas, tasas, boletas o pagos municipales.",
+        "toolDescription": "Busca información sobre la Dirección de Rentas (qué es rentas, funciones, ubicación, horarios), pago de tasas municipales, deudas de inmueble, deudas de comercio, boletas, unidad tributaria e impuesto municipal. Usa esta herramienta cuando el vecino pregunte por Rentas, deudas, tasas, boletas o pagos municipales.",
         "qdrantCollection": {
           "__rl": true,
           "value": "memoriaNube2",
@@ -1786,8 +1786,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        2200,
-        -120
+        2250,
+        -180
       ],
       "id": "38bc4ad2-4bf1-4770-9831-29cf0d15e982",
       "name": "Google Gemini Chat Model Reformulador",
@@ -1803,17 +1803,74 @@
         "promptType": "define",
         "text": "=# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\nPregunta original: {{ $('mensaje  entrante').item.json.mensaje }}\nPregunta reformulada:",
         "options": {
-          "systemMessage": "Tu única tarea es recibir una pregunta del usuario y el historial reciente de la conversación. Si la pregunta hace referencia a temas, trámites o elementos mencionados en el historial (ej. '¿dónde queda?', '¿cuánto cuesta?'), reescríbela para que sea una pregunta independiente, clara y autocontenida en español. Si la pregunta ya es clara y no requiere del historial para entenderse, devuélvela exactamente igual.\nREGLAS CRÍTICAS:\n- NO respondas la pregunta.\n- Solo devuelve la pregunta reformulada, nada más.\n- Si no hay historial previo relevante, devuelve la pregunta original intacta."
+          "systemMessage": "Tu única tarea es recibir una pregunta del usuario y el historial reciente de la conversación para generar una pregunta reformulada, independiente y autocontenida en español.\n\nLos temas del conocimiento de la Municipalidad de Las Heras que se pueden consultar son:\n1. RENTAS: Pago de tasas de inmueble (casa) y comercio (negocio), deudas, boletas municipales, facturación y el valor de la unidad tributaria. NOTA: \"Rentas\" en esta municipalidad siempre se refiere a la Dirección de Rentas, encargada del cobro de tasas, códigos y boletas.\n2. LICENCIA DE CONDUCIR: Obtención y renovación de carnet de conducir, turnos, requisitos, boletas CENAT y cursos de educación vial.\n3. VETERINARIA: Castración, vacunación antirrábica y turnos veterinarios municipales.\n4. OBRAS PRIVADAS E INFRAESTRUCTURA: Trámites de obras (previa, obra nueva, relevamientos, ampliaciones, requisitos, expedientes), bacheo, luminarias, arbolado y limpieza de calles.\n5. JUZGADO VIAL: Multas de tránsito, fotomultas, descargos, apelaciones y restitución de vehículos.\n6. TRÁMITE A DISTANCIA: Habilitaciones comerciales de negocios, factibilidad comercial y creación de cuentas web.\n7. DEPORTE Y BIENESTAR: Polideportivos, escuelas de verano, colonias, natación, fútbol, credenciales deportivas y turnos de psicología.\n8. TRANSPARENCIA E INTENDENTE: Información sobre el Intendente Francisco Lo Presti, autoridades y decretos municipales.\n9. DESARROLLO SOCIAL: Certificado Único de Discapacidad (CUD), asistencia social, pensiones y programas de familia y hábitat.\n\nREGLAS DE REFORMULACIÓN:\n- Si la pregunta hace referencia a temas conversados en el historial (ej: \"¿cuánto sale?\", \"¿dónde queda?\"), reescríbela para que sea una pregunta independiente que incluya el contexto del tema (ej: \"¿Cuál es el costo del trámite de la licencia de conducir?\").\n- Si el usuario menciona términos generales como \"rentas\", \"juzgado\", \"obras\", etc., asegúrate de que la pregunta reformulada los vincule al contexto de la Municipalidad de Las Heras.\n- Si la pregunta del usuario es sobre un tema que NO está dentro del conocimiento de la municipalidad mencionado arriba (por ejemplo, preguntas de cultura general, programación, otros países o temas ajenos), NO reformules nada y devuelve la pregunta original exactamente igual.\n- NO respondas la pregunta bajo ninguna circunstancia.\n- Devuelve únicamente la pregunta reformulada final, sin introducciones ni aclaraciones de tu parte."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.4,
       "position": [
-        2200,
-        96
+        2250,
+        48
       ],
       "id": "e9df845b-d01c-43f1-94bf-87d2bc51ea46",
       "name": "Reformular Pregunta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "historial-valido-uuid-cond",
+              "leftValue": "={{ ($('Leer_Historial').item.json.propertyName || '').trim().length > 4 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1950,
+        96
+      ],
+      "id": "ae98f45b-d01c-43f1-94bf-87d2bc51ea46",
+      "name": "Tiene Historial"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pass-msg-original-val",
+              "name": "text",
+              "value": "={{ $('mensaje  entrante').item.json.mensaje }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2250,
+        220
+      ],
+      "id": "cd9f845b-d01c-43f1-94bf-87d2bc51ea46",
+      "name": "Pasar Pregunta Original"
     }
   ],
   "pinData": {
@@ -2248,7 +2305,7 @@
       "main": [
         [
           {
-            "node": "Reformular Pregunta",
+            "node": "Tiene Historial",
             "type": "main",
             "index": 0
           }
@@ -2546,6 +2603,35 @@
       ]
     },
     "Reformular Pregunta": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tiene Historial": {
+      "main": [
+        [
+          {
+            "node": "Reformular Pregunta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pasar Pregunta Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pasar Pregunta Original": {
       "main": [
         [
           {

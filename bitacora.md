@@ -2,13 +2,18 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-24] - Gestión de Rama, Tiempos, Corrección de Formulario, Enlaces de Mapas, Reglas de Git y Agente Reformulador de Preguntas
+## [2026-06-24] - Gestión de Rama, Tiempos, Corrección de Formulario, Enlaces de Mapas, Reglas de Git, Optimización de Reformulador de Preguntas y Definición de Rentas
 
 ### Cambios Realizados:
 - **Reglas del Proyecto y Git:**
   - Modificado [.agents/AGENTS.md](file:///c:/Users/PC/Desktop/Agente_municipal/.agents/AGENTS.md) para agregar una regla sobre el flujo de trabajo en Git. Se establece que todos los cambios se suben únicamente a la rama `pre` y la fusión con `main` solo debe realizarse bajo petición explícita del usuario.
 - **Backend (n8n Workflows):**
   - Modificado [Subworkflow - Asesor (23-6-2026).json](file:///c:/Users/PC/Desktop/Agente_municipal/n8n/workflows/Subworkflow%20-%20Asesor/Subworkflow%20-%20Asesor%20(23-6-2026).json) para integrar un agente reformulador de preguntas (Query Condenser) usando el modelo Gemini 1.5 Flash y un nodo de tipo Basic LLM Chain. Esto reescribe consultas basadas en el historial del chat a formatos autocontenidos y sin ambigüedad antes de que entren al enrutador y al AI Agent principal, mejorando significativamente la precisión de la búsqueda vectorial en Qdrant y la ejecución de herramientas.
+  - Optimizado el subworkflow del Asesor agregando el nodo condicional `Tiene Historial` (IF) y el nodo de paso `Pasar Pregunta Original` (Set). Esto evita ejecutar el reformulador de preguntas en el primer mensaje de una conversación (cuando no hay historial previo), disminuyendo el consumo de tokens y eliminando latencias innecesarias de respuesta.
+  - Actualizado el System Prompt de `Reformular Pregunta` para incluir el catálogo completo de los temas de conocimiento municipal de la base vectorial (Rentas, Licencia, Veterinaria, Obras, Juzgado Vial, Trámite a Distancia, Deportes, Transparencia, Desarrollo Social) y la regla de mantener las preguntas sin reformular si no pertenecen a la municipalidad.
+  - Optimizada la propiedad `toolDescription` de la herramienta `rentas` en el JSON para asegurar que el agente enrute correctamente las consultas genéricas sobre la oficina al nodo de Qdrant correspondiente.
+- **System Prompt (`n8n/systempromt.md`):**
+  - Modificada la sección de Rentas del System Prompt general del AI Agent para definir explícitamente qué es la Dirección de Rentas municipal de Las Heras (encargada del cobro de tasas, boletas, deudas de inmueble/comercio y códigos) y prohibir la generación de respuestas de conocimiento económico general (como alquileres, IRPF o inversiones).
 - **Gestión de Repositorio:**
   - Renombrada la rama de desarrollo `preproduccion` a `pre` tanto a nivel local como en el repositorio remoto de GitHub (`origin/pre`) para simplificar su nomenclatura.
 - **Oracle APEX Frontend:**
