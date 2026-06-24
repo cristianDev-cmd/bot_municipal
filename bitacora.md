@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-24] - Actualización de Tiempo de Inactividad de Estrellas
+
+### Cambios Realizados:
+- **Oracle APEX Frontend:**
+  - Modificado [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js) para cambiar el valor de `INACTIVITY_TIME` de 1 minuto (`1 * 60 * 1000`) a 3 minutos (`3 * 60 * 1000`).
+  - Actualizado el comentario en el archivo para que refleje el nuevo tiempo configurado (3 minutos para mostrar las estrellas).
+
+---
+
 ## [2026-06-23] - Creación de Rama de Preproducción
 
 ### Cambios Realizados:

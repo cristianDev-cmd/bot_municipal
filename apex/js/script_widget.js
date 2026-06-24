@@ -2,7 +2,7 @@
     var webhookUrl = "https://n8n-asistentevirtual.lasheras.gob.ar/webhook/chat_apex2";
 
     // --- CONFIGURACIÓN DE TIEMPOS (MILISEGUNDOS) ---
-    var INACTIVITY_TIME = 1 * 60 * 1000;  // 1 Minuto para mostrar las estrellas
+    var INACTIVITY_TIME = 3 * 60 * 1000;  // 3 Minutos para mostrar las estrellas
     var SESSION_TIMEOUT = 60 * 60 * 1000; // 1 Hora para borrar localStorage y resetear sesión
 
     // ⏱️ VALIDACIÓN PASIVA INICIAL: Si pasó más de 1 hora desde la última acción, limpiamos antes de renderizar
