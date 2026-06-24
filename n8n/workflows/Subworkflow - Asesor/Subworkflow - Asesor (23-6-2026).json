@@ -15,7 +15,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $('mensaje  entrante').item.json.mensaje }}\n\n",
+        "text": "={{ $json.text }}\n\n",
         "options": {
           "systemMessage": "={{ $json.Leer_Prompt }}\n\n# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\n",
           "enableStreaming": true
@@ -1777,6 +1777,43 @@
           "name": "QdrantApi account"
         }
       }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        -120
+      ],
+      "id": "38bc4ad2-4bf1-4770-9831-29cf0d15e982",
+      "name": "Google Gemini Chat Model Reformulador",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TJT5hBm62dkAuSYR",
+          "name": "Google Gemini(PaLM) Claudio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\nPregunta original: {{ $('mensaje  entrante').item.json.mensaje }}\nPregunta reformulada:",
+        "options": {
+          "systemMessage": "Tu única tarea es recibir una pregunta del usuario y el historial reciente de la conversación. Si la pregunta hace referencia a temas, trámites o elementos mencionados en el historial (ej. '¿dónde queda?', '¿cuánto cuesta?'), reescríbela para que sea una pregunta independiente, clara y autocontenida en español. Si la pregunta ya es clara y no requiere del historial para entenderse, devuélvela exactamente igual.\nREGLAS CRÍTICAS:\n- NO respondas la pregunta.\n- Solo devuelve la pregunta reformulada, nada más.\n- Si no hay historial previo relevante, devuelve la pregunta original intacta."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        2200,
+        96
+      ],
+      "id": "e9df845b-d01c-43f1-94bf-87d2bc51ea46",
+      "name": "Reformular Pregunta"
     }
   ],
   "pinData": {
@@ -2211,7 +2248,7 @@
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "Reformular Pregunta",
             "type": "main",
             "index": 0
           }
@@ -2492,6 +2529,28 @@
           {
             "node": "AI Agent",
             "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model Reformulador": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Reformular Pregunta",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reformular Pregunta": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
             "index": 0
           }
         ]

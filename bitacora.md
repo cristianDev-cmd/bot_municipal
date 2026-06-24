@@ -2,11 +2,13 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-24] - Gestión de Rama, Tiempos, Corrección de Formulario, Enlaces de Mapas y Reglas de Git
+## [2026-06-24] - Gestión de Rama, Tiempos, Corrección de Formulario, Enlaces de Mapas, Reglas de Git y Agente Reformulador de Preguntas
 
 ### Cambios Realizados:
 - **Reglas del Proyecto y Git:**
   - Modificado [.agents/AGENTS.md](file:///c:/Users/PC/Desktop/Agente_municipal/.agents/AGENTS.md) para agregar una regla sobre el flujo de trabajo en Git. Se establece que todos los cambios se suben únicamente a la rama `pre` y la fusión con `main` solo debe realizarse bajo petición explícita del usuario.
+- **Backend (n8n Workflows):**
+  - Modificado [Subworkflow - Asesor (23-6-2026).json](file:///c:/Users/PC/Desktop/Agente_municipal/n8n/workflows/Subworkflow%20-%20Asesor/Subworkflow%20-%20Asesor%20(23-6-2026).json) para integrar un agente reformulador de preguntas (Query Condenser) usando el modelo Gemini 1.5 Flash y un nodo de tipo Basic LLM Chain. Esto reescribe consultas basadas en el historial del chat a formatos autocontenidos y sin ambigüedad antes de que entren al enrutador y al AI Agent principal, mejorando significativamente la precisión de la búsqueda vectorial en Qdrant y la ejecución de herramientas.
 - **Gestión de Repositorio:**
   - Renombrada la rama de desarrollo `preproduccion` a `pre` tanto a nivel local como en el repositorio remoto de GitHub (`origin/pre`) para simplificar su nomenclatura.
 - **Oracle APEX Frontend:**
