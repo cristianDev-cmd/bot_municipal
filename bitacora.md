@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-24] - Reversión de versión al commit a45d6e5 en la rama pre
+
+### Cambios Realizados:
+- **Git y Control de Versiones:**
+  - Se realizó una reversión forzada (`git reset --hard`) de la rama `pre` al commit `a45d6e5` (`fix: corregir caja blanca al enviar audio`) a petición del usuario.
+  - Se actualizó de manera forzada la rama remota `pre` en GitHub para regresar al estado de esta versión del código.
+
+---
+
 ## [2026-06-24] - Corrección de Caja Blanca al Enviar Grabación de Audio
 
 ### Cambios Realizados:
