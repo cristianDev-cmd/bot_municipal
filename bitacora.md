@@ -2,6 +2,16 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-24] - UI de Grabación de Audio estilo WhatsApp
+
+### Cambios Realizados:
+- **Frontend (Widget Chat):**
+  - Modificado [widget.html](file:///c:/Users/PC/Desktop/Agente_municipal/apex/html/widget.html): Agregado contenedor `#recordingContainer` con UI de grabación que incluye botón de eliminar (rojo), timer con punto pulsante, barras de onda de audio animadas, y botón de enviar (verde).
+  - Modificado [styles_widget.css](file:///c:/Users/PC/Desktop/Agente_municipal/apex/css/styles_widget.css): Agregados estilos para la UI de grabación estilo WhatsApp: punto rojo pulsante (`rec-dot`), barras de audio animadas (`rec-wave-bar`) con 20 barras de altura variable, botones de acción circulares (eliminar/enviar), transiciones de entrada/salida del contenedor, y fondo blanco con sombra para la zona de info.
+  - Modificado [script_widget.js](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js): Implementadas funciones `showRecordingUI()`/`hideRecordingUI()` para transición animada entre modo texto y modo grabación, timer de grabación con `setInterval` que muestra `0:00`, `0:01`, etc., vinculación de eventos para `btnRecDelete` (cancelar) y `btnRecSend` (enviar audio). Ambos modos (tap y hold) muestran la misma UI.
+
+---
+
 ## [2026-06-24] - Gestión de Rama, Tiempos, Corrección de Formulario, Enlaces de Mapas, Reglas de Git, Optimización de Reformulador de Preguntas y Definición de Rentas
 
 ### Cambios Realizados:

@@ -16,6 +16,9 @@
     // --- ELEMENTOS UI (Se inicializan en DOMContentLoaded) ---
     var launcher, widget, btnClose, btnClear, btnHome, btnSend, btnMic, btnCancelAudio, input, messages, badge;
 
+    // --- ELEMENTOS UI GRABACIÓN WHATSAPP ---
+    var recordingContainer, btnRecDelete, btnRecSend, recTimerText;
+
     // --- ELEMENTOS RATING (Se inicializan en DOMContentLoaded) ---
     var textContainer, ratingContainer, closeRatingBtn, stars;
 
@@ -44,6 +47,10 @@
     var isHolding = false;
     var pressStartTime = 0;
     var isRecordingCancelled = false;
+
+    // --- VARIABLES DE TIMER DE GRABACIÓN ---
+    var recTimerInterval;
+    var recSeconds = 0;
 
     // --- VARIABLES DE TEMPORIZADOR DE INACTIVIDAD ---
     var inactivityTimer;
@@ -178,6 +185,51 @@
         else startRecording();
     }
 
+    // ==========================================
+    // --- UI DE GRABACIÓN ESTILO WHATSAPP ---
+    // ==========================================
+    function showRecordingUI() {
+        if (textContainer) {
+            textContainer.classList.remove('active');
+            textContainer.classList.add('hidden-mode');
+        }
+        if (recordingContainer) {
+            recordingContainer.classList.remove('hidden-mode');
+            setTimeout(function() { recordingContainer.classList.add('active'); }, 30);
+        }
+        startRecTimer();
+    }
+
+    function hideRecordingUI() {
+        stopRecTimer();
+        if (recordingContainer) {
+            recordingContainer.classList.remove('active');
+        }
+        setTimeout(function() {
+            if (textContainer) {
+                textContainer.classList.remove('hidden-mode');
+                textContainer.classList.add('active');
+            }
+        }, 300);
+    }
+
+    function startRecTimer() {
+        recSeconds = 0;
+        if (recTimerText) recTimerText.textContent = '0:00';
+        recTimerInterval = setInterval(function() {
+            recSeconds++;
+            var m = Math.floor(recSeconds / 60);
+            var s = recSeconds % 60;
+            if (recTimerText) recTimerText.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        }, 1000);
+    }
+
+    function stopRecTimer() {
+        clearInterval(recTimerInterval);
+        recSeconds = 0;
+        if (recTimerText) recTimerText.textContent = '0:00';
+    }
+
     async function startRecording() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -214,6 +266,8 @@
                 input.placeholder = "Grabando audio...";
                 input.disabled = true;
             }
+            // Mostrar UI de grabación WhatsApp
+            showRecordingUI();
         } catch (err) {
             console.error("Error micrófono:", err);
             alert("No se pudo acceder al micrófono. Por favor, verifica los permisos de tu navegador.");
@@ -239,6 +293,8 @@
                 input.focus();
             }
             toggleInputButtons();
+            // Ocultar UI de grabación WhatsApp
+            hideRecordingUI();
         }
     }
 
@@ -262,6 +318,8 @@
                 input.focus();
             }
             toggleInputButtons();
+            // Ocultar UI de grabación WhatsApp
+            hideRecordingUI();
         }
     }
 
@@ -379,6 +437,12 @@
         messages = document.getElementById('chatMessages');
         badge = document.getElementById('notificationBadge');
 
+        // --- ASIGNACIÓN DE ELEMENTOS GRABACIÓN WHATSAPP ---
+        recordingContainer = document.getElementById('recordingContainer');
+        btnRecDelete = document.getElementById('btnRecDelete');
+        btnRecSend = document.getElementById('btnRecSend');
+        recTimerText = document.getElementById('recTimerText');
+
         // --- ASIGNACIÓN DE ELEMENTOS RATING ---
         textContainer = document.getElementById('textInputContainer');
         ratingContainer = document.getElementById('ratingContainer');
@@ -407,6 +471,10 @@
         if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
         if (closeRatingBtn) closeRatingBtn.addEventListener('click', function (e) { e.preventDefault(); hideRatingSystem(); });
         if (btnCancelAudio) btnCancelAudio.addEventListener('click', cancelRecording);
+
+        // --- EVENT LISTENERS GRABACIÓN WHATSAPP ---
+        if (btnRecDelete) btnRecDelete.addEventListener('click', cancelRecording);
+        if (btnRecSend) btnRecSend.addEventListener('click', stopRecording);
 
         // --- EVENT LISTENERS MICRÓFONO ---
         if (btnMic) {
