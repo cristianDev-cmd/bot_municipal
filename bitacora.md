@@ -2,6 +2,27 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-25] - Implementación de grabación Hold-to-Record (mantener presionado para grabar)
+
+### Cambios Realizados:
+- **Frontend - Lógica de Grabación (script_widget.js):**
+  - Se refactorizó completamente la interacción del botón de micrófono para implementar el patrón "hold-to-record" (mantener presionado para grabar):
+    - **Mantener presionado (>300ms):** Inicia la grabación de audio automáticamente con animación visual de pulso en el botón.
+    - **Soltar el dedo/mouse:** Envía el audio grabado automáticamente (sin necesidad de presionar un botón de envío separado).
+    - **Deslizar hacia la izquierda (>80px) mientras graba:** Cancela la grabación y descarta el audio. Se muestra un indicador visual "◀ Desliza para cancelar" que aparece durante la grabación. Al superar el umbral, aparece un icono de cancelación (tacho de basura) con feedback háptico (vibración) en dispositivos móviles.
+    - **Tap corto (<300ms):** Mantiene el comportamiento de toggle tradicional (iniciar/detener grabación con UI WhatsApp completa) para compatibilidad.
+  - Se añadieron nuevas variables y funciones de estado: `holdStartX`, `isSlideCancelled`, `SLIDE_CANCEL_THRESHOLD`, `updateSlideCancelState()`, `showSlideCancelUI()`, `hideSlideCancelUI()`.
+  - Se bifurcó `startRecording(isHoldMode)` para diferenciar el modo "hold" (indicador slide-to-cancel) del modo "tap" (UI WhatsApp con botones).
+- **Frontend - Estilos CSS (styles_widget.css):**
+  - Mejorada la animación del botón de micrófono durante la grabación: crece de 40px a 54px, con glow rojo intenso (doble box-shadow) y pulso más dramático (escala 1.0→1.15).
+  - Añadidas transiciones suaves para `width`, `height` y `box-shadow` en el botón del mic.
+  - Se añadieron los estilos para el indicador "desliza para cancelar": `.slide-cancel-indicator`, `.slide-cancel-arrow`, `.slide-cancel-lock` con animaciones de pulso (`slideCancelPulse`) y flecha deslizante (`slideCancelArrow`).
+  - Se añadió `touch-action: none` y `user-select: none` al botón del mic para prevenir comportamientos no deseados del navegador en mobile.
+- **Frontend - HTML (widget.html):**
+  - Se añadieron los elementos del indicador de cancelación dentro del `#textInputContainer`: `#slideCancelIndicator` (texto + flecha animada) y `#slideCancelLock` (icono de tacho al superar umbral).
+
+---
+
 ## [2026-06-25] - Actualización de documentación de Rentas y corrección de respuestas
 
 ### Cambios Realizados:

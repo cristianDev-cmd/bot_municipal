@@ -103,6 +103,12 @@
 
     // --- VINCULACIÓN DE EVENTOS INICIALES (Mapeados en initChat) ---
 
+    // --- VARIABLES DE SLIDE-TO-CANCEL ---
+    var holdStartX = 0;
+    var SLIDE_CANCEL_THRESHOLD = 80; // px a la izquierda para cancelar
+    var slideCancelIndicator, slideCancelLock;
+    var isSlideCancelled = false;
+
     // Evalúa si las coordenadas del cursor/dedo colisionan con el tacho de basura
     function isOverTrash(clientX, clientY) {
         var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
@@ -117,12 +123,18 @@
         );
     }
 
-    function startPress() {
+    function startPress(e) {
         pressStartTime = Date.now();
         isHolding = false;
+        isSlideCancelled = false;
+
+        // Guardar posición X inicial para detectar slide
+        if (e && e.clientX !== undefined) holdStartX = e.clientX;
+        else if (e && e.touches && e.touches[0]) holdStartX = e.touches[0].clientX;
+
         recordTimeout = setTimeout(function () {
             isHolding = true;
-            if (!isRecording) startRecording();
+            if (!isRecording) startRecording(true); // true = modo hold
         }, 300);
     }
 
@@ -135,16 +147,28 @@
         if (isHolding) {
             isHolding = false;
             if (isRecording) {
-                if (isOverTrash(e.clientX, e.clientY)) cancelRecording();
-                else stopRecording();
+                if (isSlideCancelled) {
+                    cancelRecording();
+                } else {
+                    // ✅ ENVIAR AUTOMÁTICAMENTE al soltar
+                    stopRecording();
+                }
             }
+            hideSlideCancelUI();
         } else {
+            // Tap corto: toggle tradicional (mantener compatibilidad)
             if (pressDuration < 300) toggleRecording();
         }
     }
 
     function handleMouseMove(e) {
         if (!isRecording || !isHolding) return;
+
+        // --- Lógica de slide-to-cancel ---
+        var deltaX = holdStartX - e.clientX;
+        updateSlideCancelState(deltaX);
+
+        // --- Lógica legacy: hover sobre tacho ---
         var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
         if (!targetTrash) return;
         if (isOverTrash(e.clientX, e.clientY)) targetTrash.classList.add('trash-hovered');
@@ -154,6 +178,12 @@
     function handleTouchMove(e) {
         if (!isRecording || !isHolding) return;
         var touch = e.touches[0];
+
+        // --- Lógica de slide-to-cancel ---
+        var deltaX = holdStartX - touch.clientX;
+        updateSlideCancelState(deltaX);
+
+        // --- Lógica legacy: hover sobre tacho ---
         var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
         if (!targetTrash) return;
         if (isOverTrash(touch.clientX, touch.clientY)) targetTrash.classList.add('trash-hovered');
@@ -169,10 +199,14 @@
         if (isHolding) {
             isHolding = false;
             if (isRecording) {
-                var touch = e.changedTouches[0];
-                if (isOverTrash(touch.clientX, touch.clientY)) cancelRecording();
-                else stopRecording();
+                if (isSlideCancelled) {
+                    cancelRecording();
+                } else {
+                    // ✅ ENVIAR AUTOMÁTICAMENTE al soltar
+                    stopRecording();
+                }
             }
+            hideSlideCancelUI();
         } else {
             if (pressDuration < 300) toggleRecording();
         }
@@ -184,11 +218,44 @@
             cancelRecording();
             isHolding = false;
         }
+        hideSlideCancelUI();
+    }
+
+    // --- SLIDE TO CANCEL: Funciones UI ---
+    function updateSlideCancelState(deltaX) {
+        if (!slideCancelIndicator) slideCancelIndicator = document.getElementById('slideCancelIndicator');
+        if (!slideCancelLock) slideCancelLock = document.getElementById('slideCancelLock');
+
+        if (deltaX >= SLIDE_CANCEL_THRESHOLD) {
+            // Superó el umbral → marcar como cancelado y mostrar icono de cancelación
+            isSlideCancelled = true;
+            if (slideCancelIndicator) slideCancelIndicator.classList.remove('visible');
+            if (slideCancelLock) slideCancelLock.classList.add('visible');
+            // Vibrar ligeramente si es posible (feedback háptico)
+            if (navigator.vibrate) navigator.vibrate(30);
+        } else {
+            isSlideCancelled = false;
+            if (slideCancelLock) slideCancelLock.classList.remove('visible');
+            if (slideCancelIndicator && isHolding) slideCancelIndicator.classList.add('visible');
+        }
+    }
+
+    function showSlideCancelUI() {
+        if (!slideCancelIndicator) slideCancelIndicator = document.getElementById('slideCancelIndicator');
+        if (slideCancelIndicator) slideCancelIndicator.classList.add('visible');
+    }
+
+    function hideSlideCancelUI() {
+        if (!slideCancelIndicator) slideCancelIndicator = document.getElementById('slideCancelIndicator');
+        if (!slideCancelLock) slideCancelLock = document.getElementById('slideCancelLock');
+        if (slideCancelIndicator) slideCancelIndicator.classList.remove('visible');
+        if (slideCancelLock) slideCancelLock.classList.remove('visible');
+        isSlideCancelled = false;
     }
 
     async function toggleRecording() {
         if (isRecording) stopRecording();
-        else startRecording();
+        else startRecording(false);
     }
 
     // ==========================================
@@ -248,7 +315,7 @@
         if (recTimerText) recTimerText.textContent = '0:00';
     }
 
-    async function startRecording() {
+    async function startRecording(isHoldMode) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
@@ -275,17 +342,23 @@
 
             if (btnMic) {
                 btnMic.classList.add('recording-active');
-                btnMic.innerHTML = iconStopWhite;
-            }
-            if (btnCancelAudio) {
-                btnCancelAudio.style.display = 'flex';
+                btnMic.innerHTML = iconMicWhite; // Mantener icono de mic pulsante
             }
             if (input) {
                 input.placeholder = "Grabando audio...";
                 input.disabled = true;
             }
-            // Mostrar UI de grabación WhatsApp
-            showRecordingUI();
+
+            if (isHoldMode) {
+                // 🎙️ MODO HOLD: mostrar indicador "desliza para cancelar" + NO mostrar UI WhatsApp
+                showSlideCancelUI();
+                startRecTimer();
+            } else {
+                // 🎙️ MODO TAP (toggle): mostrar UI WhatsApp completa con botones
+                if (btnMic) btnMic.innerHTML = iconStopWhite;
+                if (btnCancelAudio) btnCancelAudio.style.display = 'flex';
+                showRecordingUI();
+            }
         } catch (err) {
             console.error("Error micrófono:", err);
             alert("No se pudo acceder al micrófono. Por favor, verifica los permisos de tu navegador.");
@@ -311,6 +384,7 @@
             input.disabled = false;
         }
         toggleInputButtons();
+        hideSlideCancelUI();
         // Ocultar UI de grabación WhatsApp
         hideRecordingUI();
     }
@@ -335,6 +409,7 @@
             input.disabled = false;
         }
         toggleInputButtons();
+        hideSlideCancelUI();
         // Ocultar UI de grabación WhatsApp
         hideRecordingUI();
     }
@@ -347,6 +422,7 @@
             reader.readAsDataURL(blob);
         });
     }
+
 
     function bloquearChat() {
         if (input) { input.disabled = true; input.placeholder = "Gregorio está procesando..."; }
@@ -509,7 +585,7 @@
             document.addEventListener('mouseup', endPress);
             document.addEventListener('mousemove', handleMouseMove);
 
-            btnMic.addEventListener('touchstart', function (e) { e.preventDefault(); startPress(); }, { passive: false });
+            btnMic.addEventListener('touchstart', function (e) { e.preventDefault(); startPress(e); }, { passive: false });
             document.addEventListener('touchend', handleTouchEnd, { passive: false });
             document.addEventListener('touchmove', handleTouchMove, { passive: false });
             btnMic.addEventListener('touchcancel', cancelPress);
