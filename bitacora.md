@@ -17,6 +17,7 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 - **Frontend (script_widget.js):**
   - Se corrigió el bug en `processResponse` que causaba que el indicador de escritura ("está escribiendo") se mostrara de manera errónea por un segundo y medio después del último mensaje. Ahora el código valida que exista una siguiente respuesta en la cola (`index + 1 < responses.length`) antes de invocar a `showTyping()`, liberando los temporizadores de inactividad de inmediato si es el mensaje final.
   - Se modificó la función `clearChat()` para que limpie el localStorage de historial y sesión (generando un nuevo `sessionId` de forma limpia) y renderice de forma inmediata el mensaje de bienvenida local ("Hola soy el Asistente Virtual..."), emulando el inicio fresco del chat en su primer arranque en lugar de llamar a `sendStartSignal()`.
+  - Se corrigió el error en la validación pasiva inicial que impedía que el historial se limpiara de forma correcta después de 1 hora de inactividad. Anteriormente, si no existía el registro de actividad (`chat_last_activity` era `null` porque el usuario había cerrado la página sin chatear o habiendo borrado el chat recientemente), la condición no se cumplía y el historial persistía de forma indefinida en el navegador. Ahora se valida que si hay historial pero el timestamp de actividad no existe o ya expiró, se proceda con la limpieza forzada.
 
 ---
 

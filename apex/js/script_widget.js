@@ -5,9 +5,10 @@
     var INACTIVITY_TIME = 3 * 60 * 1000;  // 3 Minutos para mostrar las estrellas
     var SESSION_TIMEOUT = 60 * 60 * 1000; // 1 Hora para borrar localStorage y resetear sesión
 
-    // ⏱️ VALIDACIÓN PASIVA INICIAL: Si pasó más de 1 hora desde la última acción, limpiamos antes de renderizar
+    // ⏱️ VALIDACIÓN PASIVA INICIAL: Si hay historial pero la última actividad no existe (huérfana) o ya expiró (más de 1 hora), limpiamos antes de renderizar
     var lastActivity = localStorage.getItem("chat_last_activity");
-    if (lastActivity && (Date.now() - parseInt(lastActivity) > SESSION_TIMEOUT)) {
+    var hasHistory = localStorage.getItem("chat_history");
+    if (hasHistory && (!lastActivity || (Date.now() - parseInt(lastActivity) > SESSION_TIMEOUT))) {
         localStorage.removeItem("chat_history");
         localStorage.removeItem("chat_session_id");
         localStorage.removeItem("chat_last_activity");
