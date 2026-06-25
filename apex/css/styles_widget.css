@@ -484,9 +484,9 @@
 
 .chat-mic-btn.recording-active {
     background-color: #ef4444 !important;
-    box-shadow: 0 0 18px 6px rgba(239, 68, 68, 0.6), 0 0 40px 10px rgba(239, 68, 68, 0.25) !important;
-    width: 54px !important;
-    height: 54px !important;
+    box-shadow: 0 0 20px 8px rgba(239, 68, 68, 0.65), 0 0 45px 15px rgba(239, 68, 68, 0.3) !important;
+    width: 68px !important;
+    height: 68px !important;
     animation: pulseMic 1s infinite ease-in-out !important;
     z-index: 10;
     position: relative;
@@ -495,52 +495,85 @@
 @keyframes pulseMic {
     0% {
         transform: scale(1);
-        box-shadow: 0 0 18px 6px rgba(239, 68, 68, 0.6), 0 0 40px 10px rgba(239, 68, 68, 0.25);
+        box-shadow: 0 0 20px 8px rgba(239, 68, 68, 0.65), 0 0 45px 15px rgba(239, 68, 68, 0.3);
     }
     50% {
-        transform: scale(1.15);
-        box-shadow: 0 0 24px 10px rgba(239, 68, 68, 0.7), 0 0 50px 16px rgba(239, 68, 68, 0.3);
+        transform: scale(1.18);
+        box-shadow: 0 0 28px 12px rgba(239, 68, 68, 0.75), 0 0 55px 20px rgba(239, 68, 68, 0.35);
     }
     100% {
         transform: scale(1);
-        box-shadow: 0 0 18px 6px rgba(239, 68, 68, 0.6), 0 0 40px 10px rgba(239, 68, 68, 0.25);
+        box-shadow: 0 0 20px 8px rgba(239, 68, 68, 0.65), 0 0 45px 15px rgba(239, 68, 68, 0.3);
     }
+}
+
+/* Ocultamiento del input en grabación hold */
+#textInputContainer.recording-hold-active input {
+    color: transparent !important;
+}
+#textInputContainer.recording-hold-active input::placeholder {
+    color: transparent !important;
 }
 
 /* --- INDICADOR DESLIZA PARA CANCELAR --- */
 .slide-cancel-indicator {
     display: none;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     position: absolute;
     left: 16px;
-    right: 62px;
+    right: 80px;
     top: 50%;
     transform: translateY(-50%);
     font-size: 13px;
-    color: #999;
     font-weight: 500;
     pointer-events: none;
-    animation: slideCancelPulse 1.8s infinite ease-in-out;
+    z-index: 5;
+    white-space: nowrap;
+}
+
+#textInputContainer.recording-hold-active .slide-cancel-indicator {
+    right: 85px;
 }
 
 .slide-cancel-indicator.visible {
     display: flex;
 }
 
+.slide-cancel-trash {
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    animation: trashPulse 1.5s infinite ease-in-out;
+}
+
 .slide-cancel-arrow {
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ef4444;
+    letter-spacing: -1px;
     animation: slideCancelArrow 1.2s infinite ease-in-out;
+    display: inline-block;
+}
+
+.slide-cancel-text {
+    color: #666;
+    animation: slideCancelPulse 1.8s infinite ease-in-out;
+}
+
+@keyframes trashPulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.15); opacity: 1; }
 }
 
 @keyframes slideCancelPulse {
-    0%, 100% { opacity: 0.5; }
+    0%, 100% { opacity: 0.6; }
     50% { opacity: 1; }
 }
 
 @keyframes slideCancelArrow {
-    0%, 100% { transform: translateX(0); }
-    50% { transform: translateX(-6px); }
+    0%, 100% { transform: translateX(0); opacity: 0.4; }
+    50% { transform: translateX(-4px); opacity: 1; }
 }
 
 .slide-cancel-lock {

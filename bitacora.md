@@ -2,6 +2,21 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-25] - Corrección de envío de audio en hold-to-record y mejoras de UI
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Corregido error de carrera asíncrona donde el audio no se enviaba al soltar el botón de micrófono. Se agregaron variables `isStartingRecording` y `recordingShouldStop` para controlar cuándo el usuario suelta el dedo antes de que `navigator.mediaDevices.getUserMedia` resuelva su promesa.
+  - Creado helper `resetRecordingUI()` para unificar el reinicio y limpieza de estados del micrófono y la barra de entrada de texto.
+  - Implementada la clase `recording-hold-active` en el contenedor del input para ocultar transparentemente el placeholder y texto escrito mientras se graba manteniendo presionado, preservando el fondo blanco del pill.
+- **Frontend - Estilos (styles_widget.css):**
+  - Incrementado el tamaño del botón del micrófono de `54px` a `68px` cuando está activo, y ajustada la escala de animación de pulso de `1.0` a `1.18` (alcanzando ~80px).
+  - Diseñado un estilo premium para el indicador de cancelación en modo hold: el indicador del lado izquierdo ahora se corre a `85px` a la derecha para dejar espacio al nuevo tamaño del mic, con un icono de basura rojo pulsante y una secuencia animada de flechas `<<<` moviéndose a la izquierda.
+- **Frontend - Estructura HTML (widget.html):**
+  - Actualizado `#slideCancelIndicator` para incluir un SVG de la papelera, las flechas `<<<` y el texto "Deslizar para borrar".
+
+---
+
 ## [2026-06-25] - Implementación de grabación Hold-to-Record (mantener presionado para grabar)
 
 ### Cambios Realizados:

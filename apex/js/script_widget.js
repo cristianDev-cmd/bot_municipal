@@ -42,6 +42,8 @@
 
     // --- VARIABLES DE GRABACIÓN ---
     var isRecording = false;
+    var isStartingRecording = false;
+    var recordingShouldStop = false; // false, 'stop', o 'cancel'
     var mediaRecorder;
     var audioChunks = [];
     var recordTimeout;
@@ -127,6 +129,7 @@
         pressStartTime = Date.now();
         isHolding = false;
         isSlideCancelled = false;
+        recordingShouldStop = false;
 
         // Guardar posición X inicial para detectar slide
         if (e && e.clientX !== undefined) holdStartX = e.clientX;
@@ -134,7 +137,7 @@
 
         recordTimeout = setTimeout(function () {
             isHolding = true;
-            if (!isRecording) startRecording(true); // true = modo hold
+            if (!isRecording && !isStartingRecording) startRecording(true); // true = modo hold
         }, 300);
     }
 
@@ -153,6 +156,8 @@
                     // ✅ ENVIAR AUTOMÁTICAMENTE al soltar
                     stopRecording();
                 }
+            } else if (isStartingRecording) {
+                recordingShouldStop = isSlideCancelled ? 'cancel' : 'stop';
             }
             hideSlideCancelUI();
         } else {
@@ -162,7 +167,7 @@
     }
 
     function handleMouseMove(e) {
-        if (!isRecording || !isHolding) return;
+        if ((!isRecording && !isStartingRecording) || !isHolding) return;
 
         // --- Lógica de slide-to-cancel ---
         var deltaX = holdStartX - e.clientX;
@@ -176,7 +181,7 @@
     }
 
     function handleTouchMove(e) {
-        if (!isRecording || !isHolding) return;
+        if ((!isRecording && !isStartingRecording) || !isHolding) return;
         var touch = e.touches[0];
 
         // --- Lógica de slide-to-cancel ---
@@ -205,6 +210,8 @@
                     // ✅ ENVIAR AUTOMÁTICAMENTE al soltar
                     stopRecording();
                 }
+            } else if (isStartingRecording) {
+                recordingShouldStop = isSlideCancelled ? 'cancel' : 'stop';
             }
             hideSlideCancelUI();
         } else {
@@ -214,8 +221,12 @@
 
     function cancelPress() {
         clearTimeout(recordTimeout);
-        if (isHolding && isRecording) {
-            cancelRecording();
+        if (isHolding) {
+            if (isRecording) {
+                cancelRecording();
+            } else if (isStartingRecording) {
+                recordingShouldStop = 'cancel';
+            }
             isHolding = false;
         }
         hideSlideCancelUI();
@@ -315,12 +326,49 @@
         if (recTimerText) recTimerText.textContent = '0:00';
     }
 
+    function resetRecordingUI() {
+        if (textContainer) {
+            textContainer.classList.remove('recording-hold-active');
+        }
+        if (btnCancelAudio) {
+            btnCancelAudio.style.display = 'none';
+            btnCancelAudio.classList.remove('trash-hovered');
+        }
+        if (btnMic) {
+            btnMic.classList.remove('recording-active');
+            btnMic.innerHTML = iconMicWhite;
+        }
+        if (input) {
+            input.placeholder = "Escribe un mensaje...";
+            input.disabled = false;
+        }
+        toggleInputButtons();
+        hideSlideCancelUI();
+        hideRecordingUI();
+    }
+
     async function startRecording(isHoldMode) {
+        if (isRecording || isStartingRecording) return;
+        isStartingRecording = true;
+        recordingShouldStop = false;
+        isRecordingCancelled = false;
+
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // Si el usuario soltó el micrófono mientras pedíamos permiso/iniciábamos
+            if (recordingShouldStop) {
+                var action = recordingShouldStop;
+                recordingShouldStop = false;
+                isStartingRecording = false;
+                
+                stream.getTracks().forEach(track => track.stop());
+                resetRecordingUI();
+                return;
+            }
+
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
-            isRecordingCancelled = false;
 
             mediaRecorder.ondataavailable = function (e) { if (e.data.size > 0) audioChunks.push(e.data); };
 
@@ -332,12 +380,17 @@
                 }
 
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const base64Audio = await blobToBase64(audioBlob);
-                stream.getTracks().forEach(track => track.stop());
-                sendMessage(null, "🎤 Su Mensaje", null, base64Audio);
+                if (audioBlob.size > 0) {
+                    const base64Audio = await blobToBase64(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                    sendMessage(null, "🎤 Su Mensaje", null, base64Audio);
+                } else {
+                    stream.getTracks().forEach(track => track.stop());
+                }
             };
 
             mediaRecorder.start();
+            isStartingRecording = false;
             isRecording = true;
 
             if (btnMic) {
@@ -351,6 +404,7 @@
 
             if (isHoldMode) {
                 // 🎙️ MODO HOLD: mostrar indicador "desliza para cancelar" + NO mostrar UI WhatsApp
+                if (textContainer) textContainer.classList.add('recording-hold-active');
                 showSlideCancelUI();
                 startRecTimer();
             } else {
@@ -359,7 +413,20 @@
                 if (btnCancelAudio) btnCancelAudio.style.display = 'flex';
                 showRecordingUI();
             }
+
+            // Si se disparó el evento de soltar justo al terminar de iniciar
+            if (recordingShouldStop) {
+                var finalAction = recordingShouldStop;
+                recordingShouldStop = false;
+                if (finalAction === 'cancel') {
+                    cancelRecording();
+                } else {
+                    stopRecording();
+                }
+            }
         } catch (err) {
+            isStartingRecording = false;
+            recordingShouldStop = false;
             console.error("Error micrófono:", err);
             alert("No se pudo acceder al micrófono. Por favor, verifica los permisos de tu navegador.");
         }
@@ -370,23 +437,7 @@
             mediaRecorder.stop();
         }
         isRecording = false;
-
-        if (btnCancelAudio) {
-            btnCancelAudio.style.display = 'none';
-            btnCancelAudio.classList.remove('trash-hovered');
-        }
-        if (btnMic) {
-            btnMic.classList.remove('recording-active');
-            btnMic.innerHTML = iconMicWhite;
-        }
-        if (input) {
-            input.placeholder = "Escribe un mensaje...";
-            input.disabled = false;
-        }
-        toggleInputButtons();
-        hideSlideCancelUI();
-        // Ocultar UI de grabación WhatsApp
-        hideRecordingUI();
+        resetRecordingUI();
     }
 
     function cancelRecording() {
@@ -395,23 +446,7 @@
             mediaRecorder.stop();
         }
         isRecording = false;
-
-        if (btnCancelAudio) {
-            btnCancelAudio.style.display = 'none';
-            btnCancelAudio.classList.remove('trash-hovered');
-        }
-        if (btnMic) {
-            btnMic.classList.remove('recording-active');
-            btnMic.innerHTML = iconMicWhite;
-        }
-        if (input) {
-            input.placeholder = "Escribe un mensaje...";
-            input.disabled = false;
-        }
-        toggleInputButtons();
-        hideSlideCancelUI();
-        // Ocultar UI de grabación WhatsApp
-        hideRecordingUI();
+        resetRecordingUI();
     }
 
     function blobToBase64(blob) {
