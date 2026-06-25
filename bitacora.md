@@ -5,6 +5,8 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 ## [2026-06-25] - Actualización de documentación de Rentas y corrección de respuestas
 
 ### Cambios Realizados:
+- **Git y Control de Versiones:**
+  - Se realizó la fusión (merge) de la rama `pre` en la rama `main` de forma exitosa tras la solicitud explícita del usuario en el chat, subiendo todos los cambios de producción a GitHub.
 - **Base de Conocimiento (Rentas.md):**
   - Se completaron las URLs vacías en la sección de `## Link específicos` (como el Portal General de Rentas redirigiendo a `https://lasheras.gob.ar/rentas/` e Infracciones de Tránsito a la consulta por DNI de rentasweb).
   - Se agregó el iframe de Google Maps para la ubicación de la Dirección de Rentas bajo la sección `## Horarios y Ubicación` a fin de que el bot pueda renderizar el mapa cuando se le pregunte por la dirección física.
