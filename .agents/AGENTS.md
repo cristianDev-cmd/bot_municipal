@@ -8,3 +8,7 @@
 ## Flujo de trabajo en Git (Ramas)
 - **Subida de cambios:** Todos los desarrollos y cambios deben subirse únicamente a la rama `pre`.
 - **Fusión con `main`:** No se debe fusionar ni actualizar la rama `main` de forma automática. Esta acción solo se realizará cuando el usuario lo solicite de manera explícita en el chat.
+
+## Uso del Navegador Web (Browser Subagent)
+- **Restricción de uso:** Queda estrictamente prohibido iniciar el subagente de navegación web (`browser_subagent`) o intentar realizar inspecciones interactivas en el navegador, a menos que el usuario lo solicite de manera explícita en el chat.
+

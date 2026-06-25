@@ -659,13 +659,31 @@
     }
 
     function clearChat() {
-        localStorage.removeItem("chat_history"); localStorage.removeItem("chat_session_id");
-        history = []; sessionId = crypto.randomUUID();
+        localStorage.removeItem("chat_history"); 
+        localStorage.removeItem("chat_session_id");
+        history = []; 
+        sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (function() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        })());
         localStorage.setItem("chat_session_id", sessionId);
         messages.innerHTML = "";
         userRating = 0; // Reset de calificación
         clearTimeout(inactivityTimer); // Limpieza de timer
-        sendStartSignal();
+
+        // Renderizamos localmente el mensaje de bienvenida al limpiar
+        var welcomeMsg = {
+            role: 'assistant',
+            content: 'Hola soy el Asistente Virtual de la Municipalidad de Las Heras. ¿En qué puedo ayudarte?',
+            timestamp: new Date().toISOString()
+        };
+        renderChatElement(welcomeMsg);
+        history.push(welcomeMsg);
+        localStorage.setItem("chat_history", JSON.stringify(history));
+
+        iniciarTemporizadorInactividad();
     }
 
     // --- COMUNICACIÓN CON N8N ---
@@ -800,8 +818,15 @@
             localStorage.setItem("chat_history", JSON.stringify(history));
 
             if (widget.classList.contains("hidden")) { unreadCount++; updateBadge(); }
-            showTyping();
-            setTimeout(() => { stopTyping(); renderSecuencial(index + 1); }, 1500);
+            
+            if (index + 1 < responses.length) {
+                showTyping();
+                setTimeout(() => { stopTyping(); renderSecuencial(index + 1); }, 1500);
+            } else {
+                // Si es el último mensaje, no mostramos indicador de escritura y reactivamos los temporizadores de inactividad de inmediato
+                iniciarTemporizadorInactividad();
+                registrarActividadGlobal();
+            }
         }
         renderSecuencial(0);
     }

@@ -2,6 +2,24 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-25] - Actualización de documentación de Rentas y corrección de respuestas
+
+### Cambios Realizados:
+- **Base de Conocimiento (Rentas.md):**
+  - Se completaron las URLs vacías en la sección de `## Link específicos` (como el Portal General de Rentas redirigiendo a `https://lasheras.gob.ar/rentas/` e Infracciones de Tránsito a la consulta por DNI de rentasweb).
+  - Se agregó el iframe de Google Maps para la ubicación de la Dirección de Rentas bajo la sección `## Horarios y Ubicación` a fin de que el bot pueda renderizar el mapa cuando se le pregunte por la dirección física.
+  - Se corrigió un error de formateo en la sección `## Horarios y Ubicación` donde el título de las reglas conversacionales estaba pegado a la línea del teléfono.
+  - Se definieron nuevas reglas conversacionales y preguntas frecuentes específicas para el pago por número de recibo (redirigiendo al enlace oficial `https://rentasweb.lasheras.gob.ar/ords/f?p=204:7087` en lugar de la web general de rentas).
+  - Se añadieron reglas conversacionales y preguntas frecuentes específicas para el pago presencial (explicando la descarga e impresión del boleto y el pago en Rapipago / Pago Fácil), evitando que el bot intente invocar la regla de pago general inmobiliario/comercial por error o genere outputs inválidos.
+  - Se creó una regla conversacional explícita y su correspondiente pregunta frecuente (FAQ) para obligar al bot a adjuntar el `<iframe>` del mapa cada vez que se le pregunte por la ubicación, dirección u horarios de la Dirección de Rentas.
+- **Configuración del Repositorio (AGENTS.md):**
+  - Se agregó una regla local del proyecto en `AGENTS.md` prohibiendo al agente AI el uso de la herramienta `browser_subagent` o cualquier inspección en el navegador interactivo a menos que sea explícitamente solicitado por el usuario.
+- **Frontend (script_widget.js):**
+  - Se corrigió el bug en `processResponse` que causaba que el indicador de escritura ("está escribiendo") se mostrara de manera errónea por un segundo y medio después del último mensaje. Ahora el código valida que exista una siguiente respuesta en la cola (`index + 1 < responses.length`) antes de invocar a `showTyping()`, liberando los temporizadores de inactividad de inmediato si es el mensaje final.
+  - Se modificó la función `clearChat()` para que limpie el localStorage de historial y sesión (generando un nuevo `sessionId` de forma limpia) y renderice de forma inmediata el mensaje de bienvenida local ("Hola soy el Asistente Virtual..."), emulando el inicio fresco del chat en su primer arranque en lugar de llamar a `sendStartSignal()`.
+
+---
+
 ## [2026-06-24] - Fusión de desarrollos y correcciones en la rama main
 
 ### Cambios Realizados:
