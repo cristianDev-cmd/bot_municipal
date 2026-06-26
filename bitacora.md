@@ -18,6 +18,7 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
   - Se cambió `overflow: hidden;` por `overflow: visible;` en `.chat-input-area` para permitir que el botón flotante del micrófono en grabación activa sobresalga de la caja de texto sin recortarse en la parte superior e inferior.
   - Se añadió `top: -8px;` a la clase `.chat-mic-btn.recording-active` para desplazar verticalmente hacia arriba el botón agrandado del micrófono durante la grabación, asegurando que sobresalga estéticamente del chat y no se recorte con el borde inferior del widget (que tiene `overflow: hidden;`).
   - Se definieron y optimizaron estilos CSS para los nuevos componentes del modo hold: se agregó la clase `.hold-info` (representada por una cápsula blanca flotante en el centro con sombra y bordes redondeados), se configuró la papelera `.slide-cancel-trash` como un botón circular rojo con sombra idéntico al de eliminación en modo tap, y se optimizó la alineación flexible (`justify-content: space-between`) del contenedor del indicador.
+  - Se incrementó el `z-index` de `.slide-cancel-indicator` a `99999 !important;` para asegurar que el indicador de cancelación en modo hold se renderice siempre por encima de la caja de texto (`#userInput`), evitando que quede oculto detrás de su fondo blanco opaco debido a posibles superposiciones de estilos globales de la plataforma.
 
 ---
 

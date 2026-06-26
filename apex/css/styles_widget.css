@@ -516,7 +516,6 @@
     color: transparent !important;
 }
 
-/* --- INDICADOR DESLIZA PARA CANCELAR --- */
 .slide-cancel-indicator {
     display: none;
     align-items: center;
@@ -527,7 +526,7 @@
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    z-index: 5;
+    z-index: 99999 !important;
     box-sizing: border-box;
 }
 
