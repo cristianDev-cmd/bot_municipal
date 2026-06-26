@@ -50,6 +50,7 @@
     var isHolding = false;
     var pressStartTime = 0;
     var isRecordingCancelled = false;
+    var recordingStartTime = 0;
 
     // --- VARIABLES DE TIMER DE GRABACIÓN ---
     var recTimerInterval;
@@ -436,6 +437,7 @@
             };
 
             mediaRecorder.start();
+            recordingStartTime = Date.now();
             isStartingRecording = false;
             isRecording = true;
 
@@ -479,6 +481,19 @@
     }
 
     function stopRecording() {
+        var elapsed = Date.now() - recordingStartTime;
+        var minDuration = 600; // milisegundos mínimos para asegurar generación de chunks y renderizado de animación
+        
+        if (elapsed < minDuration) {
+            setTimeout(function() {
+                realStopRecording();
+            }, minDuration - elapsed);
+        } else {
+            realStopRecording();
+        }
+    }
+
+    function realStopRecording() {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
         }
