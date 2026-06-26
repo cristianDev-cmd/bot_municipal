@@ -47,6 +47,7 @@
     var mediaRecorder;
     var audioChunks = [];
     var recordTimeout;
+    var stopTimeout;
     var isHolding = false;
     var pressStartTime = 0;
     var isRecordingCancelled = false;
@@ -108,7 +109,8 @@
 
     // --- VARIABLES DE SLIDE-TO-CANCEL ---
     var holdStartX = 0;
-    var SLIDE_CANCEL_THRESHOLD = 40; // px a la izquierda para cancelar
+    var holdStartY = 0;
+    var SLIDE_CANCEL_THRESHOLD = 40; // px en cualquier dirección para cancelar
     var slideCancelIndicator, slideCancelLock;
     var isSlideCancelled = false;
 
@@ -131,14 +133,27 @@
             // Evitar pérdida de foco en el input para mantener el teclado abierto
             e.preventDefault();
         }
+        
+        // Forzar detención inmediata de grabaciones previas en cola para evitar bloqueos
+        if (stopTimeout) {
+            clearTimeout(stopTimeout);
+            stopTimeout = null;
+            realStopRecording();
+        }
+
         pressStartTime = Date.now();
         isHolding = false;
         isSlideCancelled = false;
         recordingShouldStop = false;
 
-        // Guardar posición X inicial para detectar slide
-        if (e && e.clientX !== undefined) holdStartX = e.clientX;
-        else if (e && e.touches && e.touches[0]) holdStartX = e.touches[0].clientX;
+        // Guardar posición inicial X e Y para detectar deslizamiento en 2D
+        if (e && e.clientX !== undefined) {
+            holdStartX = e.clientX;
+            holdStartY = e.clientY;
+        } else if (e && e.touches && e.touches[0]) {
+            holdStartX = e.touches[0].clientX;
+            holdStartY = e.touches[0].clientY;
+        }
 
         recordTimeout = setTimeout(function () {
             isHolding = true;
@@ -174,9 +189,11 @@
     function handleMouseMove(e) {
         if ((!isRecording && !isStartingRecording) || !isHolding) return;
 
-        // --- Lógica de slide-to-cancel ---
-        var deltaX = holdStartX - e.clientX;
-        updateSlideCancelState(deltaX);
+        // --- Lógica de slide-to-cancel en 2D ---
+        var deltaX = e.clientX - holdStartX;
+        var deltaY = e.clientY - holdStartY;
+        var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        updateSlideCancelState(distance);
 
         // --- Lógica legacy: hover sobre tacho ---
         var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
@@ -190,9 +207,11 @@
         if (e && e.cancelable) e.preventDefault();
         var touch = e.touches[0];
 
-        // --- Lógica de slide-to-cancel ---
-        var deltaX = holdStartX - touch.clientX;
-        updateSlideCancelState(deltaX);
+        // --- Lógica de slide-to-cancel en 2D ---
+        var deltaX = touch.clientX - holdStartX;
+        var deltaY = touch.clientY - holdStartY;
+        var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        updateSlideCancelState(distance);
 
         // --- Lógica legacy: hover sobre tacho ---
         var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
@@ -245,14 +264,14 @@
     }
 
     // --- SLIDE TO CANCEL: Funciones UI ---
-    function updateSlideCancelState(deltaX) {
+    function updateSlideCancelState(distance) {
         if (!slideCancelIndicator) slideCancelIndicator = document.getElementById('slideCancelIndicator');
         if (!slideCancelLock) slideCancelLock = document.getElementById('slideCancelLock');
 
         var trash = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-trash') : null;
         var slideAction = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-action') : null;
 
-        var progress = Math.max(0, Math.min(deltaX / SLIDE_CANCEL_THRESHOLD, 1));
+        var progress = Math.max(0, Math.min(distance / SLIDE_CANCEL_THRESHOLD, 1));
 
         if (trash) {
             // Escalar el tacho de basura a medida que nos acercamos a cancelar
@@ -268,7 +287,7 @@
             slideAction.style.opacity = 1 - progress * 0.8; // Se desvanece
         }
 
-        if (deltaX >= SLIDE_CANCEL_THRESHOLD) {
+        if (distance >= SLIDE_CANCEL_THRESHOLD) {
             // Superó el umbral → marcar como cancelado y mostrar icono de cancelación
             isSlideCancelled = true;
             if (slideCancelIndicator) slideCancelIndicator.classList.remove('visible');
@@ -489,7 +508,7 @@
         var minDuration = 600; // milisegundos mínimos para asegurar generación de chunks y renderizado de animación
         
         if (elapsed < minDuration) {
-            setTimeout(function() {
+            stopTimeout = setTimeout(function() {
                 realStopRecording();
             }, minDuration - elapsed);
         } else {
@@ -498,6 +517,10 @@
     }
 
     function realStopRecording() {
+        if (stopTimeout) {
+            clearTimeout(stopTimeout);
+            stopTimeout = null;
+        }
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
         }
@@ -506,6 +529,10 @@
     }
 
     function cancelRecording() {
+        if (stopTimeout) {
+            clearTimeout(stopTimeout);
+            stopTimeout = null;
+        }
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             isRecordingCancelled = true;
             mediaRecorder.stop();

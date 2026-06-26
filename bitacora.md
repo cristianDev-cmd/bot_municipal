@@ -2,6 +2,13 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-26] - Medición de distancia de cancelación en 2D y resolución de bloqueos en toques rápidos
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se modificó la detección de gestos en [handleTouchMove(e)](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js#L187) y [handleMouseMove(e)](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js#L170) para calcular la distancia absoluta de arrastre del dedo en 2D (distancia euclidiana usando coordenadas X e Y iniciales: `holdStartX` y `holdStartY`). Así, si el dedo del usuario se mueve más de 40px en *cualquier* dirección (arriba, abajo, izquierda, derecha o diagonal), se marca la cancelación (`isSlideCancelled = true`), mientras que movimientos menores se procesan y envían de forma limpia.
+  - Se solucionó una condición de carrera en toques consecutivos rápidos: se implementó el almacenamiento del identificador del retardo mínimo en la variable global `stopTimeout`. Al pulsar nuevamente el micrófono en [startPress(e)](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js#L129), si existe una detención asíncrona pendiente, se cancela y se fuerza el cierre de la grabación anterior de forma síncrona mediante [realStopRecording()](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js#L492). Esto libera la variable de estado `isRecording = false` de forma inmediata, permitiendo que la segunda pulsación consecutiva grabe e interactúe sin bloquearse.
+
 ## [2026-06-26] - Reducción del umbral de cancelación de audio a 40px
 
 ### Cambios Realizados:
