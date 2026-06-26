@@ -491,8 +491,6 @@
     height: 40px !important;
     transform: translateY(-8px) scale(1.7) !important;
     animation: pulseMic 1s infinite ease-in-out !important;
-    z-index: 10;
-    position: relative;
 }
 
 @keyframes pulseMic {

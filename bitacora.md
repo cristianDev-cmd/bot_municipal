@@ -5,6 +5,8 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 ## [2026-06-26] - Corrección de envío de audio al soltar el micrófono y ajuste de tap
 
 ### Cambios Realizados:
+- **Frontend - Estilos (styles_widget.css):**
+  - Se eliminaron las propiedades `z-index: 10;` y `position: relative;` de la clase `.chat-mic-btn.recording-active`. Esto previene la alteración brusca de la estructura de capas de renderizado del navegador durante una interacción táctil activa, eliminando la principal causa de que navegadores móviles (iOS/Android) aborten la pulsación prematuramente disparando un evento `touchcancel`.
 - **Frontend - Lógica (script_widget.js):**
   - Se redujo drásticamente el umbral de tiempo que diferencia un toque corto (tap) de un toque sostenido (hold) sobre el micrófono, bajando de `300ms` a `100ms` en las funciones `startPress`, `endPress` y `handleTouchEnd`. 
   - Esta modificación corrige el error de usabilidad donde los usuarios hablaban rápidamente (entre 100ms y 300ms) y al soltar el botón no se enviaba el audio, debido a que el sistema lo interpretaba como un "tap" (activando el modo manos libres) en lugar de un "hold" (que envía automáticamente al soltar). Ahora, cualquier pulsación superior a 100ms se considera grabación sostenida y se detiene/envía satisfactoriamente al levantar el dedo de la pantalla.
