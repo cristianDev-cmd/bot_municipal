@@ -2,7 +2,18 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-26] - Mensaje de error amigable en la comunicación con n8n
+## [2026-06-26] - Refactorización de código y mejoras en animaciones UI
+
+### Cambios Realizados:
+- **Frontend - Estilos (styles_widget.css):**
+  - Se optimizaron y formatearon las animaciones clave (`pulseMic`, `trashPulse`, `slideCancelPulse`, `slideCancelArrow`, `lockPulse`, `recWave`).
+  - Se ajustaron los selectores y clases relacionadas al estado `recording-hold-active` y `.slide-cancel-indicator` para un diseño más pulido.
+  - Se implementó la clase `swing-animation` con la animación `swing-with-pause`.
+- **Frontend - Lógica (script_widget.js):**
+  - Se limpiaron comentarios innecesarios y se organizaron mejor los bloques lógicos.
+  - Se refinó la lógica de captura del micrófono, añadiendo `capture: true` a los eventos táctiles y de mouse para mejorar la prioridad y evitar bloqueos.
+  - Se introdujo un fallback de seguridad en `realStopRecording` para asegurar el envío de `audioChunks` en caso de que el `MediaRecorder` se detenga inesperadamente.
+  - Se perfeccionó el algoritmo `processSlideMove` para que solo active la cancelación cuando el desplazamiento horizontal supere los 10px hacia la izquierda y sea predominante frente al vertical.## [2026-06-26] - Mensaje de error amigable en la comunicación con n8n
 
 ### Cambios Realizados:
 - **Frontend - Lógica (script_widget.js):**

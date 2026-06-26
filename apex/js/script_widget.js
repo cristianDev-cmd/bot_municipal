@@ -2,10 +2,9 @@
     var webhookUrl = "https://n8n-asistentevirtual.lasheras.gob.ar/webhook/chat_apex2";
 
     // --- CONFIGURACIÓN DE TIEMPOS (MILISEGUNDOS) ---
-    var INACTIVITY_TIME = 3 * 60 * 1000;  // 3 Minutos para mostrar las estrellas
-    var SESSION_TIMEOUT = 60 * 60 * 1000; // 1 Hora para borrar localStorage y resetear sesión
+    var INACTIVITY_TIME = 3 * 60 * 1000;
+    var SESSION_TIMEOUT = 60 * 60 * 1000;
 
-    // ⏱️ VALIDACIÓN PASIVA INICIAL: Si hay historial pero la última actividad no existe (huérfana) o ya expiró (más de 1 hora), limpiamos antes de renderizar
     var lastActivity = localStorage.getItem("chat_last_activity");
     var hasHistory = localStorage.getItem("chat_history");
     if (hasHistory && (!lastActivity || (Date.now() - parseInt(lastActivity) > SESSION_TIMEOUT))) {
@@ -14,23 +13,19 @@
         localStorage.removeItem("chat_last_activity");
     }
 
-    // --- ELEMENTOS UI (Se inicializan en DOMContentLoaded) ---
+    // --- ELEMENTOS UI ---
     var launcher, widget, btnClose, btnClear, btnHome, btnSend, btnMic, btnCancelAudio, input, messages, badge;
-
-    // --- ELEMENTOS UI GRABACIÓN WHATSAPP ---
     var recordingContainer, btnRecDelete, btnRecSend, recTimerText;
-
-    // --- ELEMENTOS RATING (Se inicializan en DOMContentLoaded) ---
     var textContainer, ratingContainer, closeRatingBtn, stars;
 
-    // --- ÍCONOS SVG BLANCOS ---
+    // --- ÍCONOS SVG ---
     var iconMicWhite = `<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>`;
     var iconStopWhite = `<svg viewBox="0 0 24 24" width="18" height="18" fill="#ffffff"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"/></svg>`;
     var iconTrashWhite = `<svg viewBox="0 0 24 24" width="22" height="22" fill="#ffffff"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
 
     // --- ESTADO ---
-    var sessionId = localStorage.getItem("chat_session_id") || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (function() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var sessionId = localStorage.getItem("chat_session_id") || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (function () {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
@@ -43,7 +38,7 @@
     // --- VARIABLES DE GRABACIÓN ---
     var isRecording = false;
     var isStartingRecording = false;
-    var recordingShouldStop = false; // false, 'stop', o 'cancel'
+    var recordingShouldStop = false;
     var mediaRecorder;
     var audioChunks = [];
     var recordTimeout;
@@ -53,19 +48,17 @@
     var isRecordingCancelled = false;
     var recordingStartTime = 0;
 
-    // --- VARIABLES DE TIMER DE GRABACIÓN ---
+    // --- VARIABLES TIMER GRABACIÓN ---
     var recTimerInterval;
     var recSeconds = 0;
 
-    // --- VARIABLES DE TEMPORIZADOR DE INACTIVIDAD ---
+    // --- VARIABLES INACTIVIDAD ---
     var inactivityTimer;
     var sessionTimer;
 
     // ==========================================
     // --- LÓGICA DE CONTROL DE INACTIVIDAD ---
     // ==========================================
-
-    // Alarma 1: Desparrama el sistema de estrellas al minuto de quietud
     function iniciarTemporizadorInactividad() {
         clearTimeout(inactivityTimer);
         if (userRating > 0 || (ratingContainer && ratingContainer.classList.contains('active'))) return;
@@ -77,7 +70,6 @@
         }, INACTIVITY_TIME);
     }
 
-    // Alarma 2: Registra actividad del usuario y setea el borrado total a la hora
     function registrarActividadGlobal() {
         localStorage.setItem("chat_last_activity", Date.now());
         clearTimeout(sessionTimer);
@@ -105,16 +97,14 @@
         }
     }
 
-    // --- VINCULACIÓN DE EVENTOS INICIALES (Mapeados en initChat) ---
-
     // --- VARIABLES DE SLIDE-TO-CANCEL ---
     var holdStartX = 0;
     var holdStartY = 0;
-    var SLIDE_CANCEL_THRESHOLD = 100; // px movidos hacia la izquierda para cancelar
+    var SLIDE_CANCEL_THRESHOLD = 80;
     var slideCancelIndicator, slideCancelLock;
     var isSlideCancelled = false;
+    var slideCancelActive = false;
 
-    // Evalúa si las coordenadas del cursor/dedo colisionan con el tacho de basura
     function isOverTrash(clientX, clientY) {
         var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
         if (!targetTrash || targetTrash.offsetWidth === 0) return false;
@@ -128,13 +118,10 @@
         );
     }
 
+    // --- MANEJO DE EVENTOS DE PRESIÓN ---
     function startPress(e) {
-        if (e) {
-            // Evitar pérdida de foco en el input para mantener el teclado abierto
-            e.preventDefault();
-        }
-        
-        // Forzar detención inmediata de grabaciones previas en cola para evitar bloqueos
+        if (e) e.preventDefault();
+
         if (stopTimeout) {
             clearTimeout(stopTimeout);
             stopTimeout = null;
@@ -144,9 +131,9 @@
         pressStartTime = Date.now();
         isHolding = false;
         isSlideCancelled = false;
+        slideCancelActive = false;
         recordingShouldStop = false;
 
-        // Guardar posición inicial X e Y para detectar deslizamiento en 2D
         if (e && e.clientX !== undefined) {
             holdStartX = e.clientX;
             holdStartY = e.clientY;
@@ -155,14 +142,17 @@
             holdStartY = e.touches[0].clientY;
         }
 
+        // Tiempo para diferenciar tap de hold
         recordTimeout = setTimeout(function () {
             isHolding = true;
-            if (!isRecording && !isStartingRecording) startRecording(true); // true = modo hold
-        }, 100);
+            if (!isRecording && !isStartingRecording) startRecording(true);
+        }, 150);
     }
 
     function endPress(e) {
         if (!pressStartTime) return;
+        if (e && e.cancelable) e.preventDefault();
+
         clearTimeout(recordTimeout);
         var pressDuration = Date.now() - pressStartTime;
         pressStartTime = 0;
@@ -173,7 +163,7 @@
                 if (isSlideCancelled) {
                     cancelRecording();
                 } else {
-                    // ✅ ENVIAR AUTOMÁTICAMENTE al soltar
+                    // Enviar automáticamente al soltar
                     stopRecording();
                 }
             } else if (isStartingRecording) {
@@ -181,80 +171,26 @@
             }
             hideSlideCancelUI();
         } else {
-            // Tap corto: toggle tradicional (mantener compatibilidad)
-            if (pressDuration < 100) toggleRecording();
+            // Tap corto: toggle tradicional
+            if (pressDuration < 150) toggleRecording();
         }
-    }
-
-    function handleMouseMove(e) {
-        if ((!isRecording && !isStartingRecording) || !isHolding) return;
-
-        // --- Lógica de slide-to-cancel ---
-        // Solo calculamos el movimiento hacia la izquierda (X) para ser más tolerantes con vibraciones o movimientos verticales
-        var deltaX = holdStartX - e.clientX; 
-        var distance = deltaX > 0 ? deltaX : 0;
-        updateSlideCancelState(distance);
-
-        // --- Lógica legacy: hover sobre tacho ---
-        var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
-        if (!targetTrash) return;
-        if (isOverTrash(e.clientX, e.clientY)) targetTrash.classList.add('trash-hovered');
-        else targetTrash.classList.remove('trash-hovered');
-    }
-
-    function handleTouchMove(e) {
-        if ((!isRecording && !isStartingRecording) || !isHolding) return;
-        if (e && e.cancelable) e.preventDefault();
-        var touch = e.touches[0];
-
-        // --- Lógica de slide-to-cancel ---
-        // Solo calculamos el movimiento hacia la izquierda (X) para ser más tolerantes con vibraciones o movimientos verticales
-        var deltaX = holdStartX - touch.clientX; 
-        var distance = deltaX > 0 ? deltaX : 0;
-        updateSlideCancelState(distance);
-
-        // --- Lógica legacy: hover sobre tacho ---
-        var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
-        if (!targetTrash) return;
-        if (isOverTrash(touch.clientX, touch.clientY)) targetTrash.classList.add('trash-hovered');
-        else targetTrash.classList.remove('trash-hovered');
     }
 
     function handleTouchEnd(e) {
-        if (!pressStartTime) return;
-        if (e && e.cancelable) e.preventDefault();
-        clearTimeout(recordTimeout);
-        var pressDuration = Date.now() - pressStartTime;
-        pressStartTime = 0;
-
-        if (isHolding) {
-            isHolding = false;
-            if (isRecording) {
-                if (isSlideCancelled) {
-                    cancelRecording();
-                } else {
-                    // ✅ ENVIAR AUTOMÁTICAMENTE al soltar
-                    stopRecording();
-                }
-            } else if (isStartingRecording) {
-                recordingShouldStop = isSlideCancelled ? 'cancel' : 'stop';
-            }
-            hideSlideCancelUI();
-        } else {
-            if (pressDuration < 100) toggleRecording();
-        }
+        endPress(e);
     }
 
     function cancelPress(e) {
+        if (!pressStartTime && !isHolding && !isRecording) return;
         clearTimeout(recordTimeout);
         pressStartTime = 0;
+
         if (isHolding) {
             isHolding = false;
             if (isRecording) {
                 if (isSlideCancelled) {
                     cancelRecording();
                 } else {
-                    // Si el sistema interrumpe el toque pero no se deslizó para cancelar, enviar de todos modos
                     stopRecording();
                 }
             } else if (isStartingRecording) {
@@ -264,7 +200,42 @@
         hideSlideCancelUI();
     }
 
-    // --- SLIDE TO CANCEL: Funciones UI ---
+    // --- MANEJO DE MOVIMIENTO (SLIDE TO CANCEL) ---
+    function handleMouseMove(e) {
+        if ((!isRecording && !isStartingRecording) || !isHolding) return;
+        processSlideMove(e.clientX, e.clientY);
+    }
+
+    function handleTouchMove(e) {
+        if ((!isRecording && !isStartingRecording) || !isHolding) return;
+        if (e && e.cancelable) e.preventDefault();
+        if (e.touches && e.touches[0]) {
+            processSlideMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }
+
+    function processSlideMove(clientX, clientY) {
+        var deltaX = holdStartX - clientX;
+        var deltaY = Math.abs(holdStartY - clientY);
+
+        // Solo activar si desliza predominantemente a la izquierda
+        if (deltaX > 10 && deltaX > deltaY) {
+            slideCancelActive = true;
+            var distance = deltaX > 0 ? deltaX : 0;
+            updateSlideCancelState(distance);
+        } else if (slideCancelActive && deltaX < 10) {
+            // Volvió a la posición original
+            slideCancelActive = false;
+            updateSlideCancelState(0);
+        }
+
+        var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
+        if (!targetTrash) return;
+        if (isOverTrash(clientX, clientY)) targetTrash.classList.add('trash-hovered');
+        else targetTrash.classList.remove('trash-hovered');
+    }
+
+    // --- UI SLIDE TO CANCEL ---
     function updateSlideCancelState(distance) {
         if (!slideCancelIndicator) slideCancelIndicator = document.getElementById('slideCancelIndicator');
         if (!slideCancelLock) slideCancelLock = document.getElementById('slideCancelLock');
@@ -275,25 +246,21 @@
         var progress = Math.max(0, Math.min(distance / SLIDE_CANCEL_THRESHOLD, 1));
 
         if (trash) {
-            // Escalar el tacho de basura a medida que nos acercamos a cancelar
-            var scale = 1 + progress * 0.4; // De 1x a 1.4x
+            var scale = 1 + progress * 0.4;
             trash.style.transform = 'scale(' + scale + ')';
-            trash.style.backgroundColor = progress > 0.85 ? '#dc2626' : '#ef4444'; // Se vuelve más oscuro al estar cerca del límite
+            trash.style.backgroundColor = progress > 0.85 ? '#dc2626' : '#ef4444';
         }
 
         if (slideAction) {
-            // Desplazar el texto hacia la izquierda siguiendo el movimiento del dedo
-            var translate = -progress * 25; // Hasta 25px a la izquierda
+            var translate = -progress * 25;
             slideAction.style.transform = 'translateX(' + translate + 'px)';
-            slideAction.style.opacity = 1 - progress * 0.8; // Se desvanece
+            slideAction.style.opacity = 1 - progress * 0.8;
         }
 
         if (distance >= SLIDE_CANCEL_THRESHOLD) {
-            // Superó el umbral → marcar como cancelado y mostrar icono de cancelación
             isSlideCancelled = true;
             if (slideCancelIndicator) slideCancelIndicator.classList.remove('visible');
             if (slideCancelLock) slideCancelLock.classList.add('visible');
-            // Vibrar ligeramente si es posible (feedback háptico)
             if (navigator.vibrate) navigator.vibrate(30);
         } else {
             isSlideCancelled = false;
@@ -312,8 +279,7 @@
         if (!slideCancelLock) slideCancelLock = document.getElementById('slideCancelLock');
         if (slideCancelIndicator) slideCancelIndicator.classList.remove('visible');
         if (slideCancelLock) slideCancelLock.classList.remove('visible');
-        
-        // Resetear transformaciones y estilos dinámicos
+
         var trash = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-trash') : null;
         var slideAction = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-action') : null;
         if (trash) {
@@ -324,8 +290,9 @@
             slideAction.style.transform = '';
             slideAction.style.opacity = '';
         }
-        
+
         isSlideCancelled = false;
+        slideCancelActive = false;
     }
 
     async function toggleRecording() {
@@ -343,7 +310,7 @@
         }
         if (recordingContainer) {
             recordingContainer.classList.remove('hidden-mode');
-            setTimeout(function() { recordingContainer.classList.add('active'); }, 30);
+            setTimeout(function () { recordingContainer.classList.add('active'); }, 30);
         }
         startRecTimer();
     }
@@ -352,21 +319,15 @@
         stopRecTimer();
         if (recordingContainer) {
             recordingContainer.classList.remove('active');
-            // Devolver a hidden-mode tras la transición
-            setTimeout(function() {
+            setTimeout(function () {
                 recordingContainer.classList.add('hidden-mode');
             }, 300);
         }
-        setTimeout(function() {
+        setTimeout(function () {
             if (textContainer) {
                 textContainer.classList.remove('hidden-mode');
                 textContainer.classList.add('active');
-                
-                // Enfocar el input una vez que es visible en pantalla, si no está deshabilitado
                 if (input && !input.disabled) input.focus();
-
-                // Asegurar que el contenedor padre no tenga scroll vertical no deseado
-                // Hacemos esto DESPUÉS de input.focus() para resetear cualquier salto
                 var inputArea = document.querySelector('.chat-input-area');
                 if (inputArea) inputArea.scrollTop = 0;
             }
@@ -378,7 +339,7 @@
         if (recTimerText) recTimerText.textContent = '0:00';
         var holdTimerText = document.getElementById('holdTimerText');
         if (holdTimerText) holdTimerText.textContent = '0:00';
-        recTimerInterval = setInterval(function() {
+        recTimerInterval = setInterval(function () {
             recSeconds++;
             var m = Math.floor(recSeconds / 60);
             var s = recSeconds % 60;
@@ -424,19 +385,16 @@
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            // Si el usuario soltó el micrófono mientras pedíamos permiso/iniciábamos
+
             if (recordingShouldStop) {
                 var action = recordingShouldStop;
                 if (action === 'cancel') {
                     recordingShouldStop = false;
                     isStartingRecording = false;
-                    
                     stream.getTracks().forEach(track => track.stop());
                     resetRecordingUI();
                     return;
                 }
-                // Si es 'stop', dejamos que continúe para que se inicialice y se detenga al final.
             }
 
             mediaRecorder = new MediaRecorder(stream);
@@ -468,25 +426,22 @@
 
             if (btnMic) {
                 btnMic.classList.add('recording-active');
-                btnMic.innerHTML = iconMicWhite; // Mantener icono de mic pulsante
+                btnMic.innerHTML = iconMicWhite;
             }
             if (input) {
                 input.placeholder = "Grabando audio...";
             }
 
             if (isHoldMode) {
-                // 🎙️ MODO HOLD: mostrar indicador "desliza para cancelar" + NO mostrar UI WhatsApp
                 if (textContainer) textContainer.classList.add('recording-hold-active');
                 showSlideCancelUI();
                 startRecTimer();
             } else {
-                // 🎙️ MODO TAP (toggle): mostrar UI WhatsApp completa con botones
                 if (btnMic) btnMic.innerHTML = iconStopWhite;
                 if (btnCancelAudio) btnCancelAudio.style.display = 'flex';
                 showRecordingUI();
             }
 
-            // Si se disparó el evento de soltar justo al terminar de iniciar
             if (recordingShouldStop) {
                 var finalAction = recordingShouldStop;
                 recordingShouldStop = false;
@@ -506,10 +461,10 @@
 
     function stopRecording() {
         var elapsed = Date.now() - recordingStartTime;
-        var minDuration = 600; // milisegundos mínimos para asegurar generación de chunks y renderizado de animación
-        
+        var minDuration = 400; // ms mínimos para asegurar chunks
+
         if (elapsed < minDuration) {
-            stopTimeout = setTimeout(function() {
+            stopTimeout = setTimeout(function () {
                 realStopRecording();
             }, minDuration - elapsed);
         } else {
@@ -522,9 +477,19 @@
             clearTimeout(stopTimeout);
             stopTimeout = null;
         }
+
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
+        } else if (audioChunks.length > 0 && !isRecordingCancelled) {
+            // Fallback de seguridad por si el recorder se detuvo inesperadamente
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            if (audioBlob.size > 0) {
+                blobToBase64(audioBlob).then(base64Audio => {
+                    sendMessage(null, "🎤 Su Mensaje", null, base64Audio);
+                });
+            }
         }
+
         isRecording = false;
         resetRecordingUI();
     }
@@ -551,7 +516,6 @@
         });
     }
 
-
     function bloquearChat() {
         if (input) { input.readOnly = true; input.placeholder = "Gregorio está procesando..."; }
         if (btnSend) { btnSend.disabled = true; btnSend.style.opacity = "0.5"; btnSend.style.pointerEvents = "none"; }
@@ -559,26 +523,22 @@
     }
 
     function desbloquearChat() {
-        if (input) { 
-            input.disabled = false; 
-            input.readOnly = false; 
-            input.placeholder = "Escribe un mensaje..."; 
-            // Solo enfocar si el contenedor está activo para evitar scroll indeseado
+        if (input) {
+            input.disabled = false;
+            input.readOnly = false;
+            input.placeholder = "Escribe un mensaje...";
             if (textContainer && !textContainer.classList.contains('hidden-mode')) {
-                input.focus(); 
+                input.focus();
             }
         }
         if (btnSend) { btnSend.disabled = false; btnSend.style.opacity = "1"; btnSend.style.pointerEvents = "auto"; }
         if (btnMic) { btnMic.disabled = false; btnMic.style.opacity = "1"; btnMic.style.pointerEvents = "auto"; }
         toggleInputButtons();
-        
-        // Asegurar que no quede scrolleado
         var inputArea = document.querySelector('.chat-input-area');
         if (inputArea) inputArea.scrollTop = 0;
     }
 
-    // --- RATING Y ESTRELLAS (Mapeados en initChat) ---
-
+    // --- RATING Y ESTRELLAS ---
     function highlightStars(value) {
         stars.forEach(function (s) {
             if (s.dataset.value <= value) s.classList.add('hovered');
@@ -612,8 +572,6 @@
             var rawText = await res.text();
             var data = JSON.parse(rawText);
             stopTyping();
-
-
             processResponse(data, true);
 
         } catch (err) {
@@ -640,10 +598,8 @@
         }, 300);
     }
 
-    // --- FORMATO DE MAPAS ---
     function formatearEnlacesMapa(texto) {
         if (!texto || texto.indexOf('btn-mapa-flotante') !== -1) return texto;
-        // Si el contenido ya tiene un iframe (mapa embebido), no procesarlo
         if (texto.indexOf('<iframe') !== -1) return texto;
         var mapRegex = /(?:<a[^>]*href=["'])?(https:\/\/(?:www\.)?(?:google\.com\/maps|maps\.app\.goo\.gl|maps\.google\.com)[^\s<"']+)(?:["'][^>]*>.*<\/a>)?/gi;
         return texto.replace(mapRegex, function (match, url) {
@@ -652,11 +608,8 @@
         });
     }
 
-    // --- RENDERIZADO DEL CHAT (Mapeado en initChat) ---
-
-    // --- FUNCIÓN DE INICIALIZACIÓN ---
+    // --- INICIALIZACIÓN ---
     function initChat() {
-        // --- ASIGNACIÓN DE ELEMENTOS UI ---
         launcher = document.getElementById('chatLauncher');
         widget = document.getElementById('chatWidget');
         btnClose = document.getElementById('btnClose');
@@ -669,19 +622,16 @@
         messages = document.getElementById('chatMessages');
         badge = document.getElementById('notificationBadge');
 
-        // --- ASIGNACIÓN DE ELEMENTOS GRABACIÓN WHATSAPP ---
         recordingContainer = document.getElementById('recordingContainer');
         btnRecDelete = document.getElementById('btnRecDelete');
         btnRecSend = document.getElementById('btnRecSend');
         recTimerText = document.getElementById('recTimerText');
 
-        // --- ASIGNACIÓN DE ELEMENTOS RATING ---
         textContainer = document.getElementById('textInputContainer');
         ratingContainer = document.getElementById('ratingContainer');
         closeRatingBtn = document.getElementById('closeRating');
         stars = document.querySelectorAll('.star');
 
-        // --- CONFIGURACIÓN INICIAL DE BOTONES ---
         if (btnMic) btnMic.innerHTML = iconMicWhite;
         if (btnCancelAudio) {
             btnCancelAudio.innerHTML = iconTrashWhite;
@@ -691,14 +641,13 @@
 
         if (input) {
             input.addEventListener('input', toggleInputButtons);
-            input.addEventListener('blur', function() {
+            input.addEventListener('blur', function () {
                 if (widget && !widget.classList.contains('hidden')) {
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var activeEl = document.activeElement;
-                        // Evitar re-enfocar si el usuario hizo clic en botones de control
                         var isControlBtn = activeEl && (
-                            activeEl.closest('.header-controls') || 
-                            activeEl.id === 'btnClose' || 
+                            activeEl.closest('.header-controls') ||
+                            activeEl.id === 'btnClose' ||
                             activeEl.id === 'btnClear' ||
                             activeEl.id === 'chatLauncher'
                         );
@@ -710,11 +659,9 @@
             });
         }
 
-        // --- EVENT LISTENERS UI ---
         if (launcher) launcher.addEventListener('click', toggleChat);
         if (btnClose) btnClose.addEventListener('click', toggleChat);
         if (btnClose) btnClose.addEventListener('click', clearChat);
-
         if (btnClear) btnClear.addEventListener('click', clearChat);
         if (btnHome) btnHome.addEventListener('click', goHome);
         if (btnSend) btnSend.addEventListener('click', function (e) { sendMessage(e); });
@@ -722,23 +669,21 @@
         if (closeRatingBtn) closeRatingBtn.addEventListener('click', function (e) { e.preventDefault(); hideRatingSystem(); });
         if (btnCancelAudio) btnCancelAudio.addEventListener('click', cancelRecording);
 
-        // --- EVENT LISTENERS GRABACIÓN WHATSAPP ---
         if (btnRecDelete) btnRecDelete.addEventListener('click', cancelRecording);
         if (btnRecSend) btnRecSend.addEventListener('click', stopRecording);
 
-        // --- EVENT LISTENERS MICRÓFONO ---
+        // --- EVENT LISTENERS MICRÓFONO (con capture:true para evitar bloqueos externos) ---
         if (btnMic) {
             btnMic.addEventListener('mousedown', startPress);
-            document.addEventListener('mouseup', endPress);
-            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', endPress, true);
+            document.addEventListener('mousemove', handleMouseMove, true);
 
             btnMic.addEventListener('touchstart', function (e) { e.preventDefault(); startPress(e); }, { passive: false });
-            document.addEventListener('touchend', handleTouchEnd, { passive: false });
-            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
+            document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
             btnMic.addEventListener('touchcancel', cancelPress);
         }
 
-        // --- RATING Y ESTRELLAS ---
         if (stars) {
             stars.forEach(function (star) {
                 star.addEventListener('mouseover', function () { highlightStars(this.dataset.value); });
@@ -751,13 +696,11 @@
             });
         }
 
-        // --- RENDERIZADO DEL HISTORIAL INICIAL ---
         if (messages && history) {
             history.forEach(function (m) { renderChatElement(m); });
         }
     }
 
-    // --- CARGA SEGURA ---
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initChat);
     } else {
@@ -843,7 +786,6 @@
         scrollToBottom();
     }
 
-    // LÓGICA DE APERTURA Y CIERRE DEL CHAT
     function toggleChat() {
         if (widget.classList.contains("hidden")) {
             widget.classList.remove("hidden");
@@ -861,15 +803,10 @@
                 history.push(welcomeMsg);
                 localStorage.setItem("chat_history", JSON.stringify(history));
             }
-            // Enfocar de inmediato para abrir el teclado en móvil
-            if (input && !input.disabled) {
-                input.focus();
-            }
-            // 🎯 CICLO INACTIVIDAD: Arrancamos el contador cuando abren el chat
+            if (input && !input.disabled) input.focus();
             iniciarTemporizadorInactividad();
         } else {
             widget.classList.add("hidden");
-            // 🎯 CICLO INACTIVIDAD: Frenamos el contador si ocultan el chat
             clearTimeout(inactivityTimer);
         }
     }
@@ -887,21 +824,20 @@
     }
 
     function clearChat() {
-        localStorage.removeItem("chat_history"); 
+        localStorage.removeItem("chat_history");
         localStorage.removeItem("chat_session_id");
-        history = []; 
-        sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (function() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        history = [];
+        sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (function () {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
         })());
         localStorage.setItem("chat_session_id", sessionId);
         messages.innerHTML = "";
-        userRating = 0; // Reset de calificación
-        clearTimeout(inactivityTimer); // Limpieza de timer
+        userRating = 0;
+        clearTimeout(inactivityTimer);
 
-        // Renderizamos localmente el mensaje de bienvenida al limpiar
         var welcomeMsg = {
             role: 'assistant',
             content: 'Hola soy el Asistente Virtual de la Municipalidad de Las Heras. ¿En qué puedo ayudarte?',
@@ -934,7 +870,6 @@
         var val = txt || input.value.trim();
         if (!val && !audioBase64) return;
 
-        // 🎯 CICLO INACTIVIDAD: Congelamos el timer inmediatamente al escribir/enviar datos
         clearTimeout(inactivityTimer);
 
         if (menuId === 'ASESOR_NUBE') {
@@ -987,20 +922,16 @@
         } catch (err) {
             console.error("🚨 DETALLE DEL ERROR:", err);
             stopTyping();
-            renderChatElement({ role: "assistant", content: "⚠️ No pudimos procesar tu solicitud. Por favor, intenta enviarla nuevamente." });
-            // Reanudamos control si falla el server
+            renderChatElement({ role: "assistant", content: "No pudimos procesar tu solicitud. Por favor, intenta enviarla nuevamente." });
             iniciarTemporizadorInactividad();
         }
     }
 
-    // --- PROCESAMIENTO UNIFICADO ---
-    // --- PROCESAMIENTO UNIFICADO ---
     function processResponse(data, isMainMenu) {
         var responses = data.paqueteMensajes ? data.paqueteMensajes : (Array.isArray(data) ? data : [data]);
 
         function renderSecuencial(index) {
             if (index >= responses.length) {
-                // 🎯 REINICIO: Gregorio terminó de escribir, relanzamos los contadores
                 iniciarTemporizadorInactividad();
                 registrarActividadGlobal();
                 return;
@@ -1011,13 +942,12 @@
             var contenidoOriginal = resp.respuesta_chat || resp.reply || "";
             var botonesFinales = resp.opciones_botones || resp.options || [];
 
-            // 🛠️ REPARACIÓN: Extractor de botones incrustados en texto plano
             if (botonesFinales.length === 0 && contenidoOriginal.includes('label')) {
                 var arrayMatch = contenidoOriginal.match(/\[\s*\{[\s\S]*\}\s*\]/);
                 if (arrayMatch) {
                     try {
-                        botonesFinales = JSON.parse(arrayMatch[0]); // Convierte el [...] en botones reales
-                        contenidoOriginal = contenidoOriginal.replace(arrayMatch[0], ''); // Saca el JSON del texto
+                        botonesFinales = JSON.parse(arrayMatch[0]);
+                        contenidoOriginal = contenidoOriginal.replace(arrayMatch[0], '');
                     } catch (e) { console.error("🚨 Fallo al parsear botones incrustados:", e); }
                 }
             }
@@ -1046,12 +976,11 @@
             localStorage.setItem("chat_history", JSON.stringify(history));
 
             if (widget.classList.contains("hidden")) { unreadCount++; updateBadge(); }
-            
+
             if (index + 1 < responses.length) {
                 showTyping();
                 setTimeout(() => { stopTyping(); renderSecuencial(index + 1); }, 1500);
             } else {
-                // Si es el último mensaje, no mostramos indicador de escritura y reactivamos los temporizadores de inactividad de inmediato
                 iniciarTemporizadorInactividad();
                 registrarActividadGlobal();
             }
