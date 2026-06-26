@@ -2,7 +2,11 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-26] - Tolerancia de movimiento direccional (1D) para cancelar grabación
+## [2026-06-26] - Mensaje de error amigable en la comunicación con n8n
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se modificó el texto del bloque `catch` dentro de la función `sendMessage`. En lugar del mensaje técnico frío `"⚠️ Error procesando la respuesta."`, ahora se muestra un texto mucho más amigable y resolutivo para el usuario: `"⚠️ No pudimos procesar tu solicitud. Por favor, intenta enviarla nuevamente."`.## [2026-06-26] - Tolerancia de movimiento direccional (1D) para cancelar grabación
 
 ### Cambios Realizados:
 - **Frontend - Lógica (script_widget.js):**

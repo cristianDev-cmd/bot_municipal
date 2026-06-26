@@ -987,7 +987,7 @@
         } catch (err) {
             console.error("🚨 DETALLE DEL ERROR:", err);
             stopTyping();
-            renderChatElement({ role: "assistant", content: "⚠️ Error procesando la respuesta." });
+            renderChatElement({ role: "assistant", content: "⚠️ No pudimos procesar tu solicitud. Por favor, intenta enviarla nuevamente." });
             // Reanudamos control si falla el server
             iniciarTemporizadorInactividad();
         }
