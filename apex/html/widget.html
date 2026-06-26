@@ -15,6 +15,7 @@
         align-items: center !important;
         cursor: pointer !important;
     }
+
     #chatLauncher .image-container {
         width: 100% !important;
         height: 100% !important;
@@ -24,6 +25,7 @@
         background: #fff !important;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
     }
+
     #chatLauncher .bot_flotante {
         width: 100% !important;
         height: 100% !important;
@@ -80,8 +82,7 @@
         </div>
     </div>
 
-    <div id="chatMessages" class="chat-messages">
-    </div>
+    <div id="chatMessages" class="chat-messages"></div>
 
     <div class="chat-input-area">
         <div id="textInputContainer" class="input-mode active">
@@ -92,44 +93,13 @@
                 </svg>
             </button>
             <button id="btnMic" type="button" class="chat-mic-btn">🎤</button>
-            <button id="btnCancelAudio" type="button" class="chat-cancel-btn" title="Cancelar grabación"
-                style="display: none;"></button>
-            <div id="slideCancelIndicator" class="slide-cancel-indicator">
-                <span class="slide-cancel-trash">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#ffffff"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                </span>
-                <div class="hold-info">
-                    <span id="holdTimer" class="rec-timer">
-                        <span class="rec-dot"></span>
-                        <span id="holdTimerText">0:00</span>
-                    </span>
-                    <div class="hold-waves rec-waves">
-                        <span class="rec-wave-bar"></span>
-                        <span class="rec-wave-bar"></span>
-                        <span class="rec-wave-bar"></span>
-                        <span class="rec-wave-bar"></span>
-                        <span class="rec-wave-bar"></span>
-                        <span class="rec-wave-bar"></span>
-                        <span class="rec-wave-bar"></span>
-                        <span class="rec-wave-bar"></span>
-                        <span class="rec-wave-bar"></span>
-                        <span class="rec-wave-bar"></span>
-                    </div>
-                    <div class="slide-cancel-action">
-                        <span class="slide-cancel-arrow">&lt;&lt;&lt;</span>
-                        <span class="slide-cancel-text">Deslizar para borrar</span>
-                    </div>
-                </div>
-            </div>
-            <div id="slideCancelLock" class="slide-cancel-lock">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-            </div>
-
         </div>
 
         <div id="recordingContainer" class="input-mode recording-mode">
             <button id="btnRecDelete" type="button" class="rec-action-btn rec-delete-btn" title="Cancelar grabación">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </svg>
             </button>
             <div class="rec-info">
                 <span id="recTimer" class="rec-timer">
@@ -160,7 +130,9 @@
                 </div>
             </div>
             <button id="btnRecSend" type="button" class="rec-action-btn rec-send-btn" title="Enviar audio">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
             </button>
         </div>
 

@@ -2,9 +2,10 @@
     var webhookUrl = "https://n8n-asistentevirtual.lasheras.gob.ar/webhook/chat_apex2";
 
     // --- CONFIGURACIÓN DE TIEMPOS (MILISEGUNDOS) ---
-    var INACTIVITY_TIME = 3 * 60 * 1000;
-    var SESSION_TIMEOUT = 60 * 60 * 1000;
+    var INACTIVITY_TIME = 3 * 60 * 1000;   // 3 minutos para estrellas
+    var SESSION_TIMEOUT = 60 * 60 * 1000;  // 1 hora para resetear sesión
 
+    // ⏱️ VALIDACIÓN PASIVA INICIAL
     var lastActivity = localStorage.getItem("chat_last_activity");
     var hasHistory = localStorage.getItem("chat_history");
     if (hasHistory && (!lastActivity || (Date.now() - parseInt(lastActivity) > SESSION_TIMEOUT))) {
@@ -14,14 +15,13 @@
     }
 
     // --- ELEMENTOS UI ---
-    var launcher, widget, btnClose, btnClear, btnHome, btnSend, btnMic, btnCancelAudio, input, messages, badge;
+    var launcher, widget, btnClose, btnClear, btnHome, btnSend, btnMic, input, messages, badge;
     var recordingContainer, btnRecDelete, btnRecSend, recTimerText;
     var textContainer, ratingContainer, closeRatingBtn, stars;
 
-    // --- ÍCONOS SVG ---
-    var iconMicWhite = `<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>`;
-    var iconStopWhite = `<svg viewBox="0 0 24 24" width="18" height="18" fill="#ffffff"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"/></svg>`;
-    var iconTrashWhite = `<svg viewBox="0 0 24 24" width="22" height="22" fill="#ffffff"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+    // --- ÍCONOS SVG BLANCOS ---
+    var iconMicWhite = '<svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>';
+    var iconStopWhite = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#ffffff"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"/></svg>';
 
     // --- ESTADO ---
     var sessionId = localStorage.getItem("chat_session_id") || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (function () {
@@ -47,22 +47,22 @@
     var pressStartTime = 0;
     var isRecordingCancelled = false;
     var recordingStartTime = 0;
+    var isSlideCancelled = false;
 
-    // --- VARIABLES TIMER GRABACIÓN ---
+    // --- TIMER DE GRABACIÓN ---
     var recTimerInterval;
     var recSeconds = 0;
 
-    // --- VARIABLES INACTIVIDAD ---
+    // --- TEMPORIZADORES DE INACTIVIDAD ---
     var inactivityTimer;
     var sessionTimer;
 
     // ==========================================
-    // --- LÓGICA DE CONTROL DE INACTIVIDAD ---
+    // --- LÓGICA DE INACTIVIDAD ---
     // ==========================================
     function iniciarTemporizadorInactividad() {
         clearTimeout(inactivityTimer);
         if (userRating > 0 || (ratingContainer && ratingContainer.classList.contains('active'))) return;
-
         inactivityTimer = setTimeout(function () {
             if (widget && !widget.classList.contains("hidden") && history.length > 1) {
                 showRatingSystem();
@@ -73,7 +73,6 @@
     function registrarActividadGlobal() {
         localStorage.setItem("chat_last_activity", Date.now());
         clearTimeout(sessionTimer);
-
         sessionTimer = setTimeout(function () {
             if (widget && !widget.classList.contains("hidden")) {
                 renderChatElement({ role: "assistant", content: "⏱️ Sesión expirada por inactividad. Reiniciando chat..." });
@@ -83,11 +82,10 @@
     }
 
     // ==========================================
-    // --- LÓGICA DE ALTERNANCIA DE BOTONES ---
+    // --- ALTERNANCIA BOTONES MIC/ENVIAR ---
     // ==========================================
     function toggleInputButtons() {
         if (!btnSend || !btnMic) return;
-
         if (input.value.trim().length > 0) {
             btnMic.classList.add('hidden');
             btnSend.classList.remove('hidden');
@@ -97,19 +95,14 @@
         }
     }
 
-    // --- VARIABLES DE SLIDE-TO-CANCEL ---
-    var holdStartX = 0;
-    var holdStartY = 0;
-    var SLIDE_CANCEL_THRESHOLD = 80;
-    var slideCancelIndicator, slideCancelLock;
-    var isSlideCancelled = false;
-    var slideCancelActive = false;
-
+    // ==========================================
+    // --- DETECCIÓN: ¿EL DEDO ESTÁ SOBRE EL TACHO?
+    // ==========================================
     function isOverTrash(clientX, clientY) {
-        var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
-        if (!targetTrash || targetTrash.offsetWidth === 0) return false;
-        var rect = targetTrash.getBoundingClientRect();
-        var padding = 15;
+        if (!btnRecDelete || btnRecDelete.offsetWidth === 0) return false;
+        var rect = btnRecDelete.getBoundingClientRect();
+        // Padding generoso para que sea fácil en móvil
+        var padding = 25;
         return (
             clientX >= rect.left - padding &&
             clientX <= rect.right + padding &&
@@ -118,10 +111,43 @@
         );
     }
 
-    // --- MANEJO DE EVENTOS DE PRESIÓN ---
+    // ==========================================
+    // --- ESTADO VISUAL DEL DRAG-TO-CANCEL ---
+    // ==========================================
+    function updateCancelVisualState(overTrash) {
+        if (overTrash && !isSlideCancelled) {
+            isSlideCancelled = true;
+            if (navigator.vibrate) navigator.vibrate(30);
+        } else if (!overTrash && isSlideCancelled) {
+            isSlideCancelled = false;
+        }
+
+        // Resaltar tacho
+        if (btnRecDelete) {
+            if (overTrash) btnRecDelete.classList.add('trash-hovered');
+            else btnRecDelete.classList.remove('trash-hovered');
+        }
+
+        // Clase cancel-pending en el contenedor (cambia colores, muestra "Soltar para cancelar")
+        if (recordingContainer) {
+            if (overTrash) recordingContainer.classList.add('cancel-pending');
+            else recordingContainer.classList.remove('cancel-pending');
+        }
+    }
+
+    function resetCancelVisualState() {
+        isSlideCancelled = false;
+        if (btnRecDelete) btnRecDelete.classList.remove('trash-hovered');
+        if (recordingContainer) recordingContainer.classList.remove('cancel-pending');
+    }
+
+    // ==========================================
+    // --- PRESS / HOLD / TAP HANDLERS ---
+    // ==========================================
     function startPress(e) {
         if (e) e.preventDefault();
 
+        // Forzar detención de grabaciones previas en cola
         if (stopTimeout) {
             clearTimeout(stopTimeout);
             stopTimeout = null;
@@ -131,28 +157,17 @@
         pressStartTime = Date.now();
         isHolding = false;
         isSlideCancelled = false;
-        slideCancelActive = false;
         recordingShouldStop = false;
 
-        if (e && e.clientX !== undefined) {
-            holdStartX = e.clientX;
-            holdStartY = e.clientY;
-        } else if (e && e.touches && e.touches[0]) {
-            holdStartX = e.touches[0].clientX;
-            holdStartY = e.touches[0].clientY;
-        }
-
-        // Tiempo para diferenciar tap de hold
+        // Después de 100ms sin soltar → modo hold
         recordTimeout = setTimeout(function () {
             isHolding = true;
             if (!isRecording && !isStartingRecording) startRecording(true);
-        }, 150);
+        }, 100);
     }
 
     function endPress(e) {
         if (!pressStartTime) return;
-        if (e && e.cancelable) e.preventDefault();
-
         clearTimeout(recordTimeout);
         var pressDuration = Date.now() - pressStartTime;
         pressStartTime = 0;
@@ -160,141 +175,56 @@
         if (isHolding) {
             isHolding = false;
             if (isRecording) {
-                if (isSlideCancelled) {
-                    cancelRecording();
-                } else {
-                    // Enviar automáticamente al soltar
-                    stopRecording();
-                }
+                if (isSlideCancelled) cancelRecording();
+                else stopRecording();
             } else if (isStartingRecording) {
                 recordingShouldStop = isSlideCancelled ? 'cancel' : 'stop';
             }
-            hideSlideCancelUI();
+            resetCancelVisualState();
         } else {
-            // Tap corto: toggle tradicional
-            if (pressDuration < 150) toggleRecording();
+            // Tap corto (< 100ms): toggle tradicional
+            if (pressDuration < 100) toggleRecording();
         }
     }
 
     function handleTouchEnd(e) {
-        endPress(e);
-    }
-
-    function cancelPress(e) {
-        if (!pressStartTime && !isHolding && !isRecording) return;
+        if (!pressStartTime) return;
+        if (e && e.cancelable) e.preventDefault();
         clearTimeout(recordTimeout);
+        var pressDuration = Date.now() - pressStartTime;
         pressStartTime = 0;
 
         if (isHolding) {
             isHolding = false;
             if (isRecording) {
-                if (isSlideCancelled) {
-                    cancelRecording();
-                } else {
-                    stopRecording();
-                }
+                if (isSlideCancelled) cancelRecording();
+                else stopRecording();
             } else if (isStartingRecording) {
                 recordingShouldStop = isSlideCancelled ? 'cancel' : 'stop';
             }
+            resetCancelVisualState();
+        } else {
+            if (pressDuration < 100) toggleRecording();
         }
-        hideSlideCancelUI();
     }
 
-    // --- MANEJO DE MOVIMIENTO (SLIDE TO CANCEL) ---
     function handleMouseMove(e) {
         if ((!isRecording && !isStartingRecording) || !isHolding) return;
-        processSlideMove(e.clientX, e.clientY);
+        var overTrash = isOverTrash(e.clientX, e.clientY);
+        updateCancelVisualState(overTrash);
     }
 
     function handleTouchMove(e) {
         if ((!isRecording && !isStartingRecording) || !isHolding) return;
         if (e && e.cancelable) e.preventDefault();
-        if (e.touches && e.touches[0]) {
-            processSlideMove(e.touches[0].clientX, e.touches[0].clientY);
-        }
+        var touch = e.touches[0];
+        var overTrash = isOverTrash(touch.clientX, touch.clientY);
+        updateCancelVisualState(overTrash);
     }
 
-    function processSlideMove(clientX, clientY) {
-        var deltaX = holdStartX - clientX;
-        var deltaY = Math.abs(holdStartY - clientY);
-
-        // Solo activar si desliza predominantemente a la izquierda
-        if (deltaX > 10 && deltaX > deltaY) {
-            slideCancelActive = true;
-            var distance = deltaX > 0 ? deltaX : 0;
-            updateSlideCancelState(distance);
-        } else if (slideCancelActive && deltaX < 10) {
-            // Volvió a la posición original
-            slideCancelActive = false;
-            updateSlideCancelState(0);
-        }
-
-        var targetTrash = (btnRecDelete && btnRecDelete.offsetWidth > 0) ? btnRecDelete : btnCancelAudio;
-        if (!targetTrash) return;
-        if (isOverTrash(clientX, clientY)) targetTrash.classList.add('trash-hovered');
-        else targetTrash.classList.remove('trash-hovered');
-    }
-
-    // --- UI SLIDE TO CANCEL ---
-    function updateSlideCancelState(distance) {
-        if (!slideCancelIndicator) slideCancelIndicator = document.getElementById('slideCancelIndicator');
-        if (!slideCancelLock) slideCancelLock = document.getElementById('slideCancelLock');
-
-        var trash = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-trash') : null;
-        var slideAction = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-action') : null;
-
-        var progress = Math.max(0, Math.min(distance / SLIDE_CANCEL_THRESHOLD, 1));
-
-        if (trash) {
-            var scale = 1 + progress * 0.4;
-            trash.style.transform = 'scale(' + scale + ')';
-            trash.style.backgroundColor = progress > 0.85 ? '#dc2626' : '#ef4444';
-        }
-
-        if (slideAction) {
-            var translate = -progress * 25;
-            slideAction.style.transform = 'translateX(' + translate + 'px)';
-            slideAction.style.opacity = 1 - progress * 0.8;
-        }
-
-        if (distance >= SLIDE_CANCEL_THRESHOLD) {
-            isSlideCancelled = true;
-            if (slideCancelIndicator) slideCancelIndicator.classList.remove('visible');
-            if (slideCancelLock) slideCancelLock.classList.add('visible');
-            if (navigator.vibrate) navigator.vibrate(30);
-        } else {
-            isSlideCancelled = false;
-            if (slideCancelLock) slideCancelLock.classList.remove('visible');
-            if (slideCancelIndicator && isHolding) slideCancelIndicator.classList.add('visible');
-        }
-    }
-
-    function showSlideCancelUI() {
-        if (!slideCancelIndicator) slideCancelIndicator = document.getElementById('slideCancelIndicator');
-        if (slideCancelIndicator) slideCancelIndicator.classList.add('visible');
-    }
-
-    function hideSlideCancelUI() {
-        if (!slideCancelIndicator) slideCancelIndicator = document.getElementById('slideCancelIndicator');
-        if (!slideCancelLock) slideCancelLock = document.getElementById('slideCancelLock');
-        if (slideCancelIndicator) slideCancelIndicator.classList.remove('visible');
-        if (slideCancelLock) slideCancelLock.classList.remove('visible');
-
-        var trash = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-trash') : null;
-        var slideAction = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-action') : null;
-        if (trash) {
-            trash.style.transform = '';
-            trash.style.backgroundColor = '';
-        }
-        if (slideAction) {
-            slideAction.style.transform = '';
-            slideAction.style.opacity = '';
-        }
-
-        isSlideCancelled = false;
-        slideCancelActive = false;
-    }
-
+    // ==========================================
+    // --- TOGGLE GRABACIÓN (modo tap) ---
+    // ==========================================
     async function toggleRecording() {
         if (isRecording) stopRecording();
         else startRecording(false);
@@ -303,12 +233,14 @@
     // ==========================================
     // --- UI DE GRABACIÓN ESTILO WHATSAPP ---
     // ==========================================
-    function showRecordingUI() {
+    function showRecordingUI(isHoldMode) {
         if (textContainer) {
             textContainer.classList.remove('active');
             textContainer.classList.add('hidden-mode');
         }
         if (recordingContainer) {
+            if (isHoldMode) recordingContainer.classList.add('hold-mode');
+            else recordingContainer.classList.remove('hold-mode');
             recordingContainer.classList.remove('hidden-mode');
             setTimeout(function () { recordingContainer.classList.add('active'); }, 30);
         }
@@ -318,7 +250,7 @@
     function hideRecordingUI() {
         stopRecTimer();
         if (recordingContainer) {
-            recordingContainer.classList.remove('active');
+            recordingContainer.classList.remove('active', 'hold-mode', 'cancel-pending');
             setTimeout(function () {
                 recordingContainer.classList.add('hidden-mode');
             }, 300);
@@ -337,15 +269,12 @@
     function startRecTimer() {
         recSeconds = 0;
         if (recTimerText) recTimerText.textContent = '0:00';
-        var holdTimerText = document.getElementById('holdTimerText');
-        if (holdTimerText) holdTimerText.textContent = '0:00';
         recTimerInterval = setInterval(function () {
             recSeconds++;
             var m = Math.floor(recSeconds / 60);
             var s = recSeconds % 60;
             var formatted = m + ':' + (s < 10 ? '0' : '') + s;
             if (recTimerText) recTimerText.textContent = formatted;
-            if (holdTimerText) holdTimerText.textContent = formatted;
         }, 1000);
     }
 
@@ -353,30 +282,22 @@
         clearInterval(recTimerInterval);
         recSeconds = 0;
         if (recTimerText) recTimerText.textContent = '0:00';
-        var holdTimerText = document.getElementById('holdTimerText');
-        if (holdTimerText) holdTimerText.textContent = '0:00';
     }
 
     function resetRecordingUI() {
-        if (textContainer) {
-            textContainer.classList.remove('recording-hold-active');
-        }
-        if (btnCancelAudio) {
-            btnCancelAudio.style.display = 'none';
-            btnCancelAudio.classList.remove('trash-hovered');
-        }
         if (btnMic) {
             btnMic.classList.remove('recording-active');
             btnMic.innerHTML = iconMicWhite;
         }
-        if (input) {
-            input.placeholder = "Escribe un mensaje...";
-        }
+        if (input) input.placeholder = "Escribe un mensaje...";
         toggleInputButtons();
-        hideSlideCancelUI();
+        resetCancelVisualState();
         hideRecordingUI();
     }
 
+    // ==========================================
+    // --- LÓGICA DE GRABACIÓN ---
+    // ==========================================
     async function startRecording(isHoldMode) {
         if (isRecording || isStartingRecording) return;
         isStartingRecording = true;
@@ -386,36 +307,36 @@
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
+            // Si el usuario soltó mientras pedíamos permisos
             if (recordingShouldStop) {
                 var action = recordingShouldStop;
-                if (action === 'cancel') {
-                    recordingShouldStop = false;
-                    isStartingRecording = false;
-                    stream.getTracks().forEach(track => track.stop());
-                    resetRecordingUI();
-                    return;
-                }
+                recordingShouldStop = false;
+                isStartingRecording = false;
+                stream.getTracks().forEach(function (track) { track.stop(); });
+                resetRecordingUI();
+                return;
             }
 
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
 
-            mediaRecorder.ondataavailable = function (e) { if (e.data.size > 0) audioChunks.push(e.data); };
+            mediaRecorder.ondataavailable = function (e) {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
 
             mediaRecorder.onstop = async function () {
                 if (isRecordingCancelled) {
-                    stream.getTracks().forEach(track => track.stop());
+                    stream.getTracks().forEach(function (track) { track.stop(); });
                     audioChunks = [];
                     return;
                 }
-
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 if (audioBlob.size > 0) {
                     const base64Audio = await blobToBase64(audioBlob);
-                    stream.getTracks().forEach(track => track.stop());
+                    stream.getTracks().forEach(function (track) { track.stop(); });
                     sendMessage(null, "🎤 Su Mensaje", null, base64Audio);
                 } else {
-                    stream.getTracks().forEach(track => track.stop());
+                    stream.getTracks().forEach(function (track) { track.stop(); });
                 }
             };
 
@@ -424,32 +345,21 @@
             isStartingRecording = false;
             isRecording = true;
 
-            if (btnMic) {
-                btnMic.classList.add('recording-active');
-                btnMic.innerHTML = iconMicWhite;
-            }
-            if (input) {
-                input.placeholder = "Grabando audio...";
-            }
-
             if (isHoldMode) {
-                if (textContainer) textContainer.classList.add('recording-hold-active');
-                showSlideCancelUI();
-                startRecTimer();
+                // 🎙️ MODO HOLD: mostrar la misma UI que tap, con clase hold-mode
+                showRecordingUI(true);
             } else {
+                // 🎙️ MODO TAP: mostrar UI con botones, ícono de stop en el mic
                 if (btnMic) btnMic.innerHTML = iconStopWhite;
-                if (btnCancelAudio) btnCancelAudio.style.display = 'flex';
-                showRecordingUI();
+                showRecordingUI(false);
             }
 
+            // Si se soltó justo después de iniciar
             if (recordingShouldStop) {
                 var finalAction = recordingShouldStop;
                 recordingShouldStop = false;
-                if (finalAction === 'cancel') {
-                    cancelRecording();
-                } else {
-                    stopRecording();
-                }
+                if (finalAction === 'cancel') cancelRecording();
+                else stopRecording();
             }
         } catch (err) {
             isStartingRecording = false;
@@ -461,8 +371,7 @@
 
     function stopRecording() {
         var elapsed = Date.now() - recordingStartTime;
-        var minDuration = 400; // ms mínimos para asegurar chunks
-
+        var minDuration = 600;
         if (elapsed < minDuration) {
             stopTimeout = setTimeout(function () {
                 realStopRecording();
@@ -477,19 +386,9 @@
             clearTimeout(stopTimeout);
             stopTimeout = null;
         }
-
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
-        } else if (audioChunks.length > 0 && !isRecordingCancelled) {
-            // Fallback de seguridad por si el recorder se detuvo inesperadamente
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            if (audioBlob.size > 0) {
-                blobToBase64(audioBlob).then(base64Audio => {
-                    sendMessage(null, "🎤 Su Mensaje", null, base64Audio);
-                });
-            }
         }
-
         isRecording = false;
         resetRecordingUI();
     }
@@ -508,14 +407,17 @@
     }
 
     function blobToBase64(blob) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
+        return new Promise(function (resolve, reject) {
+            var reader = new FileReader();
+            reader.onloadend = function () { resolve(reader.result); };
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
     }
 
+    // ==========================================
+    // --- BLOQUEO / DESBLOQUEO DEL CHAT ---
+    // ==========================================
     function bloquearChat() {
         if (input) { input.readOnly = true; input.placeholder = "Gregorio está procesando..."; }
         if (btnSend) { btnSend.disabled = true; btnSend.style.opacity = "0.5"; btnSend.style.pointerEvents = "none"; }
@@ -538,7 +440,9 @@
         if (inputArea) inputArea.scrollTop = 0;
     }
 
+    // ==========================================
     // --- RATING Y ESTRELLAS ---
+    // ==========================================
     function highlightStars(value) {
         stars.forEach(function (s) {
             if (s.dataset.value <= value) s.classList.add('hovered');
@@ -549,11 +453,9 @@
     async function submitRating(value) {
         hideRatingSystem();
         showTyping();
-
         var cleanHistory = history.map(function (m) {
             return { role: m.role, content: m.content, timestamp: m.timestamp };
         });
-
         try {
             var res = await fetch(webhookUrl, {
                 method: "POST",
@@ -566,14 +468,11 @@
                     history: cleanHistory
                 })
             });
-
             if (!res.ok) throw new Error("HTTP error " + res.status);
-
             var rawText = await res.text();
             var data = JSON.parse(rawText);
             stopTyping();
             processResponse(data, true);
-
         } catch (err) {
             console.error("❌ Error al guardar la valoración:", err);
             stopTyping();
@@ -586,131 +485,38 @@
         textContainer.classList.remove('active');
         textContainer.classList.add('hidden-mode');
         ratingContainer.classList.remove('hidden-mode');
-        setTimeout(() => ratingContainer.classList.add('active'), 50);
+        setTimeout(function () { ratingContainer.classList.add('active'); }, 50);
     }
 
     function hideRatingSystem() {
         ratingContainer.classList.remove('active');
-        setTimeout(() => {
+        setTimeout(function () {
             textContainer.classList.remove('hidden-mode');
             textContainer.classList.add('active');
             iniciarTemporizadorInactividad();
         }, 300);
     }
 
+    // ==========================================
+    // --- FORMATO DE MAPAS ---
+    // ==========================================
     function formatearEnlacesMapa(texto) {
         if (!texto || texto.indexOf('btn-mapa-flotante') !== -1) return texto;
         if (texto.indexOf('<iframe') !== -1) return texto;
         var mapRegex = /(?:<a[^>]*href=["'])?(https:\/\/(?:www\.)?(?:google\.com\/maps|maps\.app\.goo\.gl|maps\.google\.com)[^\s<"']+)(?:["'][^>]*>.*<\/a>)?/gi;
         return texto.replace(mapRegex, function (match, url) {
             var cleanUrl = url.replace(/[.,;!?)\]]+$/, '');
-            return `<br><br><a href="${cleanUrl}" target="_blank" class="btn-mapa-flotante" style="display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #212529; color: #fff; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; width: 100%; box-sizing: border-box;">Ver ubicación</a>`;
+            return '<br><br><a href="' + cleanUrl + '" target="_blank" class="btn-mapa-flotante" style="display: flex; align-items: center; justify-content: center; gap: 8px; background-color: #212529; color: #fff; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; width: 100%; box-sizing: border-box;">Ver ubicación</a>';
         });
     }
 
-    // --- INICIALIZACIÓN ---
-    function initChat() {
-        launcher = document.getElementById('chatLauncher');
-        widget = document.getElementById('chatWidget');
-        btnClose = document.getElementById('btnClose');
-        btnClear = document.getElementById('btnClear');
-        btnHome = document.getElementById('btnHome');
-        btnSend = document.getElementById('btnSend');
-        btnMic = document.getElementById('btnMic');
-        btnCancelAudio = document.getElementById('btnCancelAudio');
-        input = document.getElementById('userInput');
-        messages = document.getElementById('chatMessages');
-        badge = document.getElementById('notificationBadge');
-
-        recordingContainer = document.getElementById('recordingContainer');
-        btnRecDelete = document.getElementById('btnRecDelete');
-        btnRecSend = document.getElementById('btnRecSend');
-        recTimerText = document.getElementById('recTimerText');
-
-        textContainer = document.getElementById('textInputContainer');
-        ratingContainer = document.getElementById('ratingContainer');
-        closeRatingBtn = document.getElementById('closeRating');
-        stars = document.querySelectorAll('.star');
-
-        if (btnMic) btnMic.innerHTML = iconMicWhite;
-        if (btnCancelAudio) {
-            btnCancelAudio.innerHTML = iconTrashWhite;
-            btnCancelAudio.style.display = 'none';
-        }
-        toggleInputButtons();
-
-        if (input) {
-            input.addEventListener('input', toggleInputButtons);
-            input.addEventListener('blur', function () {
-                if (widget && !widget.classList.contains('hidden')) {
-                    setTimeout(function () {
-                        var activeEl = document.activeElement;
-                        var isControlBtn = activeEl && (
-                            activeEl.closest('.header-controls') ||
-                            activeEl.id === 'btnClose' ||
-                            activeEl.id === 'btnClear' ||
-                            activeEl.id === 'chatLauncher'
-                        );
-                        if (!isControlBtn && input && !input.disabled && document.activeElement !== input) {
-                            input.focus();
-                        }
-                    }, 80);
-                }
-            });
-        }
-
-        if (launcher) launcher.addEventListener('click', toggleChat);
-        if (btnClose) btnClose.addEventListener('click', toggleChat);
-        if (btnClose) btnClose.addEventListener('click', clearChat);
-        if (btnClear) btnClear.addEventListener('click', clearChat);
-        if (btnHome) btnHome.addEventListener('click', goHome);
-        if (btnSend) btnSend.addEventListener('click', function (e) { sendMessage(e); });
-        if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
-        if (closeRatingBtn) closeRatingBtn.addEventListener('click', function (e) { e.preventDefault(); hideRatingSystem(); });
-        if (btnCancelAudio) btnCancelAudio.addEventListener('click', cancelRecording);
-
-        if (btnRecDelete) btnRecDelete.addEventListener('click', cancelRecording);
-        if (btnRecSend) btnRecSend.addEventListener('click', stopRecording);
-
-        // --- EVENT LISTENERS MICRÓFONO (con capture:true para evitar bloqueos externos) ---
-        if (btnMic) {
-            btnMic.addEventListener('mousedown', startPress);
-            document.addEventListener('mouseup', endPress, true);
-            document.addEventListener('mousemove', handleMouseMove, true);
-
-            btnMic.addEventListener('touchstart', function (e) { e.preventDefault(); startPress(e); }, { passive: false });
-            document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
-            document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
-            btnMic.addEventListener('touchcancel', cancelPress);
-        }
-
-        if (stars) {
-            stars.forEach(function (star) {
-                star.addEventListener('mouseover', function () { highlightStars(this.dataset.value); });
-                star.addEventListener('mouseout', function () { highlightStars(userRating); });
-                star.addEventListener('click', function () {
-                    userRating = this.dataset.value;
-                    highlightStars(userRating);
-                    submitRating(userRating);
-                });
-            });
-        }
-
-        if (messages && history) {
-            history.forEach(function (m) { renderChatElement(m); });
-        }
-    }
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initChat);
-    } else {
-        initChat();
-    }
-
+    // ==========================================
+    // --- RENDERIZADO DE MENSAJES ---
+    // ==========================================
     function renderChatElement(msg) {
-        const textoValido = msg.content && String(msg.content).trim() !== "";
-        const tieneBotones = msg.options && Array.isArray(msg.options) && msg.options.length > 0;
-        const tieneMedia = msg.image || msg.audio;
+        var textoValido = msg.content && String(msg.content).trim() !== "";
+        var tieneBotones = msg.options && Array.isArray(msg.options) && msg.options.length > 0;
+        var tieneMedia = msg.image || msg.audio;
 
         if (!textoValido && !tieneBotones && !tieneMedia) return;
 
@@ -732,7 +538,8 @@
         if (msg.image) {
             var img = document.createElement("img");
             img.src = msg.image;
-            img.style.maxWidth = "100%"; img.style.borderRadius = "8px";
+            img.style.maxWidth = "100%";
+            img.style.borderRadius = "8px";
             img.onload = scrollToBottom;
             div.appendChild(img);
         }
@@ -745,7 +552,7 @@
             audioPlayer.style.width = "100%";
             audioPlayer.style.marginTop = "8px";
             div.appendChild(audioPlayer);
-            if (msg.role === 'bot') setTimeout(() => audioPlayer.play().catch(e => { }), 300);
+            if (msg.role === 'bot') setTimeout(function () { audioPlayer.play().catch(function () { }); }, 300);
         }
 
         if (tieneBotones) {
@@ -764,7 +571,7 @@
                 var btn = document.createElement("button");
                 btn.className = "chat-option-btn";
                 btn.innerHTML = (url ? '🔗 ' : '🔹 ') + label;
-                btn.onclick = (e) => {
+                btn.onclick = function (e) {
                     e.preventDefault();
                     if (url) window.open(url, '_blank');
                     else sendMessage(null, label, id);
@@ -786,6 +593,140 @@
         scrollToBottom();
     }
 
+    // ==========================================
+    // --- INICIALIZACIÓN ---
+    // ==========================================
+    function initChat() {
+        // --- ASIGNACIÓN DE ELEMENTOS UI ---
+        launcher = document.getElementById('chatLauncher');
+        widget = document.getElementById('chatWidget');
+        btnClose = document.getElementById('btnClose');
+        btnClear = document.getElementById('btnClear');
+        btnHome = document.getElementById('btnHome');
+        btnSend = document.getElementById('btnSend');
+        btnMic = document.getElementById('btnMic');
+        input = document.getElementById('userInput');
+        messages = document.getElementById('chatMessages');
+        badge = document.getElementById('notificationBadge');
+
+        // --- ASIGNACIÓN DE ELEMENTOS GRABACIÓN ---
+        recordingContainer = document.getElementById('recordingContainer');
+        btnRecDelete = document.getElementById('btnRecDelete');
+        btnRecSend = document.getElementById('btnRecSend');
+        recTimerText = document.getElementById('recTimerText');
+
+        // --- ASIGNACIÓN DE ELEMENTOS RATING ---
+        textContainer = document.getElementById('textInputContainer');
+        ratingContainer = document.getElementById('ratingContainer');
+        closeRatingBtn = document.getElementById('closeRating');
+        stars = document.querySelectorAll('.star');
+
+        // --- CONFIGURACIÓN INICIAL ---
+        if (btnMic) btnMic.innerHTML = iconMicWhite;
+        toggleInputButtons();
+
+        // --- CREAR ELEMENTOS DINÁMICOS PARA MODO HOLD ---
+        if (recordingContainer) {
+            // "Soltar para enviar" a la derecha (donde estaría el botón enviar)
+            var releaseHint = document.createElement('span');
+            releaseHint.className = 'rec-release-hint';
+            releaseHint.textContent = 'Soltar para enviar ▶';
+            recordingContainer.appendChild(releaseHint);
+
+            // "Soltar para cancelar" dentro del timer (se muestra al estar sobre el tacho)
+            var recTimer = document.getElementById('recTimer');
+            if (recTimer) {
+                var cancelHint = document.createElement('span');
+                cancelHint.className = 'rec-cancel-hint';
+                cancelHint.textContent = 'Soltar para cancelar ✕';
+                recTimer.appendChild(cancelHint);
+            }
+        }
+
+        // --- EVENT LISTENERS: INPUT ---
+        if (input) {
+            input.addEventListener('input', toggleInputButtons);
+            input.addEventListener('blur', function () {
+                if (widget && !widget.classList.contains('hidden')) {
+                    setTimeout(function () {
+                        var activeEl = document.activeElement;
+                        var isControlBtn = activeEl && (
+                            activeEl.closest('.header-controls') ||
+                            activeEl.id === 'btnClose' ||
+                            activeEl.id === 'btnClear' ||
+                            activeEl.id === 'chatLauncher'
+                        );
+                        if (!isControlBtn && input && !input.disabled && document.activeElement !== input) {
+                            input.focus();
+                        }
+                    }, 80);
+                }
+            });
+        }
+
+        // --- EVENT LISTENERS: UI GENERAL ---
+        if (launcher) launcher.addEventListener('click', toggleChat);
+        if (btnClose) btnClose.addEventListener('click', toggleChat);
+        if (btnClose) btnClose.addEventListener('click', clearChat);
+        if (btnClear) btnClear.addEventListener('click', clearChat);
+        if (btnHome) btnHome.addEventListener('click', goHome);
+        if (btnSend) btnSend.addEventListener('click', function (e) { sendMessage(e); });
+        if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
+        if (closeRatingBtn) closeRatingBtn.addEventListener('click', function (e) { e.preventDefault(); hideRatingSystem(); });
+
+        // --- EVENT LISTENERS: GRABACIÓN WHATSAPP (botones) ---
+        if (btnRecDelete) btnRecDelete.addEventListener('click', cancelRecording);
+        if (btnRecSend) btnRecSend.addEventListener('click', stopRecording);
+
+        // --- EVENT LISTENERS: MICRÓFONO (press/hold/tap) ---
+        if (btnMic) {
+            // Mouse
+            btnMic.addEventListener('mousedown', startPress);
+            document.addEventListener('mouseup', endPress);
+            document.addEventListener('mousemove', handleMouseMove);
+
+            // Touch
+            btnMic.addEventListener('touchstart', function (e) { e.preventDefault(); startPress(e); }, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd, { passive: false });
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+            // ✅ FIX PRINCIPAL: touchcancel a nivel documento, NO en el botón.
+            // Antes estaba en btnMic y al mover el dedo un poco fuera del botón
+            // (40px) el navegador disparaba touchcancel → cancelPress →
+            // limpiaba el timeout → la grabación nunca empezaba.
+            // Ahora tratamos touchcancel como un release normal (envía el audio).
+            document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+        }
+
+        // --- EVENT LISTENERS: ESTRELLAS ---
+        if (stars) {
+            stars.forEach(function (star) {
+                star.addEventListener('mouseover', function () { highlightStars(this.dataset.value); });
+                star.addEventListener('mouseout', function () { highlightStars(userRating); });
+                star.addEventListener('click', function () {
+                    userRating = this.dataset.value;
+                    highlightStars(userRating);
+                    submitRating(userRating);
+                });
+            });
+        }
+
+        // --- RENDERIZAR HISTORIAL ---
+        if (messages && history) {
+            history.forEach(function (m) { renderChatElement(m); });
+        }
+    }
+
+    // --- CARGA SEGURA ---
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initChat);
+    } else {
+        initChat();
+    }
+
+    // ==========================================
+    // --- APERTURA / CIERRE DEL CHAT ---
+    // ==========================================
     function toggleChat() {
         if (widget.classList.contains("hidden")) {
             widget.classList.remove("hidden");
@@ -811,11 +752,17 @@
         }
     }
 
-    function scrollToBottom() { setTimeout(() => messages.scrollTop = messages.scrollHeight, 50); }
+    function scrollToBottom() {
+        setTimeout(function () { messages.scrollTop = messages.scrollHeight; }, 50);
+    }
 
     function updateBadge() {
-        if (unreadCount > 0) { badge.textContent = unreadCount > 9 ? "+9" : unreadCount; badge.classList.remove("hidden"); }
-        else badge.classList.add("hidden");
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount > 9 ? "+9" : unreadCount;
+            badge.classList.remove("hidden");
+        } else {
+            badge.classList.add("hidden");
+        }
     }
 
     function goHome() {
@@ -846,11 +793,12 @@
         renderChatElement(welcomeMsg);
         history.push(welcomeMsg);
         localStorage.setItem("chat_history", JSON.stringify(history));
-
         iniciarTemporizadorInactividad();
     }
 
+    // ==========================================
     // --- COMUNICACIÓN CON N8N ---
+    // ==========================================
     async function sendStartSignal() {
         showTyping();
         try {
@@ -882,7 +830,6 @@
 
         var userMsg = { role: "user", content: val, audio: audioBase64 || null, timestamp: new Date().toISOString() };
         renderChatElement(userMsg);
-
         history.push(userMsg);
         if (history.length > 40) history = history.slice(history.length - 40);
         localStorage.setItem("chat_history", JSON.stringify(history));
@@ -927,6 +874,9 @@
         }
     }
 
+    // ==========================================
+    // --- PROCESAMIENTO UNIFICADO ---
+    // ==========================================
     function processResponse(data, isMainMenu) {
         var responses = data.paqueteMensajes ? data.paqueteMensajes : (Array.isArray(data) ? data : [data]);
 
@@ -942,6 +892,7 @@
             var contenidoOriginal = resp.respuesta_chat || resp.reply || "";
             var botonesFinales = resp.opciones_botones || resp.options || [];
 
+            // 🛠️ Extractor de botones incrustados en texto plano
             if (botonesFinales.length === 0 && contenidoOriginal.includes('label')) {
                 var arrayMatch = contenidoOriginal.match(/\[\s*\{[\s\S]*\}\s*\]/);
                 if (arrayMatch) {
@@ -979,7 +930,7 @@
 
             if (index + 1 < responses.length) {
                 showTyping();
-                setTimeout(() => { stopTyping(); renderSecuencial(index + 1); }, 1500);
+                setTimeout(function () { stopTyping(); renderSecuencial(index + 1); }, 1500);
             } else {
                 iniciarTemporizadorInactividad();
                 registrarActividadGlobal();
@@ -988,13 +939,21 @@
         renderSecuencial(0);
     }
 
+    // ==========================================
+    // --- TYPING INDICATOR ---
+    // ==========================================
     function showTyping() {
         if (document.getElementById("typing-indicator")) return;
         var div = document.createElement("div");
-        div.id = "typing-indicator"; div.className = "typing-indicator";
+        div.id = "typing-indicator";
+        div.className = "typing-indicator";
         div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
-        messages.appendChild(div); scrollToBottom();
+        messages.appendChild(div);
+        scrollToBottom();
     }
 
-    function stopTyping() { var el = document.getElementById("typing-indicator"); if (el) el.remove(); }
+    function stopTyping() {
+        var el = document.getElementById("typing-indicator");
+        if (el) el.remove();
+    }
 })();

@@ -2,7 +2,16 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-26] - Refactorización de código y mejoras en animaciones UI
+## [2026-06-26] - Refactor profundo: Bugfix de touchcancel, compatibilidad ES5 y simplificación de UI de cancelación
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - **Bugfix (touchcancel):** Se movió el listener de `touchcancel` desde el botón del micrófono (`btnMic`) hacia el `document`, asignándole la función `handleTouchEnd`. Esto soluciona el problema crítico donde iOS/Android disparaba un evento de cancelación nativo al arrastrar el dedo unos píxeles fuera del botón, lo que borraba el audio indeseadamente.
+  - **Simplificación de Slide-to-Cancel:** Se eliminó la compleja UI del candado y la flecha de deslizamiento en favor de una interacción más natural: ahora toda la pantalla actúa como un lienzo y deslizar el dedo sobre el botón de papelera (`btnRecDelete`) activa el estado visual de cancelación.
+  - **Compatibilidad:** Se eliminaron las *arrow functions* (`=>`) y los *template literals* (`\``) para asegurar máxima compatibilidad con navegadores antiguos, usando funciones anónimas estándar y concatenación de cadenas.
+- **Frontend - Estilos e Interfaz (styles_widget.css / widget.html):**
+  - Se eliminó el bloque HTML y CSS correspondiente a `.slide-cancel-indicator` y `.slide-cancel-lock`.
+  - Se agregaron textos de ayuda de manera dinámica ("Soltar para enviar" y "Soltar para cancelar") dentro del contenedor de grabación para guiar al usuario.## [2026-06-26] - Refactorización de código y mejoras en animaciones UI
 
 ### Cambios Realizados:
 - **Frontend - Estilos (styles_widget.css):**
