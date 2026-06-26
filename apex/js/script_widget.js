@@ -126,6 +126,10 @@
     }
 
     function startPress(e) {
+        if (e) {
+            // Evitar pérdida de foco en el input para mantener el teclado abierto
+            e.preventDefault();
+        }
         pressStartTime = Date.now();
         isHolding = false;
         isSlideCancelled = false;
@@ -246,7 +250,7 @@
             // Escalar el tacho de basura a medida que nos acercamos a cancelar
             var scale = 1 + progress * 0.4; // De 1x a 1.4x
             trash.style.transform = 'scale(' + scale + ')';
-            trash.style.color = progress > 0.85 ? '#ef4444' : '#666'; // Se vuelve rojo al estar cerca del límite
+            trash.style.backgroundColor = progress > 0.85 ? '#dc2626' : '#ef4444'; // Se vuelve más oscuro al estar cerca del límite
         }
 
         if (slideAction) {
@@ -286,7 +290,7 @@
         var slideAction = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-action') : null;
         if (trash) {
             trash.style.transform = '';
-            trash.style.color = '';
+            trash.style.backgroundColor = '';
         }
         if (slideAction) {
             slideAction.style.transform = '';
@@ -379,6 +383,7 @@
         if (input) {
             input.placeholder = "Escribe un mensaje...";
             input.disabled = false;
+            input.readOnly = false;
         }
         toggleInputButtons();
         hideSlideCancelUI();
@@ -440,7 +445,7 @@
             }
             if (input) {
                 input.placeholder = "Grabando audio...";
-                input.disabled = true;
+                input.readOnly = true;
             }
 
             if (isHoldMode) {
@@ -501,7 +506,7 @@
 
 
     function bloquearChat() {
-        if (input) { input.disabled = true; input.placeholder = "Gregorio está procesando..."; }
+        if (input) { input.readOnly = true; input.placeholder = "Gregorio está procesando..."; }
         if (btnSend) { btnSend.disabled = true; btnSend.style.opacity = "0.5"; btnSend.style.pointerEvents = "none"; }
         if (btnMic) { btnMic.disabled = true; btnMic.style.opacity = "0.5"; btnMic.style.pointerEvents = "none"; }
     }
@@ -509,6 +514,7 @@
     function desbloquearChat() {
         if (input) { 
             input.disabled = false; 
+            input.readOnly = false; 
             input.placeholder = "Escribe un mensaje..."; 
             // Solo enfocar si el contenedor está activo para evitar scroll indeseado
             if (textContainer && !textContainer.classList.contains('hidden-mode')) {
