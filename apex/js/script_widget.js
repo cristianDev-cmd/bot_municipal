@@ -242,6 +242,9 @@
             if (isHoldMode) recordingContainer.classList.add('hold-mode');
             else recordingContainer.classList.remove('hold-mode');
             recordingContainer.classList.remove('hidden-mode');
+            // Actualizar texto según modo
+            var hint = recordingContainer.querySelector('.rec-release-hint');
+            if (hint) hint.textContent = isHoldMode ? 'Soltar para enviar ▶' : 'Presiona ▶ para enviar';
             setTimeout(function () { recordingContainer.classList.add('active'); }, 30);
         }
         startRecTimer();
@@ -630,7 +633,7 @@
             // "Soltar para enviar" a la derecha (donde estaría el botón enviar)
             var releaseHint = document.createElement('span');
             releaseHint.className = 'rec-release-hint';
-            releaseHint.textContent = 'Soltar para enviar ▶';
+            releaseHint.textContent = 'Presiona ▶ para enviar';
             recordingContainer.appendChild(releaseHint);
 
             // "Soltar para cancelar" dentro del timer (se muestra al estar sobre el tacho)

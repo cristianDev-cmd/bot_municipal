@@ -2,6 +2,13 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-26] - Dinamización del texto de ayuda de grabación según el modo de captura (Hold/Tap)
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se modificó la visualización de la interfaz de grabación en `showRecordingUI` para actualizar de forma dinámica el texto de ayuda según si la grabación se inició manteniendo presionado (modo Hold: `"Soltar para enviar ▶"`) o pulsando una vez (modo Tap: `"Presiona ▶ para enviar"`).
+  - Se cambió el texto por defecto en la creación del elemento a `"Presiona ▶ para enviar"`.
+
 ## [2026-06-26] - Corrección de espacio en blanco al abrir teclado móvil mediante limitación de desbordamiento en la entrada
 
 ### Cambios Realizados:
