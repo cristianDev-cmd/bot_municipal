@@ -2,6 +2,12 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-26] - Corrección de espacio en blanco al abrir teclado móvil mediante limitación de desbordamiento en la entrada
+
+### Cambios Realizados:
+- **Frontend - Estilos (styles_widget.css):**
+  - Se modificó la clase `.chat-input-area` para establecer un alto fijo (`height: 62px;`) y ocultar el desbordamiento (`overflow: hidden;`). Esto evita que los contenedores de entrada ocultos (`#textInputContainer`, `#recordingContainer`, `#ratingContainer`) que se trasladan verticalmente hacia abajo con `translateY(100%)` cuando están inactivos generen un área visible fantasma o empujen el viewport de visualización en dispositivos móviles.
+
 ## [2026-06-26] - Refactor profundo: Bugfix de touchcancel, compatibilidad ES5 y simplificación de UI de cancelación
 
 ### Cambios Realizados:

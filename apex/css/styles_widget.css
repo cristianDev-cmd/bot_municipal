@@ -43,10 +43,10 @@
     padding: 10px;
     background: #f0f2f5;
     border-top: 1px solid #ddd;
-    min-height: 60px;
+    height: 62px;
     display: flex;
     align-items: center;
-    overflow: visible;
+    overflow: hidden;
     width: 100%;
     box-sizing: border-box;
     touch-action: none;
