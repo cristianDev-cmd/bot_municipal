@@ -6,18 +6,21 @@
 let msg = '';
 let sessionId = '';
 let menuId = '';
+let audio = undefined;
 
 try {
     if ($('Webhook Entrada').first().json.body) {
         msg = $('Webhook Entrada').first().json.body.message || '';
         sessionId = $('Webhook Entrada').first().json.body.sessionId || '';
         menuId = $('Webhook Entrada').first().json.body.menuId || '';
+        audio = $('Webhook Entrada').first().json.body.audio || undefined;
     }
 } catch (e) {
     try {
         msg = $input.item.json.body.message || '';
         sessionId = $input.item.json.body.sessionId || '';
         menuId = $input.item.json.body.menuId || '';
+        audio = $input.item.json.body.audio || undefined;
     } catch (e2) { }
 }
 
@@ -408,4 +411,16 @@ switch (estadoActual) {
         break;
 }
 
-return [{ json: { accion, proximoEstado, datosParaSub, trackingId, sessionId } }];
+let responseJson = { accion, proximoEstado, datosParaSub, trackingId, sessionId };
+
+// Propagar el audio si existe en el webhook de entrada para que los subworkflows de destino lo transcriban
+if (audio) {
+    responseJson.audio = audio;
+    responseJson.body = { sessionId, audio };
+    responseJson.datosParaSub = {
+        ...datosParaSub,
+        audio: audio
+    };
+}
+
+return [{ json: responseJson }];

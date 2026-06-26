@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-26] - Propagación de audio en el Logic Router y persistencia de estado en Rentas
+
+### Cambios Realizados:
+- **Orquestador Principal - Lógica (🧠 Logic Router.js):**
+  - Se modificó la extracción de parámetros del webhook de entrada para capturar de forma segura el campo `audio` (base64) del cuerpo de la petición.
+  - Se actualizó el retorno final para inyectar y propagar la variable `audio` hacia los subworkflows en la raíz, en el objeto `body` y encapsulado en `datosParaSub.audio`. Esto asegura que los subworkflows de destino (como el de Tasas) puedan transcribir y procesar la entrada de voz en lugar de fallar de inmediato al recibir fases vacías o de error.
+
+---
+
 ## [2026-06-25] - Corrección de envío de audio en hold-to-record y mejoras de UI
 
 ### Cambios Realizados:
