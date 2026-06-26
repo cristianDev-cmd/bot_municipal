@@ -187,6 +187,7 @@
 
     function handleTouchMove(e) {
         if ((!isRecording && !isStartingRecording) || !isHolding) return;
+        if (e && e.cancelable) e.preventDefault();
         var touch = e.touches[0];
 
         // --- Lógica de slide-to-cancel ---
@@ -202,6 +203,7 @@
 
     function handleTouchEnd(e) {
         if (!pressStartTime) return;
+        if (e && e.cancelable) e.preventDefault();
         clearTimeout(recordTimeout);
         var pressDuration = Date.now() - pressStartTime;
         pressStartTime = 0;
@@ -383,8 +385,6 @@
         }
         if (input) {
             input.placeholder = "Escribe un mensaje...";
-            input.disabled = false;
-            input.readOnly = false;
         }
         toggleInputButtons();
         hideSlideCancelUI();
@@ -447,7 +447,6 @@
             }
             if (input) {
                 input.placeholder = "Grabando audio...";
-                input.readOnly = true;
             }
 
             if (isHoldMode) {
@@ -831,9 +830,7 @@
             }
             // Enfocar de inmediato para abrir el teclado en móvil
             if (input && !input.disabled) {
-                setTimeout(function() {
-                    input.focus();
-                }, 150);
+                input.focus();
             }
             // 🎯 CICLO INACTIVIDAD: Arrancamos el contador cuando abren el chat
             iniciarTemporizadorInactividad();

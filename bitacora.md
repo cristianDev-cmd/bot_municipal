@@ -2,6 +2,15 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-26] - Corrección de persistencia del teclado móvil en el widget de chat
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se modificó la función de apertura de chat `toggleChat()` para realizar el `.focus()` sobre el input de texto de forma síncrona dentro del hilo de ejecución del evento `click`. Esto evita que los navegadores móviles bloqueen el foco programático que antes se ejecutaba en un `setTimeout` asíncrono, permitiendo levantar el teclado virtual de inmediato.
+  - Se optimizaron las funciones de gestos táctiles `handleTouchMove(e)` y `handleTouchEnd(e)` para invocar `e.preventDefault()` cuando la interacción se ha iniciado en el botón del micrófono (`pressStartTime` activo o grabando). Esto previene que el navegador móvil simule eventos de click o scroll al arrastrar o soltar el dedo en otras partes del chat, evitando que el input de texto pierda el foco y por ende que el teclado se cierre automáticamente.
+- **Frontend - Estilos (styles_widget.css):**
+  - Se removió `pointer-events: none !important;` del input de texto bajo la regla `#textInputContainer.recording-hold-active input`. De esta forma, el input mantiene su interactividad nativa por CSS aunque su opacidad sea cero durante la grabación interactiva por voz, previniendo que los motores móviles de renderizado (WebKit/Blink) descarten el foco y bajen el teclado de manera automática.
+
 ## [2026-06-26] - Mejoras de UX en grabación por voz: corrección de envío, deslizamiento interactivo y botón flotante de micrófono
 
 ### Cambios Realizados:
