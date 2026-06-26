@@ -108,7 +108,7 @@
 
     // --- VARIABLES DE SLIDE-TO-CANCEL ---
     var holdStartX = 0;
-    var SLIDE_CANCEL_THRESHOLD = 80; // px a la izquierda para cancelar
+    var SLIDE_CANCEL_THRESHOLD = 40; // px a la izquierda para cancelar
     var slideCancelIndicator, slideCancelLock;
     var isSlideCancelled = false;
 

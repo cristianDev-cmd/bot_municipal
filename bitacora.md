@@ -2,6 +2,12 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-26] - Reducción del umbral de cancelación de audio a 40px
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se redujo el valor de `SLIDE_CANCEL_THRESHOLD` de `80` a `40` píxeles. Esto incrementa la sensibilidad de cancelación del micrófono, permitiendo que un deslizamiento de dedo hacia la izquierda de más de 40px descarte la grabación, mientras que desplazamientos menores de 40px se envíen automáticamente al soltar.
+
 ## [2026-06-26] - Estabilización de toques de micrófono y tolerancia de touchcancel en móviles
 
 ### Cambios Realizados:
