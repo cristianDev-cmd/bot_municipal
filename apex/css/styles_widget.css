@@ -487,25 +487,25 @@
 .chat-mic-btn.recording-active {
     background-color: #ef4444 !important;
     box-shadow: 0 0 20px 8px rgba(239, 68, 68, 0.65), 0 0 45px 15px rgba(239, 68, 68, 0.3) !important;
-    width: 68px !important;
-    height: 68px !important;
+    width: 40px !important;
+    height: 40px !important;
+    transform: translateY(-8px) scale(1.7) !important;
     animation: pulseMic 1s infinite ease-in-out !important;
     z-index: 10;
     position: relative;
-    top: -8px;
 }
 
 @keyframes pulseMic {
     0% {
-        transform: scale(1);
+        transform: translateY(-8px) scale(1.7);
         box-shadow: 0 0 20px 8px rgba(239, 68, 68, 0.65), 0 0 45px 15px rgba(239, 68, 68, 0.3);
     }
     50% {
-        transform: scale(1.18);
+        transform: translateY(-8px) scale(2.0);
         box-shadow: 0 0 28px 12px rgba(239, 68, 68, 0.75), 0 0 55px 20px rgba(239, 68, 68, 0.35);
     }
     100% {
-        transform: scale(1);
+        transform: translateY(-8px) scale(1.7);
         box-shadow: 0 0 20px 8px rgba(239, 68, 68, 0.65), 0 0 45px 15px rgba(239, 68, 68, 0.3);
     }
 }

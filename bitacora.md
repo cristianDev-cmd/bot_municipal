@@ -2,6 +2,14 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-26] - Estabilización de toques de micrófono y tolerancia de touchcancel en móviles
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se modificó la función [cancelPress(e)](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js#L226) (que responde al evento `touchcancel`) para que actúe de forma tolerante: en lugar de cancelar la grabación incondicionalmente, ahora comprueba si se superó el umbral de cancelación (`isSlideCancelled`). Si el usuario no lo superó (por ejemplo, el toque fue interrumpido por el sistema al mover ligeramente el dedo fuera de las coordenadas iniciales), la grabación se detiene y se envía de forma exitosa mediante [stopRecording()](file:///c:/Users/PC/Desktop/Agente_municipal/apex/js/script_widget.js#L480).
+- **Frontend - Estilos (styles_widget.css):**
+  - Se refactorizó la clase `.chat-mic-btn.recording-active` y la animación `@keyframes pulseMic` para realizar la ampliación visual del micrófono (de 40px a 68px/80px) y su desplazamiento hacia arriba (`top: -8px`) utilizando únicamente propiedades de transformación (`transform: translateY(-8px) scale(...)`). Al mantener inalteradas las dimensiones físicas (`width: 40px`, `height: 40px`) y la posición de layout del elemento, se previene que los navegadores de móviles calculen un reflow geométrico de forma síncrona durante un toque activo, lo cual es la principal causa de que se dispare el evento `touchcancel`.
+
 ## [2026-06-26] - Corrección de persistencia del teclado móvil en el widget de chat
 
 ### Cambios Realizados:

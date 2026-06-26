@@ -226,15 +226,20 @@
         }
     }
 
-    function cancelPress() {
+    function cancelPress(e) {
         clearTimeout(recordTimeout);
         if (isHolding) {
-            if (isRecording) {
-                cancelRecording();
-            } else if (isStartingRecording) {
-                recordingShouldStop = 'cancel';
-            }
             isHolding = false;
+            if (isRecording) {
+                if (isSlideCancelled) {
+                    cancelRecording();
+                } else {
+                    // Si el sistema interrumpe el toque pero no se deslizó para cancelar, enviar de todos modos
+                    stopRecording();
+                }
+            } else if (isStartingRecording) {
+                recordingShouldStop = isSlideCancelled ? 'cancel' : 'stop';
+            }
         }
         hideSlideCancelUI();
     }
