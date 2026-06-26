@@ -110,7 +110,7 @@
     // --- VARIABLES DE SLIDE-TO-CANCEL ---
     var holdStartX = 0;
     var holdStartY = 0;
-    var SLIDE_CANCEL_THRESHOLD = 40; // px en cualquier dirección para cancelar
+    var SLIDE_CANCEL_THRESHOLD = 100; // px movidos hacia la izquierda para cancelar
     var slideCancelIndicator, slideCancelLock;
     var isSlideCancelled = false;
 
@@ -189,10 +189,10 @@
     function handleMouseMove(e) {
         if ((!isRecording && !isStartingRecording) || !isHolding) return;
 
-        // --- Lógica de slide-to-cancel en 2D ---
-        var deltaX = e.clientX - holdStartX;
-        var deltaY = e.clientY - holdStartY;
-        var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        // --- Lógica de slide-to-cancel ---
+        // Solo calculamos el movimiento hacia la izquierda (X) para ser más tolerantes con vibraciones o movimientos verticales
+        var deltaX = holdStartX - e.clientX; 
+        var distance = deltaX > 0 ? deltaX : 0;
         updateSlideCancelState(distance);
 
         // --- Lógica legacy: hover sobre tacho ---
@@ -207,10 +207,10 @@
         if (e && e.cancelable) e.preventDefault();
         var touch = e.touches[0];
 
-        // --- Lógica de slide-to-cancel en 2D ---
-        var deltaX = touch.clientX - holdStartX;
-        var deltaY = touch.clientY - holdStartY;
-        var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        // --- Lógica de slide-to-cancel ---
+        // Solo calculamos el movimiento hacia la izquierda (X) para ser más tolerantes con vibraciones o movimientos verticales
+        var deltaX = holdStartX - touch.clientX; 
+        var distance = deltaX > 0 ? deltaX : 0;
         updateSlideCancelState(distance);
 
         // --- Lógica legacy: hover sobre tacho ---

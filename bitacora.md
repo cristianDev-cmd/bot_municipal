@@ -2,7 +2,13 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-26] - Corrección de envío de audio al soltar el micrófono y ajuste de tap
+## [2026-06-26] - Tolerancia de movimiento direccional (1D) para cancelar grabación
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se modificó la lógica matemática del deslizamiento para cancelar (Slide-to-Cancel). Anteriormente calculaba la distancia absoluta en 2D (arriba, abajo, izquierda, derecha), lo que provocaba que vibraciones o leves movimientos involuntarios del dedo al presionar se acumularan rápidamente y cancelaran el audio por accidente.
+  - Ahora solo se calcula el vector de desplazamiento hacia la **izquierda** (Eje X negativo). Los movimientos verticales (arriba/abajo) o hacia la derecha se ignoran por completo.
+  - Se incrementó la distancia necesaria (umbral) para cancelar de `40px` a `100px`, dándole al usuario un área de tolerancia mucho mayor para acomodar o mover levemente el dedo sin perder su mensaje.## [2026-06-26] - Corrección de envío de audio al soltar el micrófono y ajuste de tap
 
 ### Cambios Realizados:
 - **Frontend - Estilos (styles_widget.css):**
