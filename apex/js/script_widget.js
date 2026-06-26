@@ -237,6 +237,25 @@
         if (!slideCancelIndicator) slideCancelIndicator = document.getElementById('slideCancelIndicator');
         if (!slideCancelLock) slideCancelLock = document.getElementById('slideCancelLock');
 
+        var trash = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-trash') : null;
+        var slideAction = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-action') : null;
+
+        var progress = Math.max(0, Math.min(deltaX / SLIDE_CANCEL_THRESHOLD, 1));
+
+        if (trash) {
+            // Escalar el tacho de basura a medida que nos acercamos a cancelar
+            var scale = 1 + progress * 0.4; // De 1x a 1.4x
+            trash.style.transform = 'scale(' + scale + ')';
+            trash.style.color = progress > 0.85 ? '#ef4444' : '#666'; // Se vuelve rojo al estar cerca del límite
+        }
+
+        if (slideAction) {
+            // Desplazar el texto hacia la izquierda siguiendo el movimiento del dedo
+            var translate = -progress * 25; // Hasta 25px a la izquierda
+            slideAction.style.transform = 'translateX(' + translate + 'px)';
+            slideAction.style.opacity = 1 - progress * 0.8; // Se desvanece
+        }
+
         if (deltaX >= SLIDE_CANCEL_THRESHOLD) {
             // Superó el umbral → marcar como cancelado y mostrar icono de cancelación
             isSlideCancelled = true;
@@ -261,6 +280,19 @@
         if (!slideCancelLock) slideCancelLock = document.getElementById('slideCancelLock');
         if (slideCancelIndicator) slideCancelIndicator.classList.remove('visible');
         if (slideCancelLock) slideCancelLock.classList.remove('visible');
+        
+        // Resetear transformaciones y estilos dinámicos
+        var trash = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-trash') : null;
+        var slideAction = slideCancelIndicator ? slideCancelIndicator.querySelector('.slide-cancel-action') : null;
+        if (trash) {
+            trash.style.transform = '';
+            trash.style.color = '';
+        }
+        if (slideAction) {
+            slideAction.style.transform = '';
+            slideAction.style.opacity = '';
+        }
+        
         isSlideCancelled = false;
     }
 
@@ -312,11 +344,15 @@
     function startRecTimer() {
         recSeconds = 0;
         if (recTimerText) recTimerText.textContent = '0:00';
+        var holdTimerText = document.getElementById('holdTimerText');
+        if (holdTimerText) holdTimerText.textContent = '0:00';
         recTimerInterval = setInterval(function() {
             recSeconds++;
             var m = Math.floor(recSeconds / 60);
             var s = recSeconds % 60;
-            if (recTimerText) recTimerText.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+            var formatted = m + ':' + (s < 10 ? '0' : '') + s;
+            if (recTimerText) recTimerText.textContent = formatted;
+            if (holdTimerText) holdTimerText.textContent = formatted;
         }, 1000);
     }
 
@@ -324,6 +360,8 @@
         clearInterval(recTimerInterval);
         recSeconds = 0;
         if (recTimerText) recTimerText.textContent = '0:00';
+        var holdTimerText = document.getElementById('holdTimerText');
+        if (holdTimerText) holdTimerText.textContent = '0:00';
     }
 
     function resetRecordingUI() {
@@ -359,12 +397,15 @@
             // Si el usuario soltó el micrófono mientras pedíamos permiso/iniciábamos
             if (recordingShouldStop) {
                 var action = recordingShouldStop;
-                recordingShouldStop = false;
-                isStartingRecording = false;
-                
-                stream.getTracks().forEach(track => track.stop());
-                resetRecordingUI();
-                return;
+                if (action === 'cancel') {
+                    recordingShouldStop = false;
+                    isStartingRecording = false;
+                    
+                    stream.getTracks().forEach(track => track.stop());
+                    resetRecordingUI();
+                    return;
+                }
+                // Si es 'stop', dejamos que continúe para que se inicialice y se detenga al final.
             }
 
             mediaRecorder = new MediaRecorder(stream);

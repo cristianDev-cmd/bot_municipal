@@ -2,6 +2,23 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-26] - Mejoras de UX en grabación por voz: corrección de envío, deslizamiento interactivo y botón flotante de micrófono
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se modificó `startRecording(isHoldMode)` para evitar que se aborte la grabación al soltar rápidamente el micrófono en modo hold si el inicio fue muy rápido (ahora solo se aborta si la acción recibida fue 'cancel', de lo contrario se deja continuar el inicio y se detiene correctamente para enviar el audio).
+  - Se actualizaron `startRecTimer()` y `stopRecTimer()` para inicializar y actualizar dinámicamente el tiempo de grabación en la etiqueta `#holdTimerText` del indicador hold.
+  - Se actualizó `updateSlideCancelState(deltaX)` para ofrecer feedback interactivo y fluido al usuario mientras arrastra el dedo hacia la izquierda: el tacho de basura se escala (de 1.0x hasta 1.4x) y se colorea de rojo al aproximarse al umbral de cancelación, y el texto deslizante se traslada a la izquierda y se desvanece de forma proporcional al movimiento.
+  - Se actualizó `hideSlideCancelUI()` para restaurar dinámicamente las transformaciones y opacidades aplicadas a los elementos del indicador de cancelación al finalizar la interacción.
+- **Frontend - Estructura HTML (widget.html):**
+  - Se rediseñó el indicador `#slideCancelIndicator` en el modo hold para integrar las barras de ondas de audio (`.hold-waves`), el indicador de tiempo de grabación (`#holdTimer`) y agrupar el texto/flecha en una sección dedicada (`.slide-cancel-action`), emulando la animación de la grabación en modo tap.
+- **Frontend - Estilos (styles_widget.css):**
+  - Se cambió `overflow: hidden;` por `overflow: visible;` en `.chat-input-area` para permitir que el botón flotante del micrófono en grabación activa sobresalga de la caja de texto sin recortarse en la parte superior e inferior.
+  - Se añadió `top: -8px;` a la clase `.chat-mic-btn.recording-active` para desplazar verticalmente hacia arriba el botón agrandado del micrófono durante la grabación, asegurando que sobresalga estéticamente del chat y no se recorte con el borde inferior del widget (que tiene `overflow: hidden;`).
+  - Se definieron y optimizaron estilos CSS para los nuevos componentes del modo hold: `.hold-waves`, `.slide-cancel-trash` y la alineación flexible (`justify-content: space-between`) de `.slide-cancel-indicator`.
+
+---
+
 ## [2026-06-26] - Propagación de audio en el Logic Router y persistencia de estado en Rentas
 
 ### Cambios Realizados:
