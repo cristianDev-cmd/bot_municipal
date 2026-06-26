@@ -49,6 +49,7 @@
     overflow: visible;
     width: 100%;
     box-sizing: border-box;
+    touch-action: none;
 }
 
 .input-mode {
@@ -63,6 +64,7 @@
     transform: translateY(-50%);
     padding: 0 10px;
     box-sizing: border-box;
+    touch-action: none;
 }
 
 .input-mode.active {
@@ -510,10 +512,11 @@
 
 /* Ocultamiento del input en grabación hold */
 #textInputContainer.recording-hold-active input {
-    color: transparent !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 #textInputContainer.recording-hold-active input::placeholder {
-    color: transparent !important;
+    opacity: 0 !important;
 }
 
 .slide-cancel-indicator {

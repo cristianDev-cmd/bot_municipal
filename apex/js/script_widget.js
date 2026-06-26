@@ -657,8 +657,26 @@
         }
         toggleInputButtons();
 
-        // --- VINCULACIÓN DE EVENTOS ---
-        if (input) input.addEventListener('input', toggleInputButtons);
+        if (input) {
+            input.addEventListener('input', toggleInputButtons);
+            input.addEventListener('blur', function() {
+                if (widget && !widget.classList.contains('hidden')) {
+                    setTimeout(function() {
+                        var activeEl = document.activeElement;
+                        // Evitar re-enfocar si el usuario hizo clic en botones de control
+                        var isControlBtn = activeEl && (
+                            activeEl.closest('.header-controls') || 
+                            activeEl.id === 'btnClose' || 
+                            activeEl.id === 'btnClear' ||
+                            activeEl.id === 'chatLauncher'
+                        );
+                        if (!isControlBtn && input && !input.disabled && document.activeElement !== input) {
+                            input.focus();
+                        }
+                    }, 80);
+                }
+            });
+        }
 
         // --- EVENT LISTENERS UI ---
         if (launcher) launcher.addEventListener('click', toggleChat);
@@ -810,6 +828,12 @@
                 renderChatElement(welcomeMsg);
                 history.push(welcomeMsg);
                 localStorage.setItem("chat_history", JSON.stringify(history));
+            }
+            // Enfocar de inmediato para abrir el teclado en móvil
+            if (input && !input.disabled) {
+                setTimeout(function() {
+                    input.focus();
+                }, 150);
             }
             // 🎯 CICLO INACTIVIDAD: Arrancamos el contador cuando abren el chat
             iniciarTemporizadorInactividad();
