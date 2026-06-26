@@ -158,7 +158,7 @@
         recordTimeout = setTimeout(function () {
             isHolding = true;
             if (!isRecording && !isStartingRecording) startRecording(true); // true = modo hold
-        }, 300);
+        }, 100);
     }
 
     function endPress(e) {
@@ -182,7 +182,7 @@
             hideSlideCancelUI();
         } else {
             // Tap corto: toggle tradicional (mantener compatibilidad)
-            if (pressDuration < 300) toggleRecording();
+            if (pressDuration < 100) toggleRecording();
         }
     }
 
@@ -241,12 +241,13 @@
             }
             hideSlideCancelUI();
         } else {
-            if (pressDuration < 300) toggleRecording();
+            if (pressDuration < 100) toggleRecording();
         }
     }
 
     function cancelPress(e) {
         clearTimeout(recordTimeout);
+        pressStartTime = 0;
         if (isHolding) {
             isHolding = false;
             if (isRecording) {

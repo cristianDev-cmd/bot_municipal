@@ -2,6 +2,13 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-26] - Corrección de envío de audio al soltar el micrófono y ajuste de tap
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se redujo drásticamente el umbral de tiempo que diferencia un toque corto (tap) de un toque sostenido (hold) sobre el micrófono, bajando de `300ms` a `100ms` en las funciones `startPress`, `endPress` y `handleTouchEnd`. 
+  - Esta modificación corrige el error de usabilidad donde los usuarios hablaban rápidamente (entre 100ms y 300ms) y al soltar el botón no se enviaba el audio, debido a que el sistema lo interpretaba como un "tap" (activando el modo manos libres) en lugar de un "hold" (que envía automáticamente al soltar). Ahora, cualquier pulsación superior a 100ms se considera grabación sostenida y se detiene/envía satisfactoriamente al levantar el dedo de la pantalla.
+  - Se añadió la inicialización segura `pressStartTime = 0;` dentro de `cancelPress(e)` para garantizar que el estado temporal se reinicie completamente ante cancelaciones abruptas del sistema móvil.
 ## [2026-06-26] - Medición de distancia de cancelación en 2D y resolución de bloqueos en toques rápidos
 
 ### Cambios Realizados:
