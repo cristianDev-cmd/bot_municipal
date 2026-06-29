@@ -641,7 +641,7 @@
             if (recTimer) {
                 var cancelHint = document.createElement('span');
                 cancelHint.className = 'rec-cancel-hint';
-                cancelHint.textContent = 'Soltar para cancelar ✕';
+                cancelHint.textContent = 'Presiona para cancelar ✕';
                 recTimer.appendChild(cancelHint);
             }
         }

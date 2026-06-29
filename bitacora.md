@@ -2,6 +2,12 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-29] - Corrección ortográfica y cambio en la ayuda visual de cancelación de grabación
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se actualizó el texto del elemento `cancelHint` de `'Soltar para cancelar ✕'` a `'Presiona para cancelar ✕'` para ajustarse al modo correspondiente y se corrigió un error de ortografía ("Preciona" -> "Presiona").
+
 ## [2026-06-26] - Dinamización del texto de ayuda de grabación según el modo de captura (Hold/Tap)
 
 ### Cambios Realizados:
