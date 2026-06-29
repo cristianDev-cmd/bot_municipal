@@ -262,7 +262,13 @@
             if (textContainer) {
                 textContainer.classList.remove('hidden-mode');
                 textContainer.classList.add('active');
-                if (input && !input.disabled) input.focus();
+                if (input && !input.disabled) {
+                    input.focus();
+                    setTimeout(function () {
+                        var inputArea = document.querySelector('.chat-input-area');
+                        if (inputArea) inputArea.scrollTop = 0;
+                    }, 150);
+                }
                 var inputArea = document.querySelector('.chat-input-area');
                 if (inputArea) inputArea.scrollTop = 0;
             }
@@ -497,6 +503,15 @@
             textContainer.classList.remove('hidden-mode');
             textContainer.classList.add('active');
             iniciarTemporizadorInactividad();
+            if (input && !input.disabled) {
+                input.focus();
+                setTimeout(function () {
+                    var inputArea = document.querySelector('.chat-input-area');
+                    if (inputArea) inputArea.scrollTop = 0;
+                }, 150);
+            }
+            var inputArea = document.querySelector('.chat-input-area');
+            if (inputArea) inputArea.scrollTop = 0;
         }, 300);
     }
 
@@ -747,7 +762,13 @@
                 history.push(welcomeMsg);
                 localStorage.setItem("chat_history", JSON.stringify(history));
             }
-            if (input && !input.disabled) input.focus();
+            if (input && !input.disabled) {
+                input.focus();
+                setTimeout(function () {
+                    var inputArea = document.querySelector('.chat-input-area');
+                    if (inputArea) inputArea.scrollTop = 0;
+                }, 150);
+            }
             iniciarTemporizadorInactividad();
         } else {
             widget.classList.add("hidden");
@@ -839,7 +860,9 @@
 
         input.value = "";
         toggleInputButtons();
-        hideRatingSystem();
+        if (ratingContainer && ratingContainer.classList.contains('active')) {
+            hideRatingSystem();
+        }
         showTyping();
 
         var cleanHistory = history.map(function (m) {

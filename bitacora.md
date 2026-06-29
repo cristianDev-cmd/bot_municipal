@@ -2,11 +2,16 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
-## [2026-06-29] - Ajuste y simplificación de los textos de ayuda visual en la grabación
+## [2026-06-29] - Corrección de barra de entrada en blanco y simplificación de textos de ayuda
 
 ### Cambios Realizados:
 - **Frontend - Lógica (script_widget.js):**
-  - Se simplificaron los textos de ayuda en la interfaz de grabación: se configuró `'Enviar'` como texto de envío para ambos modos de captura (Hold/Tap) dentro de `showRecordingUI`, y se definió `'Cancelar'` como texto de cancelación para los elementos creados de forma dinámica.
+  - **Corrección de interfaz en blanco:**
+    - Se implementó un reseteo de scroll diferido (`inputArea.scrollTop = 0` tras 150ms) en `hideRecordingUI()`, `hideRatingSystem()` y `toggleChat()` para evitar que el ajuste de viewport que realiza el navegador móvil al enfocar el input y levantar el teclado virtual deje la barra de entrada desplazada fuera del contenedor oculto.
+    - Se agregaron reseteos de scroll y la acción de hacer foco en `hideRatingSystem()` al salir del estado de calificación con estrellas.
+    - Se condicionó la ejecución de `hideRatingSystem()` en `sendMessage()` para que solo ocurra cuando la calificación esté activa, evitando la creación de timeouts de 300ms innecesarios y solapados durante el envío de mensajes o audios normales.
+  - **Textos de ayuda de grabación:**
+    - Se simplificaron los textos de ayuda en la interfaz de grabación: se configuró `'Enviar'` como texto de envío para ambos modos de captura (Hold/Tap) dentro de `showRecordingUI`, y se definió `'Cancelar'` como texto de cancelación para los elementos creados de forma dinámica.
 
 ## [2026-06-26] - Dinamización del texto de ayuda de grabación según el modo de captura (Hold/Tap)
 
