@@ -2,6 +2,19 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-29] - Ajustes restrictivos en System Prompt y mejoras en agente reformulador
+
+### Cambios Realizados:
+- **Backend (n8n Workflows - Subworkflow Asesor):**
+  - **Agente Reformulador (AI Agent2):** Se aplicaron instrucciones sistémicas mucho más estrictas para el rol de motor de optimización de consultas. Ahora tiene prohibido responder al usuario o emitir mensajes de fallback, y debe devolver única y exclusivamente la pregunta reformulada en texto plano sin bloques markdown.
+  - **Condición de Validación (If1):** Se agregó una tercera frase de saludo institucional a la validación condicional para evitar que se procesen respuestas prearmadas del bot como si fuesen historiales válidos para reformular.
+  - **Búsqueda Vectorial (Qdrant):** Se ajustaron nuevamente los parámetros `topK`, regresando la mayoría a `2`, mientras que `licencia_conducir` pasó a `3`.
+  - **Seguridad (API Key):** Se reemplazó nuevamente la API Key de Google Gemini expuesta en el nodo TTS "Pedir audio" por el placeholder `{{TU_API_KEY_DE_GEMINI}}` para evitar bloqueos por el escaneo de secretos de GitHub.
+- **System Prompt (`n8n/systempromt.md`):**
+  - **Regla de Rentas:** Se corrigió el typo de la instrucción de explicación.
+  - **Regla 4 (Fallback):** Se impuso un mensaje exacto de fallback obligatorio para cuando las preguntas están fuera de contexto municipal o faltan datos factuales.
+  - **Regla 7 (Saludos):** Se prohibió estrictamente que el agente comience sus respuestas saludando, dando la bienvenida o utilizando frases de cortesía, ya que la interfaz se encarga del saludo inicial automáticamente.
+
 ## [2026-06-29] - Refactorización del reformulador de preguntas y actualizaciones en Subworkflow Asesor
 
 ### Cambios Realizados:

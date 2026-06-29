@@ -17,15 +17,15 @@
         "promptType": "define",
         "text": "={{ $('mensaje  entrante').item.json.mensaje }}\n",
         "options": {
-          "systemMessage": "={{ $('Leer_Sysstem_Prompt').item.json.Leer_Prompt }}\n\n# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\n",
+          "systemMessage": "={{ $json.Leer_Prompt }}\n\n# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\n",
           "enableStreaming": true
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        2112,
-        48
+        2432,
+        112
       ],
       "id": "76f6f198-3f70-451f-8217-f64339f0e49c",
       "name": "AI Agent",
@@ -38,8 +38,8 @@
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
       "typeVersion": 1,
       "position": [
-        2912,
-        816
+        3264,
+        736
       ],
       "id": "f6981608-3272-4263-ab3d-446153ad7ae2",
       "name": "Embeddings Google Gemini",
@@ -86,7 +86,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 3,
+        "topK": 2,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"desarrollo_social\"\n      }\n    }\n  ]\n}",
@@ -96,8 +96,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2096,
-        656
+        2448,
+        576
       ],
       "id": "42fe60f5-e86e-4d74-89d2-eb5ab040d058",
       "name": "desarrollo_social",
@@ -118,7 +118,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 5,
+        "topK": 2,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"rentas\"\n      }\n    }\n  ]\n}",
@@ -128,8 +128,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2208,
-        528
+        2560,
+        448
       ],
       "id": "499eef8e-804a-4a3d-affc-36213758100b",
       "name": "rentas",
@@ -150,7 +150,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 3,
+        "topK": 2,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"transparencia_institucional\"\n      }\n    }\n  ]\n}",
@@ -160,8 +160,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2400,
-        640
+        2752,
+        560
       ],
       "id": "e080f9ba-4094-4115-9940-db1b0d5701d4",
       "name": "transparencia_institucional",
@@ -182,6 +182,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
+        "topK": 3,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"licencia_conducir\"\n      }\n    }\n  ]\n}",
@@ -191,8 +192,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2544,
-        528
+        2896,
+        448
       ],
       "id": "76cc30df-a914-431f-8dae-46d88af590b1",
       "name": "licencia_conducir",
@@ -213,7 +214,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 3,
+        "topK": 2,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"veterinaria\"\n      }\n    }\n  ]\n}",
@@ -223,8 +224,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2704,
-        624
+        3056,
+        544
       ],
       "id": "3d55f4ba-4a81-4666-aae8-23df3606e630",
       "name": "Veterinaria",
@@ -245,7 +246,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 3,
+        "topK": 2,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"juzgado_vial\"\n      }\n    }\n  ]\n}",
@@ -255,8 +256,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3008,
-        624
+        3360,
+        544
       ],
       "id": "3cd408f3-2015-497a-8df9-19c5156f8fc4",
       "name": "juzgado_vial",
@@ -277,7 +278,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 3,
+        "topK": 2,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"deporte_bien_estar\"\n      }\n    }\n  ]\n}",
@@ -287,8 +288,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3200,
-        528
+        3552,
+        448
       ],
       "id": "d9e03fde-1ba1-49ee-8bee-87466ce2c581",
       "name": "deporte_bien_estar",
@@ -309,7 +310,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 3,
+        "topK": 2,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"tramite_a_distancia\"\n      }\n    }\n  ]\n}",
@@ -319,8 +320,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2832,
-        528
+        3184,
+        448
       ],
       "id": "9bf87feb-e9c4-45ae-9455-85f35636f739",
       "name": "tramite_distancia",
@@ -338,8 +339,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        1936,
-        432
+        2400,
+        336
       ],
       "id": "58a5ae3a-a8a7-47e7-a92c-77a7b4d03078",
       "name": "Google Gemini Chat Model",
@@ -990,14 +991,14 @@
     {
       "parameters": {
         "content": "# Base de datos vectorial",
-        "height": 1264,
-        "width": 1904,
+        "height": 688,
+        "width": 2000,
         "color": 5
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1824,
-        -384
+        2288,
+        256
       ],
       "typeVersion": 1,
       "id": "f85b689c-50da-4653-b75d-9738889563d9",
@@ -1021,14 +1022,14 @@
     {
       "parameters": {
         "content": "# Prepara audio\n",
-        "height": 336,
+        "height": 432,
         "width": 5312,
         "color": "#1C3121"
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        416,
-        -560
+        448,
+        -576
       ],
       "typeVersion": 1,
       "id": "f278a8ef-d26c-43b4-9cc7-59570c39af99",
@@ -1091,6 +1092,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
+        "topK": 2,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"desambiguacion\"\n      }\n    }\n  ]\n}",
@@ -1100,8 +1102,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3632,
-        640
+        3984,
+        560
       ],
       "id": "f5117b8b-439f-4b0a-9b78-9eb188e3af61",
       "name": "desambiguacion",
@@ -1304,8 +1306,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        4288,
-        -48
+        4256,
+        64
       ],
       "id": "c4a5cdda-a9bd-46d4-8172-639914a2889a",
       "name": "Switch1"
@@ -1334,8 +1336,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        4704,
-        -208
+        4672,
+        -96
       ],
       "id": "1d7a981c-7b6a-46d0-b2bd-5a80995e611e",
       "name": "Call 'Subworkflow - Tasas - Todos los periodos'"
@@ -1347,8 +1349,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4464,
-        -144
+        4432,
+        -32
       ],
       "id": "5455bcd2-6e3c-49ac-8143-23625c7227a5",
       "name": "Code in JavaScript"
@@ -1639,7 +1641,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2928,
+        2992,
         96
       ],
       "id": "ccc4f2e7-0a69-42b1-ae20-a454bbb3280f",
@@ -1687,8 +1689,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        3440,
-        -160
+        3456,
+        -224
       ],
       "id": "53607ca4-0876-447c-801e-e0926011b7e7",
       "name": "AI Agent1"
@@ -1700,8 +1702,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        3440,
-        16
+        3456,
+        -16
       ],
       "id": "d5765cf6-fa23-439e-b2e6-7d70f8265441",
       "name": "Google Gemini Chat Model1",
@@ -1732,8 +1734,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3344,
-        640
+        3696,
+        560
       ],
       "id": "65f1c612-1002-4598-8cab-14352fe24715",
       "name": "obras_general",
@@ -1764,8 +1766,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3536,
-        512
+        3888,
+        432
       ],
       "id": "8d71702a-aa04-42b1-b6b9-e8d682a833ce",
       "name": "obras_tecnico",
@@ -1783,8 +1785,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        2000,
-        -80
+        2480,
+        -16
       ],
       "id": "38bc4ad2-4bf1-4770-9831-29cf0d15e982",
       "name": "Google Gemini Chat Model Reformulador",
@@ -1797,23 +1799,6 @@
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "=# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\nPregunta original: {{ $('mensaje  entrante').item.json.mensaje }}\nPregunta reformulada:",
-        "options": {
-          "systemMessage": "=Debes Reformular la pregunta teniendo en cuenta el historial del chat.\n\nTienes el system prompt original para que sepas tu identidad.\n\n{{ $('Leer_Sysstem_Prompt').item.json.Leer_Prompt }}"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
-      "position": [
-        2112,
-        -176
-      ],
-      "id": "d648fb5e-2a69-4d54-be23-7522e8c869bf",
-      "name": "AI Agent2"
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
@@ -1823,9 +1808,9 @@
           },
           "conditions": [
             {
-              "id": "13eadbf2-6c1f-4e4d-8044-6b2eedf5bf60",
-              "leftValue": "={{ \n  $runIndex === 0 && \n  ($('Leer_Historial').item.json.propertyName || '').trim().length > 4 && \n  [\n    \"Solo puedo ayudarte con trámites y consultas relacionadas con la Municipalidad de Las Heras. Si tenés alguna pregunta sobre servicios municipales, con gusto te asisto.\",\n    \"Solo puedo ayudarte con temas municipales de Las Heras.\\n\\nSi querés, podemos volver al menú principal para que consultes sobre trámites o servicios de la Municipalidad.\"\n  ].includes(($json.output || '').trim()) \n}}",
-              "rightValue": 0,
+              "id": "6bc37c2e-932e-4236-ba8b-8ccc959d145c",
+              "leftValue": "={{ \n  $runIndex === 0 && \n  ($('Leer_Historial').item.json.propertyName || '').trim().length > 4 && \n  [\n    \"Solo puedo ayudarte con trámites y consultas relacionadas con la Municipalidad de Las Heras. Si tenés alguna pregunta sobre servicios municipales, con gusto te asisto.\",\n    \"Solo puedo ayudarte con temas municipales de Las Heras.\\n\\nSi querés, podemos volver al menú principal para que consultes sobre trámites o servicios de la Municipalidad.\",\n    \"¡Hola! Soy Gregorio, el asistente virtual de la Municipalidad de Las Heras.\\n\\nEstoy para ayudarte con tus trámites y consultas municipales.\\n\\n¿En qué puedo asistirte hoy?\"\n  ].includes(($json.output || '').trim()) \n}}",
+              "rightValue": "",
               "operator": {
                 "type": "boolean",
                 "operation": "true",
@@ -1840,11 +1825,28 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2512,
-        32
+        2704,
+        -224
       ],
-      "id": "0d53ded4-83c9-412b-a2e2-1e60c4948a13",
-      "name": "valida para reformular pregunta"
+      "id": "44873947-fced-408b-8e77-0ad1b4c25958",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=## Historial de Conversación:\n{{ $('Leer_Historial').item.json.propertyName || 'Sin historial previo' }}\n\n## Último Mensaje del Usuario:\n{{ $('mensaje  entrante').item.json.mensaje }}\n\n## Tu salida (Pregunta optimizada en texto plano):",
+        "options": {
+          "systemMessage": "=# Rol y Misión\nSos un motor técnico de optimización de consultas y reescritura de búsquedas para un sistema RAG municipal. Tu única función es transformar el último input del usuario y el historial de chat en una única pregunta independiente, clara y completamente autocontenida que exprese la verdadera intención del usuario.\n\n# Instrucciones de Ejecución\n1. Lee detenidamente el historial de la conversación para entender el contexto (de qué trámite, dirección o área municipal se está hablando).\n2. Lee el último mensaje del usuario. Si el mensaje es ambiguo, incompleto o usa pronombres (ej: \"quiero pagar eso\", \"¿cuánto sale?\", \"¿dónde es?\"), reescríbelo integrando los datos del historial para que se entienda por sí solo en primera persona (como si fueses el usuario).\n3. Si el último mensaje del usuario ya es una pregunta clara, específica y autocontenida (ej: \"¿Cuáles son los requisitos para la licencia de conducir?\"), devuélvela exactamente igual, sin modificarle nada.\n\n# 🚨 REGLAS CRÍTICAS DE CONTROL (ESTRICTO)\n1. PROHIBIDO RESPONDER AL USUARIO: Tu trabajo NO es solucionar la duda del vecino, ni dar información sobre trámites, ni actuar como Gregorio. No debes responder el fondo de la pregunta.\n2. PROHIBIDO USAR MENSAJES DE FALLBACK: Bajo ninguna circunstancia debes emitir textos de disculpa, ni frases como \"Solo puedo ayudarte con temas municipales...\". Tu salida siempre debe ser una pregunta de usuario estructurada.\n3. FORMATO DE SALIDA RÍGIDO: Devuelve ÚNICA y EXCLUSIVAMENTE la pregunta reformulada en texto plano. Está terminantemente prohibido agregar introducciones (como \"La pregunta reformulada es:\"), explicaciones, saludos o envolver el resultado en bloques de código markdown (no uses ```). \n4. Si la entrada del usuario es un saludo, una despedida o una palabra suelta sin contexto en el historial, devuélvela tal cual en texto plano (ej: \"hola\" o \"gracias\")."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2176,
+        -256
+      ],
+      "id": "25e3cbba-fba2-4c7f-ac39-479890f18ed6",
+      "name": "AI Agent2"
     }
   ],
   "pinData": {
@@ -1852,7 +1854,7 @@
       {
         "json": {
           "shouldProcess": true,
-          "sessionId": "ba66de9f-da85-4fdc-b0e1-2c5dfd1ee90a",
+          "sessionId": "26ccef52-2445-4bd0-ba0e-9fd7be4c2d6e",
           "accion": "EXEC_SUB_ASESOR_NUBE",
           "proximoEstado": "ESPERANDO_ASESOR_NUBE",
           "trackingId": 1201,
@@ -1945,7 +1947,7 @@
       "main": [
         [
           {
-            "node": "valida para reformular pregunta",
+            "node": "If1",
             "type": "main",
             "index": 0
           }
@@ -2576,18 +2578,7 @@
         ]
       ]
     },
-    "AI Agent2": {
-      "main": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "valida para reformular pregunta": {
+    "If1": {
       "main": [
         [
           {
@@ -2599,6 +2590,17 @@
         [
           {
             "node": "Resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
             "type": "main",
             "index": 0
           }
@@ -2616,7 +2618,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "timezone": "America/Argentina/Buenos_Aires"
   },
-  "versionId": "5a21686f-2725-4873-a9f3-f9191ca71925",
+  "versionId": "f54a717b-dc1a-4d9b-b936-b849560ea5b1",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "46593b1e7eb065395f40f358db9a0ae03edbb5beb280dc22d9dffa4cc9c1f3c3"
