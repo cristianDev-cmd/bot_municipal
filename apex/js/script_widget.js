@@ -633,7 +633,7 @@
             // "Soltar para enviar" a la derecha (donde estaría el botón enviar)
             var releaseHint = document.createElement('span');
             releaseHint.className = 'rec-release-hint';
-            releaseHint.textContent = 'Presiona ▶ para enviar';
+            releaseHint.textContent = 'Enviar';
             recordingContainer.appendChild(releaseHint);
 
             // "Soltar para cancelar" dentro del timer (se muestra al estar sobre el tacho)
@@ -641,7 +641,7 @@
             if (recTimer) {
                 var cancelHint = document.createElement('span');
                 cancelHint.className = 'rec-cancel-hint';
-                cancelHint.textContent = 'Presiona para cancelar ✕';
+                cancelHint.textContent = 'Cancelar';
                 recTimer.appendChild(cancelHint);
             }
         }
