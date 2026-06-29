@@ -244,7 +244,7 @@
             recordingContainer.classList.remove('hidden-mode');
             // Actualizar texto según modo
             var hint = recordingContainer.querySelector('.rec-release-hint');
-            if (hint) hint.textContent = isHoldMode ? 'Soltar para enviar ▶' : 'Presiona ▶ para enviar';
+            if (hint) hint.textContent = isHoldMode ? 'Enviar' : 'Enviar';
             setTimeout(function () { recordingContainer.classList.add('active'); }, 30);
         }
         startRecTimer();

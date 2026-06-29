@@ -6,7 +6,7 @@ Este archivo registra las tareas, decisiones y cambios realizados en el proyecto
 
 ### Cambios Realizados:
 - **Frontend - Lógica (script_widget.js):**
-  - Se simplificaron los textos de ayuda de la interfaz de grabación en modo Hold: se configuró `'Enviar'` como texto de envío y `'Cancelar'` como texto de cancelación.
+  - Se simplificaron los textos de ayuda en la interfaz de grabación: se configuró `'Enviar'` como texto de envío para ambos modos de captura (Hold/Tap) dentro de `showRecordingUI`, y se definió `'Cancelar'` como texto de cancelación para los elementos creados de forma dinámica.
 
 ## [2026-06-26] - Dinamización del texto de ayuda de grabación según el modo de captura (Hold/Tap)
 
