@@ -2,6 +2,13 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-29] - Corrección de error de sintaxis en Orquestador Principal
+
+### Cambios Realizados:
+- **Backend (n8n Workflows - Orquestador Principal):**
+  - Se corrigió un error de sintaxis en el nodo de código **"JSON Menu Principal1"** (línea 993 de `Chatbot Las Heras - Orquestador Principal Memoria (23-6-2026).json`). 
+  - El error se producía por la falta de comillas de cierre en la declaración de la variable `reply` (`const reply = "...<br> ;`), lo que generaba un `Invalid or unexpected token SyntaxError` e impedía que el flujo respondiera correctamente al botón "Volver al inicio". Se cerraron correctamente las comillas.
+
 ## [2026-06-29] - Ajustes restrictivos en System Prompt y mejoras en agente reformulador
 
 ### Cambios Realizados:
