@@ -2,6 +2,18 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-29] - Refactorización del reformulador de preguntas y actualizaciones en Subworkflow Asesor
+
+### Cambios Realizados:
+- **Backend (n8n Workflows - Subworkflow Asesor):**
+  - **Reformulador de Preguntas:** Se reemplazó el nodo `Chain LLM` ("Reformular Pregunta") y el nodo de tipo `Set` ("Pasar Pregunta Original") por un nuevo nodo de tipo `AI Agent` ("AI Agent2"). Este nuevo agente se encarga de reformular la pregunta utilizando el historial del chat y el System Prompt original (`Leer_Sysstem_Prompt`).
+  - **Condición de Validación:** Se actualizó el nodo condicional (ahora llamado "valida para reformular pregunta") para añadir condiciones más estrictas (`$runIndex === 0`, validación de longitud del historial, e inclusión de respuestas específicas de fallback en `$json.output`).
+  - **Búsqueda Vectorial (Qdrant):** Se actualizó el parámetro `topK` a `3` en múltiples colecciones (`desarrollo_social`, `transparencia_institucional`, `Veterinaria`, `juzgado_vial`, `deporte_bien_estar`, `tramite_distancia`) y a `5` en la colección de `rentas`. Se eliminó el parámetro de la colección de licencias.
+  - **Texto a Voz (TTS):** Se actualizó la URL de la API de Google Gemini TTS para incluir una clave de API directa en lugar de utilizar la variable `{{TU_API_KEY_DE_GEMINI}}`.
+  - **Ajustes Visuales:** Se reposicionaron múltiples nodos y se reescalaron las notas adhesivas de organización ("Base de datos vectorial" y "Prepara audio") dentro del lienzo de n8n.
+- **System Prompt (`n8n/systempromt.md`):**
+  - Se eliminó un espacio en blanco sobrante al final de la directiva sobre pluralidad en "inmuebles y comercios".
+
 ## [2026-06-29] - Prevención del salto del input usando overflow: clip en el CSS
 
 ### Cambios Realizados:

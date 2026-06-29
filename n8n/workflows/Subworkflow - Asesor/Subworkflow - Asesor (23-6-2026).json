@@ -15,17 +15,17 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.text }}\n\n",
+        "text": "={{ $('mensaje  entrante').item.json.mensaje }}\n",
         "options": {
-          "systemMessage": "={{ $json.Leer_Prompt }}\n\n# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\n",
+          "systemMessage": "={{ $('Leer_Sysstem_Prompt').item.json.Leer_Prompt }}\n\n# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\n",
           "enableStreaming": true
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        2704,
-        96
+        2112,
+        48
       ],
       "id": "76f6f198-3f70-451f-8217-f64339f0e49c",
       "name": "AI Agent",
@@ -38,8 +38,8 @@
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
       "typeVersion": 1,
       "position": [
-        3264,
-        736
+        2912,
+        816
       ],
       "id": "f6981608-3272-4263-ab3d-446153ad7ae2",
       "name": "Embeddings Google Gemini",
@@ -86,7 +86,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 2,
+        "topK": 3,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"desarrollo_social\"\n      }\n    }\n  ]\n}",
@@ -96,8 +96,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2448,
-        576
+        2096,
+        656
       ],
       "id": "42fe60f5-e86e-4d74-89d2-eb5ab040d058",
       "name": "desarrollo_social",
@@ -118,7 +118,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 2,
+        "topK": 5,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"rentas\"\n      }\n    }\n  ]\n}",
@@ -128,8 +128,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2560,
-        448
+        2208,
+        528
       ],
       "id": "499eef8e-804a-4a3d-affc-36213758100b",
       "name": "rentas",
@@ -150,7 +150,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 2,
+        "topK": 3,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"transparencia_institucional\"\n      }\n    }\n  ]\n}",
@@ -160,8 +160,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2752,
-        560
+        2400,
+        640
       ],
       "id": "e080f9ba-4094-4115-9940-db1b0d5701d4",
       "name": "transparencia_institucional",
@@ -182,7 +182,6 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 3,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"licencia_conducir\"\n      }\n    }\n  ]\n}",
@@ -192,8 +191,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        2896,
-        448
+        2544,
+        528
       ],
       "id": "76cc30df-a914-431f-8dae-46d88af590b1",
       "name": "licencia_conducir",
@@ -214,7 +213,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 2,
+        "topK": 3,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {\n        \"value\": \"veterinaria\"\n      }\n    }\n  ]\n}",
@@ -224,8 +223,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3056,
-        544
+        2704,
+        624
       ],
       "id": "3d55f4ba-4a81-4666-aae8-23df3606e630",
       "name": "Veterinaria",
@@ -246,7 +245,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 2,
+        "topK": 3,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"juzgado_vial\"\n      }\n    }\n  ]\n}",
@@ -256,8 +255,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3360,
-        544
+        3008,
+        624
       ],
       "id": "3cd408f3-2015-497a-8df9-19c5156f8fc4",
       "name": "juzgado_vial",
@@ -278,7 +277,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 2,
+        "topK": 3,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"deporte_bien_estar\"\n      }\n    }\n  ]\n}",
@@ -288,8 +287,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3552,
-        448
+        3200,
+        528
       ],
       "id": "d9e03fde-1ba1-49ee-8bee-87466ce2c581",
       "name": "deporte_bien_estar",
@@ -310,7 +309,7 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 2,
+        "topK": 3,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"tramite_a_distancia\"\n      }\n    }\n  ]\n}",
@@ -320,8 +319,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3184,
-        448
+        2832,
+        528
       ],
       "id": "9bf87feb-e9c4-45ae-9455-85f35636f739",
       "name": "tramite_distancia",
@@ -339,8 +338,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        2400,
-        336
+        1936,
+        432
       ],
       "id": "58a5ae3a-a8a7-47e7-a92c-77a7b4d03078",
       "name": "Google Gemini Chat Model",
@@ -991,14 +990,14 @@
     {
       "parameters": {
         "content": "# Base de datos vectorial",
-        "height": 688,
-        "width": 2000,
+        "height": 1264,
+        "width": 1904,
         "color": 5
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        2288,
-        256
+        1824,
+        -384
       ],
       "typeVersion": 1,
       "id": "f85b689c-50da-4653-b75d-9738889563d9",
@@ -1022,14 +1021,14 @@
     {
       "parameters": {
         "content": "# Prepara audio\n",
-        "height": 432,
+        "height": 336,
         "width": 5312,
         "color": "#1C3121"
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        448,
-        -576
+        416,
+        -560
       ],
       "typeVersion": 1,
       "id": "f278a8ef-d26c-43b4-9cc7-59570c39af99",
@@ -1092,7 +1091,6 @@
           "mode": "list",
           "cachedResultName": "memoriaNube2"
         },
-        "topK": 2,
         "includeDocumentMetadata": false,
         "options": {
           "searchFilterJson": "{\n  \"must\": [\n    {\n      \"key\": \"metadata.area\",\n      \"match\": {        \"value\":\"desambiguacion\"\n      }\n    }\n  ]\n}",
@@ -1102,8 +1100,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3984,
-        560
+        3632,
+        640
       ],
       "id": "f5117b8b-439f-4b0a-9b78-9eb188e3af61",
       "name": "desambiguacion",
@@ -1306,8 +1304,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        4256,
-        64
+        4288,
+        -48
       ],
       "id": "c4a5cdda-a9bd-46d4-8172-639914a2889a",
       "name": "Switch1"
@@ -1336,8 +1334,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        4672,
-        -96
+        4704,
+        -208
       ],
       "id": "1d7a981c-7b6a-46d0-b2bd-5a80995e611e",
       "name": "Call 'Subworkflow - Tasas - Todos los periodos'"
@@ -1349,8 +1347,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4432,
-        -32
+        4464,
+        -144
       ],
       "id": "5455bcd2-6e3c-49ac-8143-23625c7227a5",
       "name": "Code in JavaScript"
@@ -1641,7 +1639,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2992,
+        2928,
         96
       ],
       "id": "ccc4f2e7-0a69-42b1-ae20-a454bbb3280f",
@@ -1689,8 +1687,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        3456,
-        -224
+        3440,
+        -160
       ],
       "id": "53607ca4-0876-447c-801e-e0926011b7e7",
       "name": "AI Agent1"
@@ -1702,8 +1700,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        3456,
-        -16
+        3440,
+        16
       ],
       "id": "d5765cf6-fa23-439e-b2e6-7d70f8265441",
       "name": "Google Gemini Chat Model1",
@@ -1734,8 +1732,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3696,
-        560
+        3344,
+        640
       ],
       "id": "65f1c612-1002-4598-8cab-14352fe24715",
       "name": "obras_general",
@@ -1766,8 +1764,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        3888,
-        432
+        3536,
+        512
       ],
       "id": "8d71702a-aa04-42b1-b6b9-e8d682a833ce",
       "name": "obras_tecnico",
@@ -1780,14 +1778,13 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-1.5-flash",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        2250,
-        -180
+        2000,
+        -80
       ],
       "id": "38bc4ad2-4bf1-4770-9831-29cf0d15e982",
       "name": "Google Gemini Chat Model Reformulador",
@@ -1803,17 +1800,17 @@
         "promptType": "define",
         "text": "=# HISTORIAL RECIENTE DE LA CONVERSACIÓN\n[INICIO DEL HISTORIAL]\n{{ $('Leer_Historial').item.json.propertyName || \"Sin historial previo.\" }}\n[FIN DEL HISTORIAL]\n\nPregunta original: {{ $('mensaje  entrante').item.json.mensaje }}\nPregunta reformulada:",
         "options": {
-          "systemMessage": "Tu única tarea es recibir una pregunta del usuario y el historial reciente de la conversación para generar una pregunta reformulada, independiente y autocontenida en español.\n\nLos temas del conocimiento de la Municipalidad de Las Heras que se pueden consultar son:\n1. RENTAS: Pago de tasas de inmueble (casa) y comercio (negocio), deudas, boletas municipales, facturación y el valor de la unidad tributaria. NOTA: \"Rentas\" en esta municipalidad siempre se refiere a la Dirección de Rentas, encargada del cobro de tasas, códigos y boletas.\n2. LICENCIA DE CONDUCIR: Obtención y renovación de carnet de conducir, turnos, requisitos, boletas CENAT y cursos de educación vial.\n3. VETERINARIA: Castración, vacunación antirrábica y turnos veterinarios municipales.\n4. OBRAS PRIVADAS E INFRAESTRUCTURA: Trámites de obras (previa, obra nueva, relevamientos, ampliaciones, requisitos, expedientes), bacheo, luminarias, arbolado y limpieza de calles.\n5. JUZGADO VIAL: Multas de tránsito, fotomultas, descargos, apelaciones y restitución de vehículos.\n6. TRÁMITE A DISTANCIA: Habilitaciones comerciales de negocios, factibilidad comercial y creación de cuentas web.\n7. DEPORTE Y BIENESTAR: Polideportivos, escuelas de verano, colonias, natación, fútbol, credenciales deportivas y turnos de psicología.\n8. TRANSPARENCIA E INTENDENTE: Información sobre el Intendente Francisco Lo Presti, autoridades y decretos municipales.\n9. DESARROLLO SOCIAL: Certificado Único de Discapacidad (CUD), asistencia social, pensiones y programas de familia y hábitat.\n\nREGLAS DE REFORMULACIÓN:\n- Si la pregunta hace referencia a temas conversados en el historial (ej: \"¿cuánto sale?\", \"¿dónde queda?\"), reescríbela para que sea una pregunta independiente que incluya el contexto del tema (ej: \"¿Cuál es el costo del trámite de la licencia de conducir?\").\n- Si el usuario menciona términos generales como \"rentas\", \"juzgado\", \"obras\", etc., asegúrate de que la pregunta reformulada los vincule al contexto de la Municipalidad de Las Heras.\n- Si la pregunta del usuario es sobre un tema que NO está dentro del conocimiento de la municipalidad mencionado arriba (por ejemplo, preguntas de cultura general, programación, otros países o temas ajenos), NO reformules nada y devuelve la pregunta original exactamente igual.\n- NO respondas la pregunta bajo ninguna circunstancia.\n- Devuelve únicamente la pregunta reformulada final, sin introducciones ni aclaraciones de tu parte."
+          "systemMessage": "=Debes Reformular la pregunta teniendo en cuenta el historial del chat.\n\nTienes el system prompt original para que sepas tu identidad.\n\n{{ $('Leer_Sysstem_Prompt').item.json.Leer_Prompt }}"
         }
       },
-      "type": "@n8n/n8n-nodes-langchain.chainLlm",
-      "typeVersion": 1.4,
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
       "position": [
-        2250,
-        48
+        2112,
+        -176
       ],
-      "id": "e9df845b-d01c-43f1-94bf-87d2bc51ea46",
-      "name": "Reformular Pregunta"
+      "id": "d648fb5e-2a69-4d54-be23-7522e8c869bf",
+      "name": "AI Agent2"
     },
     {
       "parameters": {
@@ -1826,9 +1823,9 @@
           },
           "conditions": [
             {
-              "id": "historial-valido-uuid-cond",
-              "leftValue": "={{ ($('Leer_Historial').item.json.propertyName || '').trim().length > 4 }}",
-              "rightValue": "",
+              "id": "13eadbf2-6c1f-4e4d-8044-6b2eedf5bf60",
+              "leftValue": "={{ \n  $runIndex === 0 && \n  ($('Leer_Historial').item.json.propertyName || '').trim().length > 4 && \n  [\n    \"Solo puedo ayudarte con trámites y consultas relacionadas con la Municipalidad de Las Heras. Si tenés alguna pregunta sobre servicios municipales, con gusto te asisto.\",\n    \"Solo puedo ayudarte con temas municipales de Las Heras.\\n\\nSi querés, podemos volver al menú principal para que consultes sobre trámites o servicios de la Municipalidad.\"\n  ].includes(($json.output || '').trim()) \n}}",
+              "rightValue": 0,
               "operator": {
                 "type": "boolean",
                 "operation": "true",
@@ -1843,34 +1840,11 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1950,
-        96
+        2512,
+        32
       ],
-      "id": "ae98f45b-d01c-43f1-94bf-87d2bc51ea46",
-      "name": "Tiene Historial"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "pass-msg-original-val",
-              "name": "text",
-              "value": "={{ $('mensaje  entrante').item.json.mensaje }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        2250,
-        220
-      ],
-      "id": "cd9f845b-d01c-43f1-94bf-87d2bc51ea46",
-      "name": "Pasar Pregunta Original"
+      "id": "0d53ded4-83c9-412b-a2e2-1e60c4948a13",
+      "name": "valida para reformular pregunta"
     }
   ],
   "pinData": {
@@ -1878,13 +1852,13 @@
       {
         "json": {
           "shouldProcess": true,
-          "sessionId": "dfa7a610-2bf8-47f4-9797-099e3bd3f4be",
+          "sessionId": "ba66de9f-da85-4fdc-b0e1-2c5dfd1ee90a",
           "accion": "EXEC_SUB_ASESOR_NUBE",
           "proximoEstado": "ESPERANDO_ASESOR_NUBE",
           "trackingId": 1201,
           "datosParaSub": {
             "fase": "MANTENER_ESPERA",
-            "mensaje": "como saco la licencia de conducir?",
+            "mensaje": "como llego a cordoba?",
             "audio": null
           }
         },
@@ -1971,7 +1945,7 @@
       "main": [
         [
           {
-            "node": "Resumen",
+            "node": "valida para reformular pregunta",
             "type": "main",
             "index": 0
           }
@@ -2305,7 +2279,7 @@
       "main": [
         [
           {
-            "node": "Tiene Historial",
+            "node": "AI Agent",
             "type": "main",
             "index": 0
           }
@@ -2595,14 +2569,14 @@
       "ai_languageModel": [
         [
           {
-            "node": "Reformular Pregunta",
+            "node": "AI Agent2",
             "type": "ai_languageModel",
             "index": 0
           }
         ]
       ]
     },
-    "Reformular Pregunta": {
+    "AI Agent2": {
       "main": [
         [
           {
@@ -2613,29 +2587,18 @@
         ]
       ]
     },
-    "Tiene Historial": {
+    "valida para reformular pregunta": {
       "main": [
         [
           {
-            "node": "Reformular Pregunta",
+            "node": "AI Agent2",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Pasar Pregunta Original",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Pasar Pregunta Original": {
-      "main": [
-        [
-          {
-            "node": "AI Agent",
+            "node": "Resumen",
             "type": "main",
             "index": 0
           }
@@ -2653,7 +2616,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "timezone": "America/Argentina/Buenos_Aires"
   },
-  "versionId": "24062c59-321a-48f1-b25d-c9e6c1632bb8",
+  "versionId": "5a21686f-2725-4873-a9f3-f9191ca71925",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "46593b1e7eb065395f40f358db9a0ae03edbb5beb280dc22d9dffa4cc9c1f3c3"
