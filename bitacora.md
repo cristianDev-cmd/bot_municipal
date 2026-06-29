@@ -2,6 +2,12 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-29] - Prevención del salto del input usando overflow: clip en el CSS
+
+### Cambios Realizados:
+- **Frontend - Estilos (styles_widget.css):**
+  - Se modificó la propiedad `overflow: hidden;` a `overflow: clip;` en la clase `.chat-input-area`. Esta solución nativa de CSS evita que los navegadores móviles fuercen un scroll automático (scroll anchoring) dentro del contenedor cuando el código JavaScript hace un `input.focus()` sobre un contenedor que está momentáneamente desplazado por animaciones de transformación (`translateY`). Al cortar este comportamiento de raíz, se elimina definitivamente el problema donde el input se iba "más arriba y desaparecía" al quitar las estrellas o soltar el audio.
+
 ## [2026-06-29] - Corrección de barra de entrada en blanco y simplificación de textos de ayuda
 
 ### Cambios Realizados:
