@@ -2,6 +2,12 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-30] - Autoplay de audios del Bot en el Widget
+
+### Cambios Realizados:
+- **Frontend - Lógica (script_widget.js):**
+  - Se corrigió la condición de reproducción automática (autoplay) para los audios que envía el bot. El reproductor intentaba validar que el rol fuera exactamente `'bot'`, cuando el rol usado por el sistema para construir los mensajes es `'assistant'`. Se ajustó la condición a `(msg.role === 'bot' || msg.role === 'assistant')`, permitiendo que los audios se reproduzcan automáticamente al ser recibidos.
+
 ## [2026-06-30] - Alineación inferior de mensajes en el Chat Widget
 
 ### Cambios Realizados:

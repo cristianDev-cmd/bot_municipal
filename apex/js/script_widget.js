@@ -570,7 +570,7 @@
             audioPlayer.style.width = "100%";
             audioPlayer.style.marginTop = "8px";
             div.appendChild(audioPlayer);
-            if (msg.role === 'bot') setTimeout(function () { audioPlayer.play().catch(function () { }); }, 300);
+            if (msg.role === 'bot' || msg.role === 'assistant') setTimeout(function () { audioPlayer.play().catch(function () { }); }, 300);
         }
 
         if (tieneBotones) {
