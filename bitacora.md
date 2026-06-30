@@ -2,6 +2,13 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-30] - Alineación inferior de mensajes en el Chat Widget
+
+### Cambios Realizados:
+- **Frontend - Estilos (styles_widget.css):**
+  - Se modificó el contenedor `.chat-messages` agregando `display: flex;` y `flex-direction: column;`.
+  - Se implementó un pseudo-elemento `::before` con `flex: 1;` dentro del contenedor. Este truco CSS empuja todos los mensajes hacia la parte inferior (cerca de la barra de entrada) cuando hay pocos mensajes, pero mantiene perfectamente intacta la funcionalidad de scroll cuando la conversación se llena, ofreciendo una experiencia más parecida a aplicaciones de mensajería como WhatsApp.
+
 ## [2026-06-30] - Actualización de flujos de n8n y correcciones lógicas en enrutamiento
 
 ### Cambios Realizados:
