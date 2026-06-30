@@ -2,6 +2,12 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-30] - Corrección visual del reproductor de audio del usuario
+
+### Cambios Realizados:
+- **Frontend - Interfaz (script_widget.js):**
+  - Se agregó `minWidth = "250px"` a las propiedades en línea de los elementos `<audio>`. Esto soluciona un problema visual donde el reproductor se comprimía (squished) en los mensajes enviados por el usuario debido al comportamiento de *shrink* de flexbox cuando las burbujas de mensaje no contenían texto.
+
 ## [2026-06-30] - Autoplay de audios del Bot en el Widget
 
 ### Cambios Realizados:

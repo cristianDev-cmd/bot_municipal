@@ -567,6 +567,7 @@
             audioPlayer.controls = true;
             audioPlayer.className = "chat-audio-player";
             audioPlayer.src = msg.audio.startsWith('data:audio') ? msg.audio : 'data:audio/wav;base64,' + msg.audio;
+            audioPlayer.style.minWidth = "250px";
             audioPlayer.style.width = "100%";
             audioPlayer.style.marginTop = "8px";
             div.appendChild(audioPlayer);
