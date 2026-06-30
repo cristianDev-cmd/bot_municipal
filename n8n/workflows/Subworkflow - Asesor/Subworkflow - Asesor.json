@@ -448,7 +448,8 @@
         112
       ],
       "id": "99cf9307-6197-422d-9712-334d5ede2e31",
-      "name": "verifica audio"
+      "name": "verifica audio",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -1809,12 +1810,11 @@
           "conditions": [
             {
               "id": "6bc37c2e-932e-4236-ba8b-8ccc959d145c",
-              "leftValue": "={{ \n  $runIndex === 0 && \n  ($('Leer_Historial').item.json.propertyName || '').trim().length > 4 && \n  [\n    \"Solo puedo ayudarte con trámites y consultas relacionadas con la Municipalidad de Las Heras. Si tenés alguna pregunta sobre servicios municipales, con gusto te asisto.\",\n    \"Solo puedo ayudarte con temas municipales de Las Heras.\\n\\nSi querés, podemos volver al menú principal para que consultes sobre trámites o servicios de la Municipalidad.\",\n    \"¡Hola! Soy Gregorio, el asistente virtual de la Municipalidad de Las Heras.\\n\\nEstoy para ayudarte con tus trámites y consultas municipales.\\n\\n¿En qué puedo asistirte hoy?\"\n  ].includes(($json.output || '').trim()) \n}}",
-              "rightValue": "",
+              "leftValue": "={{ \n  $runIndex === 0 && \n  ($('Leer_Historial').item.json.propertyName || '').trim().length > 4 && \n  !(/^\\d+$/.test(($json.output || '').trim()))\n}}\n",
+              "rightValue": "true",
               "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
+                "type": "string",
+                "operation": "equals"
               }
             }
           ],
@@ -1854,13 +1854,13 @@
       {
         "json": {
           "shouldProcess": true,
-          "sessionId": "26ccef52-2445-4bd0-ba0e-9fd7be4c2d6e",
+          "sessionId": "a57a0083-3681-478c-84e9-669756ac1a73",
           "accion": "EXEC_SUB_ASESOR_NUBE",
           "proximoEstado": "ESPERANDO_ASESOR_NUBE",
           "trackingId": 1201,
           "datosParaSub": {
             "fase": "MANTENER_ESPERA",
-            "mensaje": "como llego a cordoba?",
+            "mensaje": "quiero pagar",
             "audio": null
           }
         },
@@ -2618,7 +2618,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "timezone": "America/Argentina/Buenos_Aires"
   },
-  "versionId": "f54a717b-dc1a-4d9b-b936-b849560ea5b1",
+  "versionId": "22e7fb82-b638-4030-afb7-8f4f69134025",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "46593b1e7eb065395f40f358db9a0ae03edbb5beb280dc22d9dffa4cc9c1f3c3"

@@ -2,6 +2,18 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-06-30] - Actualización de flujos de n8n y correcciones lógicas en enrutamiento
+
+### Cambios Realizados:
+- **Backend (n8n Workflows):**
+  - **Subworkflow Asesor:** 
+    - Se corrigió la expresión del nodo de comprobación de historial (Redis) para evitar el error `Wrong type: 'false '`.
+    - Se refactorizó el código JavaScript del enrutador de Tasas, eliminando referencias a nodos inexistentes (usando directamente `$input.first().json`).
+    - Se solucionó el problema de bucle ("loop al menú principal") al recibir padrones numéricos sueltos (como audios) leyendo el contexto (si la IA venía de preguntar por inmueble o comercio) directamente desde el historial de Redis.
+    - Se eliminó la validación estricta de audio que forzaba a que todo audio marcara una `CONSULTA_COMERCIO` sin tener padrón.
+  - **Manejo de Archivos:** Se eliminaron las versiones anteriores de los archivos JSON de los flujos y se cargaron los nuevos en su lugar.
+  - **Repositorio:** Fusión de rama `pre` a `main` y subida a GitHub.
+
 ## [2026-06-29] - Corrección de error de sintaxis en Orquestador Principal
 
 ### Cambios Realizados:
