@@ -812,27 +812,20 @@
         setTimeout(function () { 
             var lastMsg = messages.lastElementChild;
             if (lastMsg) {
-                var visibleHeight = messages.clientHeight;
-                var prevMsg = lastMsg.previousElementSibling;
+                // Evaluamos el alto disponible (el teclado de Android lo reduce automáticamente)
+                var visibleHeight = messages.clientHeight || 400;
                 
-                // Si el mensaje nuevo + 60px del anterior superan el alto visible (ej. mensaje muy largo)
-                if (lastMsg.offsetHeight + 60 > visibleHeight) {
-                    // Si la pantalla quedó pequeña (teclado de celular abierto, < 400px), 
-                    // priorizamos el mensaje nuevo pegándolo arriba para aprovechar el poco espacio
-                    if (visibleHeight < 400) {
-                        var offset = lastMsg.getBoundingClientRect().top - messages.getBoundingClientRect().top + messages.scrollTop;
-                        messages.scrollTop = offset - 10;
-                    } 
-                    // Si la pantalla es grande, mostramos 60px del mensaje anterior como contexto
-                    else if (prevMsg) {
-                        var prevBottom = prevMsg.getBoundingClientRect().bottom - messages.getBoundingClientRect().top + messages.scrollTop;
-                        messages.scrollTop = prevBottom - 60;
+                if (lastMsg.offsetHeight > visibleHeight * 0.8) {
+                    var prevMsg = lastMsg.previousElementSibling;
+                    if (prevMsg) {
+                        // Usamos scrollIntoView nativo para asegurar que el mensaje anterior
+                        // quede anclado arriba y se vea junto con el inicio del nuevo,
+                        // sin importar qué tan pequeña quede la pantalla por el teclado.
+                        prevMsg.scrollIntoView({ behavior: 'auto', block: 'start' });
                     } else {
-                        var offset = lastMsg.getBoundingClientRect().top - messages.getBoundingClientRect().top + messages.scrollTop;
-                        messages.scrollTop = offset - 20; 
+                        lastMsg.scrollIntoView({ behavior: 'auto', block: 'start' });
                     }
                 } else {
-                    // Comportamiento normal: scroll al final porque cabe todo
                     messages.scrollTop = messages.scrollHeight;
                 }
             }
