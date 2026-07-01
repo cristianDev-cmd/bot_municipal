@@ -814,8 +814,16 @@
             if (lastMsg) {
                 // Si el mensaje es más alto que la ventana de chat, mostramos su inicio
                 if (lastMsg.offsetHeight > messages.clientHeight) {
-                    var offset = lastMsg.getBoundingClientRect().top - messages.getBoundingClientRect().top + messages.scrollTop;
-                    messages.scrollTop = offset - 20; // 20px de margen para que "respire" arriba
+                    var prevMsg = lastMsg.previousElementSibling;
+                    if (prevMsg) {
+                        // Obtenemos la posición del final del mensaje anterior
+                        var prevBottom = prevMsg.getBoundingClientRect().bottom - messages.getBoundingClientRect().top + messages.scrollTop;
+                        // Restamos unos 60 píxeles para que se vea la mitad inferior de tu mensaje anterior
+                        messages.scrollTop = prevBottom - 60;
+                    } else {
+                        var offset = lastMsg.getBoundingClientRect().top - messages.getBoundingClientRect().top + messages.scrollTop;
+                        messages.scrollTop = offset - 20; 
+                    }
                 } else {
                     // Comportamiento normal: scroll al final
                     messages.scrollTop = messages.scrollHeight;
