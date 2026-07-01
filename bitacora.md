@@ -2,6 +2,18 @@
 
 Este archivo registra las tareas, decisiones y cambios realizados en el proyecto en orden cronológico inverso (el cambio más reciente primero).
 
+## [2026-07-01] - Tooltip animado en el Widget cerrado
+
+### Cambios Realizados:
+- **Frontend - Estructura HTML (widget.html):**
+  - Se agregó el elemento `<div class="chat-tooltip">¿Cómo podemos ayudarte?</div>` dentro del botón `#chatLauncher` para mostrar un mensaje sugerente cuando el widget está cerrado.
+- **Frontend - Estilos (styles_widget.css):**
+  - Se añadieron estilos para `.chat-tooltip` con diseño en forma de globo de diálogo (incluyendo el "piquito" mediante pseudoelementos `::before` y `::after`).
+  - Se implementó la animación continua `@keyframes floatTooltip` que desplaza suavemente el globo en el eje X para captar la atención del usuario.
+  - Se añadió la clase `.chat-tooltip.hidden` para ocultar el tooltip de forma fluida.
+- **Frontend - Lógica (script_widget.js):**
+  - Se modificó la función `toggleChat()` para ocultar el tooltip animado cuando el chat se abre, y volver a mostrarlo cuando se cierra.
+
 ## [2026-06-30] - Corrección visual del reproductor de audio del usuario
 
 ### Cambios Realizados:

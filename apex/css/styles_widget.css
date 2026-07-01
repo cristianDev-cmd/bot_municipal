@@ -246,6 +246,67 @@
     pointer-events: none;
 }
 
+/* TOOLTIP DE GREGORIO */
+.chat-tooltip {
+    position: absolute;
+    right: 85px; /* Al lado izquierdo del botón (70px width + 15px margin) */
+    top: 50%;
+    transform: translateY(-50%);
+    background: #ffffff;
+    color: #333333;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e2e8f0;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    animation: floatTooltip 3s ease-in-out infinite;
+}
+
+/* Borde del piquito (sombra/borde) */
+.chat-tooltip::before {
+    content: '';
+    position: absolute;
+    right: -7px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 7px 0 7px 7px;
+    border-style: solid;
+    border-color: transparent transparent transparent #e2e8f0;
+}
+
+/* El piquito del globo de texto (fondo) */
+.chat-tooltip::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 6px 0 6px 6px;
+    border-style: solid;
+    border-color: transparent transparent transparent #ffffff;
+}
+
+@keyframes floatTooltip {
+    0%, 100% {
+        transform: translateY(-50%) translateX(0);
+    }
+    50% {
+        transform: translateY(-50%) translateX(-8px);
+    }
+}
+
+.chat-tooltip.hidden {
+    opacity: 0;
+    transform: translateY(-50%) translateX(20px);
+    pointer-events: none;
+    animation: none;
+}
+
 /* WIDGET */
 .chat-container {
     position: fixed;

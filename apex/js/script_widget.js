@@ -747,8 +747,10 @@
     // --- APERTURA / CIERRE DEL CHAT ---
     // ==========================================
     function toggleChat() {
+        var tooltip = document.querySelector('.chat-tooltip');
         if (widget.classList.contains("hidden")) {
             widget.classList.remove("hidden");
+            if (tooltip) tooltip.classList.add("hidden");
             unreadCount = 0;
             updateBadge();
             scrollToBottom();
@@ -773,6 +775,7 @@
             iniciarTemporizadorInactividad();
         } else {
             widget.classList.add("hidden");
+            if (tooltip) tooltip.classList.remove("hidden");
             clearTimeout(inactivityTimer);
         }
     }
