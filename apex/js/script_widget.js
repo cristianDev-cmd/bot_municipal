@@ -739,14 +739,21 @@
         var tooltip = document.querySelector('.gregorio-tooltip-box');
         if (!tooltip) {
             tooltip = document.createElement('div');
-            tooltip.className = 'gregorio-tooltip-box';
+            tooltip.className = 'gregorio-tooltip-box hidden'; // Inicialmente oculto
             tooltip.textContent = '¿Cómo podemos ayudarte?';
             document.body.appendChild(tooltip);
-        }
-        
-        // Si el chat ya está abierto al cargar, ocultar el tooltip
-        if (widget && !widget.classList.contains("hidden")) {
-            tooltip.classList.add("hidden");
+            
+            // Mostrar a los 4 segundos si el widget no está abierto
+            setTimeout(function() {
+                if (widget && widget.classList.contains("hidden")) {
+                    tooltip.classList.remove("hidden");
+                }
+            }, 4000);
+        } else {
+            // Si el chat ya está abierto al recargar o ejecutar de nuevo, ocultar el tooltip
+            if (widget && !widget.classList.contains("hidden")) {
+                tooltip.classList.add("hidden");
+            }
         }
     }
 
