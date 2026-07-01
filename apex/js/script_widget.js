@@ -809,7 +809,18 @@
     }
 
     function scrollToBottom() {
-        setTimeout(function () { messages.scrollTop = messages.scrollHeight; }, 50);
+        setTimeout(function () { 
+            var lastMsg = messages.lastElementChild;
+            if (lastMsg) {
+                // Si el mensaje es más alto que la ventana de chat, mostramos su inicio
+                if (lastMsg.offsetHeight > messages.clientHeight) {
+                    lastMsg.scrollIntoView({ behavior: 'auto', block: 'start' });
+                } else {
+                    // Comportamiento normal: scroll al final
+                    messages.scrollTop = messages.scrollHeight;
+                }
+            }
+        }, 50);
     }
 
     function updateBadge() {
