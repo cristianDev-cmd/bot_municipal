@@ -53,7 +53,10 @@
         transition: opacity 0.3s ease, transform 0.3s ease !important;
         animation: floatTooltip 3s ease-in-out infinite !important;
         font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-        z-index: 99990 !important;
+        z-index: 2147483647 !important;
+        display: block !important;
+        visibility: visible !important;
+        width: max-content !important;
     }
 
     .chat-tooltip::before {
