@@ -812,20 +812,27 @@
         setTimeout(function () { 
             var lastMsg = messages.lastElementChild;
             if (lastMsg) {
-                // Si el mensaje es más alto que la ventana de chat, mostramos su inicio
-                if (lastMsg.offsetHeight > messages.clientHeight) {
-                    var prevMsg = lastMsg.previousElementSibling;
-                    if (prevMsg) {
-                        // Obtenemos la posición del final del mensaje anterior
+                var visibleHeight = messages.clientHeight;
+                var prevMsg = lastMsg.previousElementSibling;
+                
+                // Si el mensaje nuevo + 60px del anterior superan el alto visible (ej. mensaje muy largo)
+                if (lastMsg.offsetHeight + 60 > visibleHeight) {
+                    // Si la pantalla quedó pequeña (teclado de celular abierto, < 400px), 
+                    // priorizamos el mensaje nuevo pegándolo arriba para aprovechar el poco espacio
+                    if (visibleHeight < 400) {
+                        var offset = lastMsg.getBoundingClientRect().top - messages.getBoundingClientRect().top + messages.scrollTop;
+                        messages.scrollTop = offset - 10;
+                    } 
+                    // Si la pantalla es grande, mostramos 60px del mensaje anterior como contexto
+                    else if (prevMsg) {
                         var prevBottom = prevMsg.getBoundingClientRect().bottom - messages.getBoundingClientRect().top + messages.scrollTop;
-                        // Restamos unos 60 píxeles para que se vea la mitad inferior de tu mensaje anterior
                         messages.scrollTop = prevBottom - 60;
                     } else {
                         var offset = lastMsg.getBoundingClientRect().top - messages.getBoundingClientRect().top + messages.scrollTop;
                         messages.scrollTop = offset - 20; 
                     }
                 } else {
-                    // Comportamiento normal: scroll al final
+                    // Comportamiento normal: scroll al final porque cabe todo
                     messages.scrollTop = messages.scrollHeight;
                 }
             }
