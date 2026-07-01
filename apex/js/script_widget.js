@@ -814,7 +814,8 @@
             if (lastMsg) {
                 // Si el mensaje es más alto que la ventana de chat, mostramos su inicio
                 if (lastMsg.offsetHeight > messages.clientHeight) {
-                    lastMsg.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    var offset = lastMsg.getBoundingClientRect().top - messages.getBoundingClientRect().top + messages.scrollTop;
+                    messages.scrollTop = offset - 20; // 20px de margen para que "respire" arriba
                 } else {
                     // Comportamiento normal: scroll al final
                     messages.scrollTop = messages.scrollHeight;
