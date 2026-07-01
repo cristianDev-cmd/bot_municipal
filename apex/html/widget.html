@@ -34,7 +34,7 @@
     }
 
     /* TOOLTIP DE GREGORIO (Fuerza visualización contra caché) */
-    .chat-tooltip {
+    .gregorio-tooltip-box {
         position: fixed !important;
         right: 115px !important; /* 30px (botón right) + 70px (ancho botón) + 15px (margen) */
         bottom: 65px !important; /* Centro exacto del botón (30 + 35) */
@@ -59,7 +59,7 @@
         width: max-content !important;
     }
 
-    .chat-tooltip::before {
+    .gregorio-tooltip-box::before {
         content: '' !important;
         position: absolute !important;
         right: -7px !important;
@@ -70,7 +70,7 @@
         border-color: transparent transparent transparent #e2e8f0 !important;
     }
 
-    .chat-tooltip::after {
+    .gregorio-tooltip-box::after {
         content: '' !important;
         position: absolute !important;
         right: -6px !important;
@@ -86,7 +86,7 @@
         50% { transform: translateY(50%) translateX(-8px); }
     }
 
-    .chat-tooltip.hidden {
+    .gregorio-tooltip-box.hidden {
         opacity: 0 !important;
         transform: translateY(50%) translateX(20px) !important;
         pointer-events: none !important;
@@ -100,7 +100,6 @@
 <audio id="soundReceive" src="https://web6.lasheras.gob.ar/apex/gumuser/escudo/img/7" preload="auto"></audio>
 <audio id="soundTyping" src="https://web6.lasheras.gob.ar/apex/gumuser/escudo/img/9" preload="auto" loop></audio>
 
-<div class="chat-tooltip">¿Cómo podemos ayudarte?</div>
 <button id="chatLauncher" title="Abrir Asistente" type="button">
     <div class="pulse-ring"></div>
     <div class="image-container swing-animation">

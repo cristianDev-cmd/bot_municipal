@@ -734,6 +734,20 @@
         if (messages && history) {
             history.forEach(function (m) { renderChatElement(m); });
         }
+
+        // --- CREAR Y MONTAR TOOLTIP EN EL BODY (Para evadir stacking contexts de APEX) ---
+        var tooltip = document.querySelector('.gregorio-tooltip-box');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.className = 'gregorio-tooltip-box';
+            tooltip.textContent = '¿Cómo podemos ayudarte?';
+            document.body.appendChild(tooltip);
+        }
+        
+        // Si el chat ya está abierto al cargar, ocultar el tooltip
+        if (widget && !widget.classList.contains("hidden")) {
+            tooltip.classList.add("hidden");
+        }
     }
 
     // --- CARGA SEGURA ---
@@ -747,7 +761,7 @@
     // --- APERTURA / CIERRE DEL CHAT ---
     // ==========================================
     function toggleChat() {
-        var tooltip = document.querySelector('.chat-tooltip');
+        var tooltip = document.querySelector('.gregorio-tooltip-box');
         if (widget.classList.contains("hidden")) {
             widget.classList.remove("hidden");
             if (tooltip) tooltip.classList.add("hidden");
