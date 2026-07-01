@@ -60,6 +60,7 @@
     // ==========================================
     // --- LÓGICA DE INACTIVIDAD ---
     // ==========================================
+    var chatWasOpenedOnce = false; // Flag para rastrear si el chat se abrió al menos una vez
     function iniciarTemporizadorInactividad() {
         clearTimeout(inactivityTimer);
         if (userRating > 0 || (ratingContainer && ratingContainer.classList.contains('active'))) return;
@@ -743,16 +744,17 @@
             tooltip.textContent = '¿Cómo podemos ayudarte?';
             document.body.appendChild(tooltip);
             
-            // Mostrar a los 4 segundos si el widget no está abierto
+            // Mostrar a los 4 segundos si el widget no está abierto ni se abrió antes
             setTimeout(function() {
-                if (widget && widget.classList.contains("hidden")) {
+                if (widget && widget.classList.contains("hidden") && !chatWasOpenedOnce) {
                     tooltip.classList.remove("hidden");
                 }
             }, 4000);
         } else {
-            // Si el chat ya está abierto al recargar o ejecutar de nuevo, ocultar el tooltip
+            // Si el chat ya está abierto al recargar o ejecutar de nuevo, destruir el tooltip
             if (widget && !widget.classList.contains("hidden")) {
-                tooltip.classList.add("hidden");
+                chatWasOpenedOnce = true;
+                if (tooltip && tooltip.parentNode) tooltip.parentNode.removeChild(tooltip);
             }
         }
     }
@@ -771,7 +773,13 @@
         var tooltip = document.querySelector('.gregorio-tooltip-box');
         if (widget.classList.contains("hidden")) {
             widget.classList.remove("hidden");
-            if (tooltip) tooltip.classList.add("hidden");
+            chatWasOpenedOnce = true;
+            
+            // Destruir el tooltip permanentemente al abrir el chat
+            if (tooltip && tooltip.parentNode) {
+                tooltip.parentNode.removeChild(tooltip);
+            }
+            
             unreadCount = 0;
             updateBadge();
             scrollToBottom();
@@ -796,7 +804,6 @@
             iniciarTemporizadorInactividad();
         } else {
             widget.classList.add("hidden");
-            if (tooltip) tooltip.classList.remove("hidden");
             clearTimeout(inactivityTimer);
         }
     }
